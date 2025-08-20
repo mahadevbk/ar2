@@ -1574,6 +1574,7 @@ def display_birthday_message(birthday_players):
 # --- Main App Logic ---
 load_players()
 load_matches()
+cleanup_expired_bookings()
 load_bookings()
 
 # Check for and display birthday messages
