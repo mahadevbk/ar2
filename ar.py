@@ -2602,11 +2602,14 @@ with tabs[4]:
             bookings_df = bookings_df.drop(columns=['players'])
         
         # Create datetime column
-        bookings_df['datetime'] = pd.to_datetime(
-            bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
-            errors='coerce',
-            utc=True
-        ).dt.tz_convert('Asia/Dubai')
+        # Create a naive datetime first (no timezone)
+          naive_datetime = pd.to_datetime(
+          bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
+          errors='coerce'
+        )
+
+        # Correctly localize the naive datetime to Dubai's timezone
+        bookings_df['datetime'] = naive_datetime.dt.tz_localize('Asia/Dubai', ambiguous='infer')
         
         # Filter upcoming bookings
         upcoming_bookings = bookings_df[
