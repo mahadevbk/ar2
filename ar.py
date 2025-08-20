@@ -2603,7 +2603,7 @@ with tabs[4]:
         
         # Create datetime column
         # Create a naive datetime first (no timezone)
-          naive_datetime = pd.to_datetime(
+        naive_datetime = pd.to_datetime(
           bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
           errors='coerce'
         )
