@@ -1186,9 +1186,10 @@ def save_bookings(df):
     try:
         df_to_save = df.copy()
         if 'date' in df_to_save.columns:
-            df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce').dt.date
+            # Keep full datetime with seconds
+            df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce')
             df_to_save = df_to_save.dropna(subset=['date'])
-            df_to_save['date'] = df_to_save['date'].astype(str)  # Ensure date is string for JSON
+            df_to_save['date'] = df_to_save['date'].dt.strftime("%Y-%m-%d %H:%M:%S")
 
         # Check for and remove duplicate booking_id values
         duplicates = df_to_save[df_to_save.duplicated(subset=['booking_id'], keep=False)]
