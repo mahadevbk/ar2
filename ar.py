@@ -1140,7 +1140,17 @@ def cleanup_expired_bookings():
             return # Nothing to do
 
         df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-        df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
+        
+        # Handle both HH:MM and HH:MM:SS formats
+        def parse_time(time_str):
+            if pd.isna(time_str):
+                return None
+            try:
+                return pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce').time()
+            except:
+                return pd.to_datetime(time_str, format='%H:%M', errors='coerce').time()
+
+        df['time'] = df['time'].apply(parse_time)
         
         df['booking_datetime'] = df.apply(
             lambda row: datetime.combine(row['date'], row['time'])
@@ -1155,7 +1165,6 @@ def cleanup_expired_bookings():
         if expired_ids:
             supabase.table("bookings").delete().in_("booking_id", expired_ids).execute()
             st.toast(f"Cleaned up {len(expired_ids)} expired bookings.")
-
     except Exception as e:
         st.warning(f"Failed during booking cleanup: {e}")
 
