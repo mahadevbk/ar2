@@ -431,7 +431,6 @@ def generate_pdf_reportlab(rank_df_combined, rank_df_doubles, rank_df_singles):
     return pdf_data
   
 
-
 def load_matches():
     try:
         response = supabase.table(matches_table_name).select("*").execute()
@@ -1129,38 +1128,6 @@ def create_partnership_chart(player_name, partner_stats, players_df):
 
   #-----------------------------------------------------------------------------------
 
-
-def cleanup_expired_bookings():
-    """Fetches all bookings and deletes any that are older than 4 hours."""
-    try:
-        response = supabase.table("bookings").select("booking_id, date, time").execute()
-        df = pd.DataFrame(response.data)
-
-        if df.empty:
-            return # Nothing to do
-
-        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-        df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
-        
-        df['booking_datetime'] = df.apply(
-            lambda row: datetime.combine(row['date'], row['time'])
-            if pd.notnull(row['date']) and pd.notnull(row['time'])
-            else None,
-            axis=1
-        )
-
-        cutoff = datetime.now() - timedelta(hours=4)
-        expired_ids = df[df['booking_datetime'].notnull() & (df['booking_datetime'] < cutoff)]['booking_id'].tolist()
-
-        if expired_ids:
-            supabase.table("bookings").delete().in_("booking_id", expired_ids).execute()
-            st.toast(f"Cleaned up {len(expired_ids)} expired bookings.")
-
-    except Exception as e:
-        st.warning(f"Failed during booking cleanup: {e}")
-
-
-
 def save_bookings(bookings_df):
     try:
         # Convert DataFrame to list of dicts
@@ -1234,7 +1201,17 @@ def load_bookings():
 
 
 
-
+def save_bookings(bookings_df):
+    try:
+        data = bookings_df.to_dict('records')
+        response = supabase.table("bookings").upsert(
+            data,
+            on_conflict="booking_id",
+            returning="representation"
+        ).execute()
+        return response
+    except Exception as e:
+        raise Exception(f"Supabase save failed: {str(e)}")
 
 
 
@@ -1589,7 +1566,6 @@ def display_birthday_message(birthday_players):
 # --- Main App Logic ---
 load_players()
 load_matches()
-cleanup_expired_bookings()
 load_bookings()
 
 # Check for and display birthday messages
@@ -2617,14 +2593,11 @@ with tabs[4]:
             bookings_df = bookings_df.drop(columns=['players'])
         
         # Create datetime column
-        # Create a naive datetime first (no timezone)
-        naive_datetime = pd.to_datetime(
-          bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
-          errors='coerce'
-        )
-
-        # Correctly localize the naive datetime to Dubai's timezone
-        bookings_df['datetime'] = naive_datetime.dt.tz_localize('Asia/Dubai', ambiguous='infer')
+        bookings_df['datetime'] = pd.to_datetime(
+            bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
+            errors='coerce',
+            utc=True
+        ).dt.tz_convert('Asia/Dubai')
         
         # Filter upcoming bookings
         upcoming_bookings = bookings_df[
