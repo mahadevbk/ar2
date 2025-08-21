@@ -1227,6 +1227,7 @@ def load_bookings():
                 df[col] = None
         
         # Simplified and robust time handling on load
+        # Simplified and robust time handling on load
         def parse_and_format_time_on_load(time_str):
             if not time_str or pd.isna(time_str):
                 return None
@@ -1238,6 +1239,7 @@ def load_bookings():
 
         df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
         df['time'] = df['time'].apply(parse_and_format_time_on_load)
+      
         
         # Create booking_datetime for filtering
         df['booking_datetime'] = df.apply(
