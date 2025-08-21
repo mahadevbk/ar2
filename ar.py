@@ -1140,7 +1140,17 @@ def cleanup_expired_bookings():
             return # Nothing to do
 
         df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-        df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
+        
+        # Handle both HH:MM and HH:MM:SS formats
+        def parse_time(time_str):
+            if pd.isna(time_str):
+                return None
+            try:
+                return pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce').time()
+            except:
+                return pd.to_datetime(time_str, format='%H:%M', errors='coerce').time()
+
+        df['time'] = df['time'].apply(parse_time)
         
         df['booking_datetime'] = df.apply(
             lambda row: datetime.combine(row['date'], row['time'])
@@ -1155,7 +1165,6 @@ def cleanup_expired_bookings():
         if expired_ids:
             supabase.table("bookings").delete().in_("booking_id", expired_ids).execute()
             st.toast(f"Cleaned up {len(expired_ids)} expired bookings.")
-
     except Exception as e:
         st.warning(f"Failed during booking cleanup: {e}")
 
@@ -1163,15 +1172,40 @@ def cleanup_expired_bookings():
 
 def save_bookings(bookings_df):
     try:
-        # Convert DataFrame to list of dicts
-        data = bookings_df.to_dict('records')
+        # Create a copy to avoid modifying the original DataFrame
+        bookings_to_save = bookings_df.copy()
+        
+        # Ensure time is in HH:MM:SS format
+        def format_time_with_seconds(time_str):
+            if not time_str or pd.isna(time_str):
+                return None
+            try:
+                # Parse time, assuming it could be HH:MM or HH:MM:SS
+                dt = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
+                if dt is pd.NaT:
+                    dt = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
+                if dt is not pd.NaT:
+                    return dt.strftime('%H:%M:%S')
+                return None
+            except:
+                return None
+
+        # Apply time formatting to ensure HH:MM:SS
+        bookings_to_save['time'] = bookings_to_save['time'].apply(format_time_with_seconds)
+        
+        # Replace empty strings with None for JSON compliance
+        for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
+            bookings_to_save[col] = bookings_to_save[col].replace("", None)
+        
+        # Convert to list of dicts for Supabase
+        data = bookings_to_save.to_dict('records')
+        
         # Upsert to Supabase with explicit conflict handling
         response = supabase.table("bookings").upsert(
             data,
             on_conflict="booking_id",
             returning="representation"
         ).execute()
-        st.write(f"Supabase save response: {response.data}")
         return response
     except Exception as e:
         raise Exception(f"Supabase save failed: {str(e)}")
@@ -1184,42 +1218,39 @@ def load_bookings():
     try:
         response = supabase.table("bookings").select("*").execute()
         df = pd.DataFrame(response.data)
-        # ... (keep the rest of the original function for setting up columns and session state, but remove the deletion loop)
-
-        # Keep only valid ones for display (without deleting from DB here)
-        if not df.empty and 'date' in df.columns and 'time' in df.columns:
-            df['date_col'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-            df['time_col'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
-            df['booking_datetime'] = df.apply(
-                lambda row: datetime.combine(row['date_col'], row['time_col'])
-                if pd.notnull(row['date_col']) and pd.notnull(row['time_col'])
-                else pd.NaT,
-                axis=1
-            )
-            cutoff = datetime.now() - timedelta(hours=4)
-            df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
-
-
-        # ... (rest of the original function)
+        
+        # Define expected columns
+        expected_columns = ["booking_id", "date", "time", "match_type", "court_name", "player1", "player2", "player3", "player4", "standby_player", "screenshot_url"]
+        for col in expected_columns:
+            if col not in df.columns:
+                df[col] = None
+        
+        # Ensure date and time are properly formatted
+        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
+        df['time'] = df['time'].apply(lambda x: pd.to_datetime(x, format='%H:%M:%S', errors='coerce').strftime('%H:%M:%S') if pd.notna(x) else None)
+        
+        # Handle cases where time might be in HH:MM format
+        df['time'] = df['time'].apply(lambda x: pd.to_datetime(x, format='%H:%M', errors='coerce').strftime('%H:%M:%S') if pd.isna(pd.to_datetime(x, format='%H:%M:%S', errors='coerce')) and pd.notna(x) else x)
+        
+        # Create booking_datetime for filtering
+        df['booking_datetime'] = df.apply(
+            lambda row: datetime.combine(row['date'], datetime.strptime(row['time'], '%H:%M:%S').time())
+            if pd.notnull(row['date']) and pd.notnull(row['time'])
+            else None,
+            axis=1
+        )
+        
+        # Filter out expired bookings (older than 4 hours)
+        cutoff = datetime.now() - timedelta(hours=4)
+        df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
+        
         st.session_state.bookings_df = df
-
     except Exception as e:
         st.error(f"Failed to load bookings: {str(e)}")
 
 
 
 
-def save_bookings(bookings_df):
-    try:
-        data = bookings_df.to_dict('records')
-        response = supabase.table("bookings").upsert(
-            data,
-            on_conflict="booking_id",
-            returning="representation"
-        ).execute()
-        return response
-    except Exception as e:
-        raise Exception(f"Supabase save failed: {str(e)}")
 
 
 
