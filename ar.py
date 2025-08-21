@@ -1140,17 +1140,7 @@ def cleanup_expired_bookings():
             return # Nothing to do
 
         df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-        
-        # Handle both HH:MM and HH:MM:SS formats
-        def parse_time(time_str):
-            if pd.isna(time_str):
-                return None
-            try:
-                return pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce').time()
-            except:
-                return pd.to_datetime(time_str, format='%H:%M', errors='coerce').time()
-
-        df['time'] = df['time'].apply(parse_time)
+        df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
         
         df['booking_datetime'] = df.apply(
             lambda row: datetime.combine(row['date'], row['time'])
@@ -1165,9 +1155,26 @@ def cleanup_expired_bookings():
         if expired_ids:
             supabase.table("bookings").delete().in_("booking_id", expired_ids).execute()
             st.toast(f"Cleaned up {len(expired_ids)} expired bookings.")
+
     except Exception as e:
         st.warning(f"Failed during booking cleanup: {e}")
 
+
+
+def save_bookings(bookings_df):
+    try:
+        # Convert DataFrame to list of dicts
+        data = bookings_df.to_dict('records')
+        # Upsert to Supabase with explicit conflict handling
+        response = supabase.table("bookings").upsert(
+            data,
+            on_conflict="booking_id",
+            returning="representation"
+        ).execute()
+        st.write(f"Supabase save response: {response.data}")
+        return response
+    except Exception as e:
+        raise Exception(f"Supabase save failed: {str(e)}")
 
 
 
@@ -1177,33 +1184,25 @@ def load_bookings():
     try:
         response = supabase.table("bookings").select("*").execute()
         df = pd.DataFrame(response.data)
-        
-        # Define expected columns
-        expected_columns = ["booking_id", "date", "time", "match_type", "court_name", "player1", "player2", "player3", "player4", "standby_player", "screenshot_url"]
-        for col in expected_columns:
-            if col not in df.columns:
-                df[col] = None
-        
-        # Ensure date and time are properly formatted
-        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-        df['time'] = df['time'].apply(lambda x: pd.to_datetime(x, format='%H:%M:%S', errors='coerce').strftime('%H:%M:%S') if pd.notna(x) else None)
-        
-        # Handle cases where time might be in HH:MM format
-        df['time'] = df['time'].apply(lambda x: pd.to_datetime(x, format='%H:%M', errors='coerce').strftime('%H:%M:%S') if pd.isna(pd.to_datetime(x, format='%H:%M:%S', errors='coerce')) and pd.notna(x) else x)
-        
-        # Create booking_datetime for filtering
-        df['booking_datetime'] = df.apply(
-            lambda row: datetime.combine(row['date'], datetime.strptime(row['time'], '%H:%M:%S').time())
-            if pd.notnull(row['date']) and pd.notnull(row['time'])
-            else None,
-            axis=1
-        )
-        
-        # Filter out expired bookings (older than 4 hours)
-        cutoff = datetime.now() - timedelta(hours=4)
-        df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
-        
+        # ... (keep the rest of the original function for setting up columns and session state, but remove the deletion loop)
+
+        # Keep only valid ones for display (without deleting from DB here)
+        if not df.empty and 'date' in df.columns and 'time' in df.columns:
+            df['date_col'] = pd.to_datetime(df['date'], errors='coerce').dt.date
+            df['time_col'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
+            df['booking_datetime'] = df.apply(
+                lambda row: datetime.combine(row['date_col'], row['time_col'])
+                if pd.notnull(row['date_col']) and pd.notnull(row['time_col'])
+                else pd.NaT,
+                axis=1
+            )
+            cutoff = datetime.now() - timedelta(hours=4)
+            df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
+
+
+        # ... (rest of the original function)
         st.session_state.bookings_df = df
+
     except Exception as e:
         st.error(f"Failed to load bookings: {str(e)}")
 
@@ -1212,35 +1211,7 @@ def load_bookings():
 
 def save_bookings(bookings_df):
     try:
-        # Create a copy to avoid modifying the original DataFrame
-        bookings_to_save = bookings_df.copy()
-        
-        # Ensure time is in HH:MM:SS format
-        def format_time_with_seconds(time_str):
-            if not time_str or pd.isna(time_str):
-                return None
-            try:
-                # Parse time, assuming it could be HH:MM or HH:MM:SS
-                dt = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
-                if dt is pd.NaT:
-                    dt = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
-                if dt is not pd.NaT:
-                    return dt.strftime('%H:%M:%S')
-                return None
-            except:
-                return None
-
-        # Apply time formatting to ensure HH:MM:SS
-        bookings_to_save['time'] = bookings_to_save['time'].apply(format_time_with_seconds)
-        
-        # Replace empty strings with None for JSON compliance
-        for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
-            bookings_to_save[col] = bookings_to_save[col].replace("", None)
-        
-        # Convert to list of dicts for Supabase
-        data = bookings_to_save.to_dict('records')
-        
-        # Upsert to Supabase with explicit conflict handling
+        data = bookings_df.to_dict('records')
         response = supabase.table("bookings").upsert(
             data,
             on_conflict="booking_id",
@@ -2094,78 +2065,72 @@ with tabs[0]:
         else:
             st.info("Player insights will be available once a player is selected.")
 
-with tabs[4]:
-    load_bookings()
-    with st.expander("Add New Booking", expanded=False, icon="➡️"):
-        st.subheader("Add New Booking")
-        match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
-        
-        with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
-            date = st.date_input("Booking Date *", value=datetime.today())
-            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:00 %p") for h in range(6, 22)]
-            time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
-            
-            if match_type == "Doubles":
-                col1, col2 = st.columns(2)
-                with col1:
-                    p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"t1p1_{st.session_state.form_key_suffix}")
-                    p2 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"t1p2_{st.session_state.form_key_suffix}")
-                with col2:
-                    p3 = st.selectbox("Player 3 (optional)", [""] + available_players, key=f"t2p1_{st.session_state.form_key_suffix}")
-                    p4 = st.selectbox("Player 4 (optional)", [""] + available_players, key=f"t2p2_{st.session_state.form_key_suffix}")
-            else:
-                p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"s1p1_{st.session_state.form_key_suffix}")
-                p3 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"s1p2_{st.session_state.form_key_suffix}")
-                p2 = ""
-                p4 = ""
-            
-            standby = st.selectbox("Standby Player (optional)", [""] + available_players, key=f"standby_{st.session_state.form_key_suffix}")
-            court = st.selectbox("Court Name *", [""] + court_names, key=f"court_{st.session_state.form_key_suffix}")
-            screenshot = st.file_uploader("Booking Screenshot (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"screenshot_{st.session_state.form_key_suffix}")
-            st.markdown("*Required fields", unsafe_allow_html=True)
-            
-            submit = st.form_submit_button("Add Booking")
-            if submit:
-                if not court:
-                    st.error("Court name is required.")
-                elif not date or not time:
-                    st.error("Booking date and time are required.")
+with tabs[1]:
+    st.header("Matches")
+    with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
+        st.subheader("Enter Match Result")
+        match_type_new = st.radio("Match Type", ["Doubles", "Singles"], horizontal=True, key=f"post_match_type_new_{st.session_state.form_key_suffix}")
+        available_players = sorted(players.copy() + ["Visitor"] if players else ["Visitor"])
+        if not available_players:
+            st.warning("No players available. Please add players in the Player Profile tab.")
+        else:
+            with st.form(key=f"new_match_form_{st.session_state.form_key_suffix}"):
+                if match_type_new == "Doubles":
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        p1_new = st.selectbox("Team 1 - Player 1", [""] + available_players, key=f"t1p1_new_post_{st.session_state.form_key_suffix}")
+                        p2_new = st.selectbox("Team 1 - Player 2", [""] + available_players, key=f"t1p2_new_post_{st.session_state.form_key_suffix}")
+                    with col2:
+                        p3_new = st.selectbox("Team 2 - Player 1", [""] + available_players, key=f"t2p1_new_post_{st.session_state.form_key_suffix}")
+                        p4_new = st.selectbox("Team 2 - Player 2", [""] + available_players, key=f"t2p2_new_post_{st.session_state.form_key_suffix}")
                 else:
-                    selected_players = [p for p in [p1, p2, p3, p4, standby] if p]
-                    if match_type == "Doubles" and len(set(selected_players)) != len(selected_players):
-                        st.error("Please select different players for each position.")
-                    else:
-                        booking_id = str(uuid.uuid4())
-                        screenshot_url = upload_image_to_supabase(screenshot, booking_id, image_type="booking") if screenshot else None
-                        # Convert time to HH:MM:SS
-                        time_24hr = datetime.strptime(time, "%I:%M %p").strftime("%H:%M:%S")
-                        new_booking = {
-                            "booking_id": booking_id,
-                            "date": date.isoformat(),
-                            "time": time_24hr,
-                            "match_type": match_type,
-                            "court_name": court,
-                            "player1": p1 if p1 else None,
-                            "player2": p2 if p2 else None,
-                            "player3": p3 if p3 else None,
-                            "player4": p4 if p4 else None,
-                            "standby_player": standby if standby else None,
-                            "screenshot_url": screenshot_url
-                        }
-                        st.session_state.bookings_df = pd.concat([st.session_state.bookings_df, pd.DataFrame([new_booking])], ignore_index=True)
-                        try:
-                            expected_columns = ['booking_id', 'date', 'time', 'match_type', 'court_name', 'player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']
-                            bookings_to_save = st.session_state.bookings_df[expected_columns].copy()
-                            for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
-                                bookings_to_save[col] = bookings_to_save[col].replace("", None)
-                            save_bookings(bookings_to_save)
-                            load_bookings()
-                            st.success("Booking added successfully.")
-                            st.session_state.form_key_suffix += 1
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Failed to save booking: {str(e)}")
-                            st.rerun()
+                    p1_new = st.selectbox("Player 1", [""] + available_players, key=f"s1p1_new_post_{st.session_state.form_key_suffix}")
+                    p3_new = st.selectbox("Player 2", [""] + available_players, key=f"s1p2_new_post_{st.session_state.form_key_suffix}")
+                    p2_new = ""
+                    p4_new = ""
+                set1_new = st.selectbox("Set 1 *", tennis_scores(), index=4, key=f"set1_new_post_{st.session_state.form_key_suffix}")
+                set2_new = st.selectbox("Set 2 *" if match_type_new == "Doubles" else "Set 2 (optional)", [""] + tennis_scores(), key=f"set2_new_post_{st.session_state.form_key_suffix}")
+                set3_new = st.selectbox("Set 3 (optional)", [""] + tennis_scores(), key=f"set3_new_post_{st.session_state.form_key_suffix}")
+                winner_new = st.radio("Winner", ["Team 1", "Team 2", "Tie"], key=f"winner_new_post_{st.session_state.form_key_suffix}")
+                match_image_new = st.file_uploader("Upload Match Image (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"match_image_new_post_{st.session_state.form_key_suffix}")
+                st.markdown("*Required fields", unsafe_allow_html=True)
+                submit_button = st.form_submit_button("Submit Match")
+            if submit_button:
+                selected_players = [p1_new, p2_new, p3_new, p4_new] if match_type_new == "Doubles" else [p1_new, p3_new]
+                if "" in selected_players:
+                    st.error("Please select all players.")
+                elif len(selected_players) != len(set(selected_players)):
+                    st.error("Please select different players for each position.")
+                elif not set1_new:
+                    st.error("Set 1 score is required.")
+                elif match_type_new == "Doubles" and not set2_new:
+                    st.error("Set 2 score is required for doubles matches.")
+                else:
+                    new_match_date = datetime.now()
+                    match_id_new = generate_match_id(st.session_state.matches_df, new_match_date)
+                    image_url_new = ""
+                    if match_image_new:
+                        image_url_new = upload_image_to_supabase(match_image_new, match_id_new, image_type="match")
+                    new_match_entry = {
+                        "match_id": match_id_new,
+                        "date": new_match_date,
+                        "match_type": match_type_new,
+                        "team1_player1": p1_new,
+                        "team1_player2": p2_new,
+                        "team2_player1": p3_new,
+                        "team2_player2": p4_new,
+                        "set1": set1_new,
+                        "set2": set2_new,
+                        "set3": set3_new,
+                        "winner": winner_new,
+                        "match_image_url": image_url_new
+                    }
+                    matches_to_save = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match_entry])], ignore_index=True)
+                    save_matches(matches_to_save)
+                    load_matches()  # Reload data from DB
+                    st.success("Match submitted.")
+                    st.session_state.form_key_suffix += 1
+                    st.rerun()
 
     #st.markdown("---")
     #st.markdown("---")
