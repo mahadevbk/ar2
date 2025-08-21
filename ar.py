@@ -1184,42 +1184,57 @@ def load_bookings():
     try:
         response = supabase.table("bookings").select("*").execute()
         df = pd.DataFrame(response.data)
-        # ... (keep the rest of the original function for setting up columns and session state, but remove the deletion loop)
+        expected_columns = ['booking_id', 'date', 'time', 'match_type', 'court_name',
+                            'player1', 'player2', 'player3', 'player4',
+                            'standby_player', 'screenshot_url']
+        for col in expected_columns:
+            if col not in df:
+                df[col] = None
 
-        # Keep only valid ones for display (without deleting from DB here)
-        if not df.empty and 'date' in df.columns and 'time' in df.columns:
-            df['date_col'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-            df['time_col'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
+        if not df.empty:
+            # Convert `date` and `time` safely
+            df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
+            df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
+
+            # Build combined datetime column
             df['booking_datetime'] = df.apply(
-                lambda row: datetime.combine(row['date_col'], row['time_col'])
-                if pd.notnull(row['date_col']) and pd.notnull(row['time_col'])
-                else pd.NaT,
+                lambda row: datetime.combine(row['date'], row['time'])
+                if pd.notnull(row['date']) and pd.notnull(row['time'])
+                else None,
                 axis=1
             )
+
             cutoff = datetime.now() - timedelta(hours=4)
+
+            # Expired bookings
+            expired = df[df['booking_datetime'].notnull() & (df['booking_datetime'] < cutoff)]
+
+            # Delete expired bookings from Supabase
+            for _, row in expired.iterrows():
+                try:
+                    supabase.table("bookings").delete().eq("booking_id", row['booking_id']).execute()
+                except Exception as e:
+                    st.error(f"Failed to delete expired booking {row['booking_id']}: {e}")
+
+            # Keep only valid ones
             df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
 
+        # Final cleaning for display
+        df['date'] = df['date'].fillna("").astype(str)
+        df['time'] = df['time'].astype(str).fillna("")
+        for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
+            df[col] = df[col].fillna("")
 
-        # ... (rest of the original function)
-        st.session_state.bookings_df = df
+        st.session_state.bookings_df = df[expected_columns]
 
     except Exception as e:
         st.error(f"Failed to load bookings: {str(e)}")
+        st.session_state.bookings_df = pd.DataFrame(columns=expected_columns)
 
 
 
 
-def save_bookings(bookings_df):
-    try:
-        data = bookings_df.to_dict('records')
-        response = supabase.table("bookings").upsert(
-            data,
-            on_conflict="booking_id",
-            returning="representation"
-        ).execute()
-        return response
-    except Exception as e:
-        raise Exception(f"Supabase save failed: {str(e)}")
+
 
 
 
