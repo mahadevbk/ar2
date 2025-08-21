@@ -1179,32 +1179,28 @@ def save_bookings(bookings_df):
     try:
         # Create a copy to avoid modifying the original DataFrame
         bookings_to_save = bookings_df.copy()
-        
-        # Ensure time is in HH:MM:SS format
-        def format_time_with_seconds(time_str):
-            if not time_str or pd.isna(time_str):
+
+        # Simplified and robust time formatting to ensure HH:MM:SS
+        def parse_and_format_time(time_obj):
+            if pd.isna(time_obj):
                 return None
             try:
-                # Parse time, assuming it could be HH:MM or HH:MM:SS
-                dt = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
-                if dt is pd.NaT:
-                    dt = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
-                if dt is not pd.NaT:
-                    return dt.strftime('%H:%M:%S')
-                return None
-            except:
+                # Use pandas to_datetime which is flexible with formats, then format correctly
+                return pd.to_datetime(str(time_obj), errors='coerce').strftime('%H:%M:%S')
+            except (ValueError, TypeError):
                 return None
 
-        # Apply time formatting to ensure HH:MM:SS
-        bookings_to_save['time'] = bookings_to_save['time'].apply(format_time_with_seconds)
-        
+        # Apply the robust formatting
+        bookings_to_save['time'] = bookings_to_save['time'].apply(parse_and_format_time)
+
         # Replace empty strings with None for JSON compliance
         for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
-            bookings_to_save[col] = bookings_to_save[col].replace("", None)
-        
+            if col in bookings_to_save.columns:
+                bookings_to_save[col] = bookings_to_save[col].replace("", None)
+
         # Convert to list of dicts for Supabase
         data = bookings_to_save.to_dict('records')
-        
+
         # Upsert to Supabase with explicit conflict handling
         response = supabase.table("bookings").upsert(
             data,
@@ -1230,12 +1226,18 @@ def load_bookings():
             if col not in df.columns:
                 df[col] = None
         
-        # Ensure date and time are properly formatted
+        # Simplified and robust time handling on load
+        def parse_and_format_time_on_load(time_str):
+            if not time_str or pd.isna(time_str):
+                return None
+            try:
+                # Use pandas to_datetime which is flexible with formats like HH:MM and HH:MM:SS
+                return pd.to_datetime(str(time_str), errors='coerce').strftime('%H:%M:%S')
+            except (ValueError, TypeError):
+                return None
+
         df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-        df['time'] = df['time'].apply(lambda x: pd.to_datetime(x, format='%H:%M:%S', errors='coerce').strftime('%H:%M:%S') if pd.notna(x) else None)
-        
-        # Handle cases where time might be in HH:MM format
-        df['time'] = df['time'].apply(lambda x: pd.to_datetime(x, format='%H:%M', errors='coerce').strftime('%H:%M:%S') if pd.isna(pd.to_datetime(x, format='%H:%M:%S', errors='coerce')) and pd.notna(x) else x)
+        df['time'] = df['time'].apply(parse_and_format_time_on_load)
         
         # Create booking_datetime for filtering
         df['booking_datetime'] = df.apply(
