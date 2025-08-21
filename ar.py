@@ -2627,6 +2627,9 @@ with tabs[4]:
 
                 # ... (rest of the code remains unchanged until the upcoming_bookings loop)
 
+            
+            # ... (rest of the code remains unchanged until the upcoming_bookings loop)
+            
             for _, row in upcoming_bookings.iterrows():
                 players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
                 players_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in players]) if players else "No players specified"
@@ -2634,7 +2637,7 @@ with tabs[4]:
                 date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
                 ###time_ampm = datetime.strptime(row['time'], "%H:%M").strftime("%-I:%M %p")
                 time_value = str(row['time']).strip()
-
+            
                 time_ampm = ""
                 if time_value and time_value not in ["NaT", "nan", "None"]:
                     try:
@@ -2652,7 +2655,7 @@ with tabs[4]:
                 
                 court_url = court_url_mapping.get(row['court_name'], "#")
                 court_name_html = f"<a href='{court_url}' target='_blank' style='font-weight:bold; color:#fff500; text-decoration:none;'>{row['court_name']}</a>"
-
+            
                 pairing_suggestion = ""
                 plain_suggestion = ""
                 try:
@@ -2663,9 +2666,10 @@ with tabs[4]:
                         rank_df = doubles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
                         if unranked:
-                            message = f"Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available."
+                            styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
+                            message = f"Players {styled_unranked} are unranked, therefore no pairing suggestion or odds available."
                             pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
-                            plain_suggestion = f"\n*Suggestion: {message}*"
+                            plain_suggestion = f"\n*Suggestion: Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available.*"
                         else:
                             suggested_pairing, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
                             if team1_odds is not None and team2_odds is not None:
@@ -2688,9 +2692,10 @@ with tabs[4]:
                         rank_df = singles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
                         if unranked:
-                            message = f"Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available."
+                            styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
+                            message = f"Players {styled_unranked} are unranked, therefore no pairing suggestion or odds available."
                             pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
-                            plain_suggestion = f"\n*Suggestion: {message}*"
+                            plain_suggestion = f"\n*Suggestion: Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available.*"
                         else:
                             p1_odds, p2_odds = suggest_singles_odds(players, singles_rank_df)
                             if p1_odds is not None:
@@ -2711,7 +2716,7 @@ with tabs[4]:
                 except Exception as e:
                     pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> Error calculating: {e}</div>"
                     plain_suggestion = f"\n*Suggestion: Error calculating: {str(e)}*"
-
+            
                 weekday = pd.to_datetime(row['date']).strftime('%a')
                 date_part = pd.to_datetime(row['date']).strftime('%d %b')
                 full_date = f"{weekday} , {date_part} , {time_ampm}"
@@ -2722,9 +2727,11 @@ with tabs[4]:
                 share_text = f"*Game Booking :* \nDate : *{full_date}* \nCourt : *{court_name}*\nPlayers :\n{players_list}{standby_text}{plain_suggestion}\nCourt location : {court_url}"
                 encoded_text = urllib.parse.quote(share_text)
                 whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0&app_absent=0"
-
+            
                 # ... (rest of the booking display code remains unchanged)
-    
+
+
+                  
                 booking_text = f"""
                 <div class="booking-row" style='background-color: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
                     <div><strong>Date:</strong> <span style='font-weight:bold; color:#fff500;'>{date_str}</span></div>
