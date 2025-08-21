@@ -1172,8 +1172,8 @@ def load_bookings():
                 axis=1
             )
 
-            #cutoff = datetime.now() - timedelta(hours=4)
-            cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)          
+            cutoff = datetime.now() - timedelta(hours=4)
+            #cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)          
 
             # Expired bookings
             expired = df[df['booking_datetime'].notnull() & (df['booking_datetime'] < cutoff)]
