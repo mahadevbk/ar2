@@ -1160,21 +1160,16 @@ def load_bookings():
                 df[col] = None
 
         if not df.empty:
-            # Create temporary columns for date and time objects
-            date_objects = pd.to_datetime(df['date'], errors='coerce').dt.date
-            # FIX: Remove strict format to allow for formats like HH:MM and HH:MM:SS
-            time_objects = pd.to_datetime(df['time'], errors='coerce').dt.time
-
-            # Build combined datetime column safely
-            df['booking_datetime'] = df.apply(
-                lambda row, d=date_objects, t=time_objects: 
-                datetime.combine(d.loc[row.name], t.loc[row.name])
-                if pd.notnull(d.loc[row.name]) and pd.notnull(t.loc[row.name])
-                else None,
-                axis=1
-            )
+            # FIX: Create a timezone-aware datetime column directly from the source strings.
+            # This avoids the combine() error and the timezone comparison error.
+            datetime_str = df['date'].astype(str) + ' ' + df['time'].astype(str)
+            df['booking_datetime'] = pd.to_datetime(datetime_str, errors='coerce')
             
-            # Use a timezone-aware cutoff for accurate filtering
+            # Localize the naive datetime to the correct timezone ('Asia/Dubai')
+            # This is the crucial step to fix the "Invalid comparison" error
+            df['booking_datetime'] = df['booking_datetime'].dt.tz_localize('Asia/Dubai', ambiguous='infer')
+            
+            # Now, the cutoff and the booking_datetime column are both timezone-aware
             cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)
 
             # Filter for expired bookings
@@ -1192,19 +1187,17 @@ def load_bookings():
 
         # Final cleaning for display and session state
         df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.strftime('%Y-%m-%d').fillna("")
-        df['time'] = df['time'].fillna("") # Keep original time string for display if needed
+        df['time'] = df['time'].fillna("")
         
         for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
             df[col] = df[col].fillna("")
 
-        # Ensure all expected columns are present before setting session state
-        st.session_state.bookings_df = df[expected_columns]
+        st.session_state.bookings_df = df.reindex(columns=expected_columns)
 
     except Exception as e:
         st.error(f"Failed to load bookings: {str(e)}")
         # Initialize with an empty DataFrame on failure
         st.session_state.bookings_df = pd.DataFrame(columns=expected_columns)
-
 
 
 
