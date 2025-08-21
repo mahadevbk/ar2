@@ -1162,7 +1162,7 @@ def load_bookings():
             # Convert `date` and `time` safely
             df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
             #df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
-            #df['time'] = pd.to_datetime(df['time'], errors='coerce').dt.time
+            df['time'] = pd.to_datetime(df['time'], errors='coerce').dt.time
 
             # Build combined datetime column
             df['booking_datetime'] = df.apply(
