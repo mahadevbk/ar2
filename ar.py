@@ -610,7 +610,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 try:
                     day, month = map(int, birthday.split("-"))
                     birthday_dt = datetime.strptime(f"{day:02d}-{month:02d}-2000", "%d-%m-%Y")
-                    birthday_formatted = birthday_dt.strftime("%d %b")
+                    birthday_formatted = birthday_dt.strftime("%b %d")
                     birthday_data.append({
                         "Player": player,
                         "Birthday": birthday_formatted,
@@ -667,6 +667,10 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             if player_info is None:
                 continue
             birthday = player_info.get("birthday", "Not set")
+            if birthday != "Not set" and re.match(r'^\d{2}-\d{2}$', birthday):
+                day, month = map(int, birthday.split("-"))
+                birthday_dt = datetime(2000, month, day)
+                birthday = birthday_dt.strftime("%b %d")
             profile_image = player_info.get("profile_image_url", "")
             trend = get_player_trend(selected_player, matches_df)
 
