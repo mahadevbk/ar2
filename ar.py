@@ -1147,9 +1147,16 @@ def load_bookings():
         if not df.empty:
             # FIX: Create a timezone-aware datetime column directly from the source strings.
             # This avoids the combine() error and the timezone comparison error.
+            #datetime_str = df['date'].astype(str) + ' ' + df['time'].astype(str)
+            #df['booking_datetime'] = pd.to_datetime(datetime_str, errors='coerce')
             datetime_str = df['date'].astype(str) + ' ' + df['time'].astype(str)
-            df['booking_datetime'] = pd.to_datetime(datetime_str, errors='coerce')
-            
+            df['booking_datetime'] = pd.to_datetime(
+                datetime_str,
+                format="%Y-%m-%d %H:%M:%S",   # match your data format
+                errors='coerce'
+            )
+
+          
             # Localize the naive datetime to the correct timezone ('Asia/Dubai')
             # This is the crucial step to fix the "Invalid comparison" error
             df['booking_datetime'] = df['booking_datetime'].dt.tz_localize('Asia/Dubai', ambiguous='infer')
