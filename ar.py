@@ -1634,8 +1634,12 @@ players_df = st.session_state.players_df
 matches = st.session_state.matches_df
 players = sorted([p for p in players_df["name"].dropna().tolist() if p != "Visitor"]) if "name" in players_df.columns else []
 
+# Add this line to create the missing list
+available_players = ["Visitor"] + players
+
 if not matches.empty and ("match_id" not in matches.columns or matches["match_id"].isnull().any()):
     matches['date'] = pd.to_datetime(matches['date'], errors='coerce')
+    
     for i in matches.index:
         if pd.isna(matches.at[i, "match_id"]):
             match_date_for_id = matches.at[i, "date"] if pd.notna(matches.at[i, "date"]) else datetime.now()
