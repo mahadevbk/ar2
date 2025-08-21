@@ -1,10 +1,10 @@
 # dev's scratch pad
-# tab[0] 1602
-#tab [1] 2059
-#tab [2] 2355
-#tab [3] 2444
-#tab [4] 2508
-#tab [5] 2970
+# tab[0] 1455
+#tab [1] 1912
+#tab [2] 2155
+#tab [3] 2244
+#tab [4] 2308
+#tab [5] 2684
 # court names 1367
 # profile image line 55
 #
@@ -2952,10 +2952,8 @@ with tabs[4]:
                                 st.session_state.edit_booking_key += 1
                                 st.rerun()
 
-    st.markdown("---")
-    st.markdown("Detailed Odd's calculation Logic at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
 
-            
+
 
 
 
