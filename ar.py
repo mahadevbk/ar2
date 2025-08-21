@@ -2102,69 +2102,64 @@ with tabs[0]:
             st.info("Player insights will be available once a player is selected.")
 
 with tabs[1]:
-    st.header("Matches")
-    with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
-        st.subheader("Enter Match Result")
-        match_type_new = st.radio("Match Type", ["Doubles", "Singles"], horizontal=True, key=f"post_match_type_new_{st.session_state.form_key_suffix}")
-        available_players = sorted(players.copy() + ["Visitor"] if players else ["Visitor"])
-        if not available_players:
-            st.warning("No players available. Please add players in the Player Profile tab.")
-        else:
-            with st.form(key=f"new_match_form_{st.session_state.form_key_suffix}"):
-                if match_type_new == "Doubles":
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        p1_new = st.selectbox("Team 1 - Player 1", [""] + available_players, key=f"t1p1_new_post_{st.session_state.form_key_suffix}")
-                        p2_new = st.selectbox("Team 1 - Player 2", [""] + available_players, key=f"t1p2_new_post_{st.session_state.form_key_suffix}")
-                    with col2:
-                        p3_new = st.selectbox("Team 2 - Player 1", [""] + available_players, key=f"t2p1_new_post_{st.session_state.form_key_suffix}")
-                        p4_new = st.selectbox("Team 2 - Player 2", [""] + available_players, key=f"t2p2_new_post_{st.session_state.form_key_suffix}")
-                else:
-                    p1_new = st.selectbox("Player 1", [""] + available_players, key=f"s1p1_new_post_{st.session_state.form_key_suffix}")
-                    p3_new = st.selectbox("Player 2", [""] + available_players, key=f"s1p2_new_post_{st.session_state.form_key_suffix}")
-                    p2_new = ""
-                    p4_new = ""
-                set1_new = st.selectbox("Set 1 *", tennis_scores(), index=4, key=f"set1_new_post_{st.session_state.form_key_suffix}")
-                set2_new = st.selectbox("Set 2 *" if match_type_new == "Doubles" else "Set 2 (optional)", [""] + tennis_scores(), key=f"set2_new_post_{st.session_state.form_key_suffix}")
-                set3_new = st.selectbox("Set 3 (optional)", [""] + tennis_scores(), key=f"set3_new_post_{st.session_state.form_key_suffix}")
-                winner_new = st.radio("Winner", ["Team 1", "Team 2", "Tie"], key=f"winner_new_post_{st.session_state.form_key_suffix}")
-                match_image_new = st.file_uploader("Upload Match Image (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"match_image_new_post_{st.session_state.form_key_suffix}")
-                st.markdown("*Required fields", unsafe_allow_html=True)
-                submit_button = st.form_submit_button("Submit Match")
-            if submit_button:
-                selected_players = [p1_new, p2_new, p3_new, p4_new] if match_type_new == "Doubles" else [p1_new, p3_new]
-                if "" in selected_players:
-                    st.error("Please select all players.")
-                elif len(selected_players) != len(set(selected_players)):
+    load_matches()
+    st.header("Add or Edit Match")
+    with st.expander("Add New Match", expanded=False, icon="➡️"):
+        st.subheader("Add New Match")
+        all_scores = tennis_scores()
+        match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_match_type_{st.session_state.form_key_suffix}")
+        with st.form(key=f"add_match_form_{st.session_state.form_key_suffix}"):
+            date = st.date_input("Match Date *", value=datetime.today())
+            time = st.time_input("Match Time *", value=datetime.now().time())
+            if match_type == "Doubles":
+                col1, col2 = st.columns(2)
+                with col1:
+                    p1 = st.selectbox("Team 1 - Player 1 *", available_players, key=f"t1p1_{st.session_state.form_key_suffix}")
+                    p2 = st.selectbox("Team 1 - Player 2 *", available_players, key=f"t1p2_{st.session_state.form_key_suffix}")
+                with col2:
+                    p3 = st.selectbox("Team 2 - Player 1 *", available_players, key=f"t2p1_{st.session_state.form_key_suffix}")
+                    p4 = st.selectbox("Team 2 - Player 2 *", available_players, key=f"t2p2_{st.session_state.form_key_suffix}")
+            else:
+                p1 = st.selectbox("Team 1 - Player 1 *", available_players, key=f"s1p1_{st.session_state.form_key_suffix}")
+                p3 = st.selectbox("Team 2 - Player 1 *", available_players, key=f"s1p2_{st.session_state.form_key_suffix}")
+                p2 = ""
+                p4 = ""
+            set1 = st.selectbox("Set 1 *", all_scores, key=f"set1_{st.session_state.form_key_suffix}")
+            set2 = st.selectbox("Set 2 (optional)", [""] + all_scores, key=f"set2_{st.session_state.form_key_suffix}")
+            set3 = st.selectbox("Set 3 (optional)", [""] + all_scores, key=f"set3_{st.session_state.form_key_suffix}")
+            winner = st.selectbox("Winner *", ["Team 1", "Team 2", "Tie"], key=f"winner_{st.session_state.form_key_suffix}")
+            match_image = st.file_uploader("Match Image (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"match_image_{st.session_state.form_key_suffix}")
+            st.markdown("*Required fields", unsafe_allow_html=True)
+            submit = st.form_submit_button("Add Match")
+            if submit:
+                if not all([p1, p3] if match_type == "Singles" else [p1, p2, p3, p4]):
+                    st.error("All required player fields must be filled.")
+                elif len(set([p1, p2, p3, p4]) - {""}) != (2 if match_type == "Singles" else 4):
                     st.error("Please select different players for each position.")
-                elif not set1_new:
-                    st.error("Set 1 score is required.")
-                elif match_type_new == "Doubles" and not set2_new:
-                    st.error("Set 2 score is required for doubles matches.")
+                elif not set1 or not winner:
+                    st.error("Set 1 and Winner are required.")
                 else:
-                    new_match_date = datetime.now()
-                    match_id_new = generate_match_id(st.session_state.matches_df, new_match_date)
-                    image_url_new = ""
-                    if match_image_new:
-                        image_url_new = upload_image_to_supabase(match_image_new, match_id_new, image_type="match")
-                    new_match_entry = {
-                        "match_id": match_id_new,
-                        "date": new_match_date,
-                        "match_type": match_type_new,
-                        "team1_player1": p1_new,
-                        "team1_player2": p2_new,
-                        "team2_player1": p3_new,
-                        "team2_player2": p4_new,
-                        "set1": set1_new,
-                        "set2": set2_new,
-                        "set3": set3_new,
-                        "winner": winner_new,
-                        "match_image_url": image_url_new
+                    match_datetime = datetime.combine(date, time)
+                    match_id = generate_match_id(st.session_state.matches_df, match_datetime)
+                    image_url = upload_image_to_supabase(match_image, match_id, image_type="match") if match_image else ""
+                    new_match = {
+                        "match_id": match_id,
+                        "date": match_datetime.isoformat(),
+                        "match_type": match_type,
+                        "team1_player1": p1,
+                        "team1_player2": p2,
+                        "team2_player1": p3,
+                        "team2_player2": p4,
+                        "set1": set1,
+                        "set2": set2,
+                        "set3": set3,
+                        "winner": winner,
+                        "match_image_url": image_url
                     }
-                    matches_to_save = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match_entry])], ignore_index=True)
-                    save_matches(matches_to_save)
-                    load_matches()  # Reload data from DB
-                    st.success("Match submitted.")
+                    st.session_state.matches_df = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match])], ignore_index=True)
+                    save_matches(st.session_state.matches_df)
+                    load_matches()
+                    st.success("Match added successfully.")
                     st.session_state.form_key_suffix += 1
                     st.rerun()
 
