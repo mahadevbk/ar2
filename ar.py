@@ -1151,6 +1151,7 @@ def load_bookings():
     try:
         response = supabase.table("bookings").select("*").execute()
         df = pd.DataFrame(response.data)
+        
         expected_columns = ['booking_id', 'date', 'time', 'match_type', 'court_name',
                             'player1', 'player2', 'player3', 'player4',
                             'standby_player', 'screenshot_url']
@@ -1159,23 +1160,24 @@ def load_bookings():
                 df[col] = None
 
         if not df.empty:
-            # Convert `date` and `time` safely
-            df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-            #df['time'] = pd.to_datetime(df['time'], format='%H:%M', errors='coerce').dt.time
-            df['time'] = pd.to_datetime(df['time'], errors='coerce').dt.time
+            # Create temporary columns for date and time objects
+            date_objects = pd.to_datetime(df['date'], errors='coerce').dt.date
+            # FIX: Remove strict format to allow for formats like HH:MM and HH:MM:SS
+            time_objects = pd.to_datetime(df['time'], errors='coerce').dt.time
 
-            # Build combined datetime column
+            # Build combined datetime column safely
             df['booking_datetime'] = df.apply(
-                lambda row: datetime.combine(row['date'], row['time'])
-                if pd.notnull(row['date']) and pd.notnull(row['time'])
+                lambda row, d=date_objects, t=time_objects: 
+                datetime.combine(d.loc[row.name], t.loc[row.name])
+                if pd.notnull(d.loc[row.name]) and pd.notnull(t.loc[row.name])
                 else None,
                 axis=1
             )
+            
+            # Use a timezone-aware cutoff for accurate filtering
+            cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)
 
-            cutoff = datetime.now() - timedelta(hours=4)
-            #cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)          
-
-            # Expired bookings
+            # Filter for expired bookings
             expired = df[df['booking_datetime'].notnull() & (df['booking_datetime'] < cutoff)]
 
             # Delete expired bookings from Supabase
@@ -1185,19 +1187,22 @@ def load_bookings():
                 except Exception as e:
                     st.error(f"Failed to delete expired booking {row['booking_id']}: {e}")
 
-            # Keep only valid ones
+            # Keep only valid, non-expired bookings
             df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
 
-        # Final cleaning for display
-        df['date'] = df['date'].fillna("").astype(str)
-        df['time'] = df['time'].astype(str).fillna("")
+        # Final cleaning for display and session state
+        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.strftime('%Y-%m-%d').fillna("")
+        df['time'] = df['time'].fillna("") # Keep original time string for display if needed
+        
         for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
             df[col] = df[col].fillna("")
 
+        # Ensure all expected columns are present before setting session state
         st.session_state.bookings_df = df[expected_columns]
 
     except Exception as e:
         st.error(f"Failed to load bookings: {str(e)}")
+        # Initialize with an empty DataFrame on failure
         st.session_state.bookings_df = pd.DataFrame(columns=expected_columns)
 
 
