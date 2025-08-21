@@ -1187,29 +1187,33 @@ def save_bookings(df):
         df_to_save = df.copy()
         
         if 'date' in df_to_save.columns:
-            # Convert to datetime and drop invalid rows
+            # Convert to datetime; invalid entries become NaT
             df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce')
             df_to_save = df_to_save.dropna(subset=['date'])
             
-            # Force consistent string format with seconds
-            df_to_save['date'] = df_to_save['date'].apply(
-                lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else None
-            )
+            # Ensure seconds are always present
+            def normalize_datetime(dt):
+                if pd.isna(dt):
+                    return None
+                return dt.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+            
+            df_to_save['date'] = df_to_save['date'].apply(normalize_datetime)
 
-        # Check for and remove duplicate booking_id values
+        # Check for duplicate booking_id
         duplicates = df_to_save[df_to_save.duplicated(subset=['booking_id'], keep=False)]
         if not duplicates.empty:
             st.warning(f"Found duplicate booking_id values: {duplicates['booking_id'].tolist()}")
             df_to_save = df_to_save.drop_duplicates(subset=['booking_id'], keep='last')
 
-        # Replace NaN with None for JSON compliance
+        # Replace NaN with None
         df_to_save = df_to_save.where(pd.notna(df_to_save), None)
 
-        # Perform upsert to Supabase
+        # Upsert to Supabase
         supabase.table(bookings_table_name).upsert(df_to_save.to_dict("records")).execute()
 
     except Exception as e:
         st.error(f"Error saving bookings: {str(e)}")
+
 
 
 
