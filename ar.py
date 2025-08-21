@@ -2625,6 +2625,8 @@ with tabs[4]:
             # END: MODIFICATION FOR NEW ODDS CALCULATION
             # =====================================================================
 
+                # ... (rest of the code remains unchanged until the upcoming_bookings loop)
+
             for _, row in upcoming_bookings.iterrows():
                 players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
                 players_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in players]) if players else "No players specified"
@@ -2650,7 +2652,7 @@ with tabs[4]:
                 
                 court_url = court_url_mapping.get(row['court_name'], "#")
                 court_name_html = f"<a href='{court_url}' target='_blank' style='font-weight:bold; color:#fff500; text-decoration:none;'>{row['court_name']}</a>"
-    
+
                 pairing_suggestion = ""
                 plain_suggestion = ""
                 try:
@@ -2658,34 +2660,48 @@ with tabs[4]:
                     # START: MODIFICATION FOR NEW ODDS CALCULATION
                     # =====================================================================
                     if row['match_type'] == "Doubles" and len(players) == 4:
-                        suggested_pairing, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
-                        if team1_odds is not None and team2_odds is not None:
-                            teams = suggested_pairing.split(' vs ')
-                            team1_players = teams[0].replace('Team 1: ', '')
-                            team2_players = teams[1].replace('Team 2: ', '')
-                            pairing_suggestion = (
-                                f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                f"<span style='font-weight:bold;'>{team1_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
-                                f"<span style='font-weight:bold;'>{team2_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
-                            )
-                            plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', team1_players)} ({team1_odds:.1f}%) vs {re.sub(r'<.*?>', '', team2_players)} ({team2_odds:.1f}%)*"
+                        rank_df = doubles_rank_df
+                        unranked = [p for p in players if p not in rank_df["Player"].values]
+                        if unranked:
+                            message = f"Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available."
+                            pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
+                            plain_suggestion = f"\n*Suggestion: {message}*"
                         else:
-                            pairing_suggestion = (
-                                f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                f"<span style='font-weight:bold;'>{suggested_pairing}</span></div>"
-                            )
-                            plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', suggested_pairing).replace('Suggested Pairing: ', '').strip()}*"
+                            suggested_pairing, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
+                            if team1_odds is not None and team2_odds is not None:
+                                teams = suggested_pairing.split(' vs ')
+                                team1_players = teams[0].replace('Team 1: ', '')
+                                team2_players = teams[1].replace('Team 2: ', '')
+                                pairing_suggestion = (
+                                    f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
+                                    f"<span style='font-weight:bold;'>{team1_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
+                                    f"<span style='font-weight:bold;'>{team2_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
+                                )
+                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', team1_players)} ({team1_odds:.1f}%) vs {re.sub(r'<.*?>', '', team2_players)} ({team2_odds:.1f}%)*"
+                            else:
+                                pairing_suggestion = (
+                                    f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
+                                    f"<span style='font-weight:bold;'>{suggested_pairing}</span></div>"
+                                )
+                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', suggested_pairing).replace('Suggested Pairing: ', '').strip()}*"
                     elif row['match_type'] == "Singles" and len(players) == 2:
-                        p1_odds, p2_odds = suggest_singles_odds(players, singles_rank_df)
-                        if p1_odds is not None:
-                            p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{players[0]}</span>"
-                            p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{players[1]}</span>"
-                            pairing_suggestion = (
-                                f"<div><strong style='color:white;'>Odds:</strong> "
-                                f"<span style='font-weight:bold;'>{p1_styled}</span> ({p1_odds:.1f}%) vs "
-                                f"<span style='font-weight:bold;'>{p2_styled}</span> ({p2_odds:.1f}%)</div>"
-                            )
-                            plain_suggestion = f"\n*Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)*"
+                        rank_df = singles_rank_df
+                        unranked = [p for p in players if p not in rank_df["Player"].values]
+                        if unranked:
+                            message = f"Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available."
+                            pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
+                            plain_suggestion = f"\n*Suggestion: {message}*"
+                        else:
+                            p1_odds, p2_odds = suggest_singles_odds(players, singles_rank_df)
+                            if p1_odds is not None:
+                                p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{players[0]}</span>"
+                                p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{players[1]}</span>"
+                                pairing_suggestion = (
+                                    f"<div><strong style='color:white;'>Odds:</strong> "
+                                    f"<span style='font-weight:bold;'>{p1_styled}</span> ({p1_odds:.1f}%) vs "
+                                    f"<span style='font-weight:bold;'>{p2_styled}</span> ({p2_odds:.1f}%)</div>"
+                                )
+                                plain_suggestion = f"\n*Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)*"
                     # =====================================================================
                     # END: MODIFICATION FOR NEW ODDS CALCULATION
                     # =====================================================================
@@ -2705,7 +2721,9 @@ with tabs[4]:
                 
                 share_text = f"*Game Booking :* \nDate : *{full_date}* \nCourt : *{court_name}*\nPlayers :\n{players_list}{standby_text}{plain_suggestion}\nCourt location : {court_url}"
                 encoded_text = urllib.parse.quote(share_text)
-                whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0"
+                whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0&app_absent=0"
+
+                # ... (rest of the booking display code remains unchanged)
     
                 booking_text = f"""
                 <div class="booking-row" style='background-color: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
