@@ -582,23 +582,18 @@ def get_player_trend(player, matches, max_matches=5):
             trend.append('L')
     return ' '.join(trend) if trend else 'No recent matches'
 
+# Update the display_player_insights function
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
-    # If selected_players is a single string, convert to a list for uniform handling
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
-
-    # Exclude "Visitor" from selected players
     selected_players = [p for p in selected_players if p != "Visitor"]
-
     if not selected_players:
         st.info("No players selected or available for insights.")
         return
 
-    # Radio buttons to toggle between Player Insights and Birthdays
     view_option = st.radio("Select View", ["Player Insights", "Birthdays"], horizontal=True, key=f"{key_prefix}view_selector")
 
     if view_option == "Birthdays":
-        # ... (Birthday view code remains unchanged)
         birthday_data = []
         for player in selected_players:
             player_info = players_df[players_df["name"] == player].iloc[0] if player in players_df["name"].values else None
@@ -645,7 +640,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    else:  # Player Insights view
+    else:
         active_players = []
         for player in selected_players:
             if player in rank_df["Player"].values and player != "Visitor":
@@ -658,6 +653,12 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         if not active_players:
             st.info("No players with matches played are available for insights.")
             return
+
+        # Calculate singles and doubles rankings
+        doubles_matches_df = matches_df[matches_df['match_type'] == 'Doubles']
+        singles_matches_df = matches_df[matches_df['match_type'] == 'Singles']
+        doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
+        singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
         st.markdown('<div class="rankings-table-container">', unsafe_allow_html=True)
         st.markdown('<div class="rankings-table-scroll">', unsafe_allow_html=True)
@@ -689,7 +690,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             cumulative_game_diff = int(player_data["Cumulative Game Diff"])
             games_won = int(player_data["Games Won"])
 
-            # --- START: New calculation for D/S matches ---
             player_matches_df = matches_df[
                 (matches_df['team1_player1'] == selected_player) |
                 (matches_df['team1_player2'] == selected_player) |
@@ -698,9 +698,17 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             ]
             doubles_count = player_matches_df[player_matches_df['match_type'] == 'Doubles'].shape[0]
             singles_count = player_matches_df[player_matches_df['match_type'] == 'Singles'].shape[0]
-            # --- END: New calculation for D/S matches ---
 
-            # Partners and most effective partner, excluding "Visitor"
+            # Calculate performance scores for singles and doubles using existing function
+            doubles_perf_score = 0
+            singles_perf_score = 0
+            if selected_player in doubles_rank_df['Player'].values:
+                player_stats = doubles_rank_df[doubles_rank_df['Player'] == selected_player].iloc[0]
+                doubles_perf_score = _calculate_performance_score(player_stats, doubles_rank_df)
+            if selected_player in singles_rank_df['Player'].values:
+                player_stats = singles_rank_df[singles_rank_df['Player'] == selected_player].iloc[0]
+                singles_perf_score = _calculate_performance_score(player_stats, singles_rank_df)
+
             partners_list = "None"
             best_partner = "None"
             if selected_player in partner_stats and partner_stats[selected_player]:
@@ -725,7 +733,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             points_styled = f"<span style='font-weight:bold; color:#fff500;'>{points:.1f}</span>"
             win_percent_styled = f"<span style='font-weight:bold; color:#fff500;'>{win_percent:.1f}%</span>"
-            # --- MODIFIED: Updated matches_styled to include D/S count ---
             matches_styled = f"<span style='font-weight:bold; color:#fff500;'>{matches} (Doubles: {doubles_count}, Singles: {singles_count})</span>"
             wins_styled = f"<span style='font-weight:bold; color:#fff500;'>{wins}</span>"
             losses_styled = f"<span style='font-weight:bold; color:#fff500;'>{losses}</span>"
@@ -736,8 +743,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             partners_styled = f"<span style='font-weight:bold; color:#fff500;'>{partners_list}</span>"
             best_partner_styled = f"<span style='font-weight:bold; color:#fff500;'>{best_partner}</span>"
             trend_styled = f"<span style='font-weight:bold; color:#fff500;'>{trend}</span>"
+            performance_score_styled = f"<span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>"
 
-            # Updated HTML markup to ensure labels are displayed
             st.markdown(f"""
             <div class="ranking-row">
                 <div class="rank-profile-player-group">
@@ -757,12 +764,261 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <div class="partners-col"><span style='font-weight:bold; color:#bbbbbb;'>Partners: </span>{partners_styled}</div>
                 <div class="best-partner-col"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_styled}</div>
                 <div class="trend-col">{trend_styled}</div>
+                <div class="performance-score-col"><span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>{performance_score_styled}</div>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
+# Update CSS in the st.markdown at the beginning of the file
+st.markdown("""
+<style>
+.stApp {
+  background: linear-gradient(to bottom, #07314f, #031827);
+  background-size: cover;
+  background-repeat: repeat;
+  background-position: center;
+  background-attachment: fixed;
+  background-color: #031827;
+}
+
+[data-testid="stHeader"] {
+  background: linear-gradient(to top, #07314f, #035996) !important;
+}
+
+.profile-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 1px solid #fff500;
+    border-radius: 20%;
+    margin-right: 10px;
+    vertical-align: middle;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 245, 0, 0.6);
+}
+.profile-image:hover {
+    transform: scale(1.1);
+}
+
+/* Birthday Banner Styling */
+.birthday-banner {
+    background: linear-gradient(45deg, #FFFF00, #EEE8AA);
+    color: #950606;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.whatsapp-share img {
+    width: 24px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+.whatsapp-share {
+    background-color: #25D366;
+    color: white !important;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 15px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.8em;
+    border: none;
+}
+.whatsapp-share:hover {
+    opacity: 0.9;
+}
+
+/* Card styling for court locations */
+.court-card {
+    background: linear-gradient(to bottom, #031827, #07314f);
+    border: 1px solid #fff500;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-align: center;
+}
+.court-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(255, 245, 0, 0.3);
+}
+.court-card h4 {
+    color: #fff500;
+    margin-bottom: 10px;
+}
+.court-card a {
+    background-color: #fff500;
+    color: #031827;
+    padding: 8px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+.court-card a:hover {
+    background-color: #ffd700;
+}
+.court-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 10px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Offside&display=swap');
+html, body, [class*="st-"], h1, h2, h3, h4, h5, h6 {
+    font-family: 'Offside', sans-serif !important;
+}
+
+/* ✅ Header & subheader resize to ~125% of tab font size (14px → 17–18px) */
+h1 {
+    font-size: 24px !important;
+}
+h2 {
+    font-size: 22px !important;
+}
+h3 {
+    font-size: 16px !important;
+}
+
+/* Rankings table container */
+.rankings-table-container {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 0px !important;
+    padding: 10px;
+}
+.rankings-table-scroll {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.ranking-header-row {
+    display: none;
+}
+.ranking-row {
+    display: block;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #696969;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background-color: rgba(255, 255, 255, 0.05);
+    overflow: visible;
+}
+.ranking-row:last-child {
+    margin-bottom: 0;
+}
+
+.rank-col, .profile-col, .player-col, .points-col, .win-percent-col, .matches-col, .wins-col, .losses-col, .games-won-col, .game-diff-avg-col, .cumulative-game-diff-col, .trend-col, .birthday-col, .partners-col, .best-partner-col, .performance-score-col {
+    width: 100%;
+    text-align: left;
+    padding: 2px 0;
+    font-size: 1em;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+.rank-col {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-right: 5px;
+    color: #fff500;
+}
+.profile-col {
+    text-align: left;
+    margin-bottom: 10px;
+    display: inline-block;
+    vertical-align: middle;
+}
+.player-col {
+    font-size: 1.3em;
+    font-weight: bold;
+    display: inline-block;
+    flex-grow: 1;
+    vertical-align: middle;
+}
+
+.rank-profile-player-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.rank-profile-player-group .rank-col {
+    width: auto;
+    margin-right: 10px;
+}
+.rank-profile-player-group .profile-col {
+     width: auto;
+     margin-right: 10px;
+}
+
+.points-col::before { content: "Points: "; font-weight: bold; color: #bbbbbb; }
+.win-percent-col::before { content: "Win %: "; font-weight: bold; color: #bbbbbb; }
+.matches-col::before { content: "Matches: "; font-weight: bold; color: #bbbbbb; }
+.wins-col::before { content: "Wins: "; font-weight: bold; color: #bbbbbb; }
+.losses-col::before { content: "Losses: "; font-weight: bold; color: #bbbbbb; }
+.games-won-col::before { content: "Games Won: "; font-weight: bold; color: #bbbbbb; }
+.game-diff-avg-col::before { content: "Game Diff Avg: "; font-weight: bold; color: #bbbbbb; }
+.cumulative-game-diff-col::before { content: "Cumulative Game Diff.: "; font-weight: bold; color: #bbbbbb; }
+.trend-col::before { content: "Recent Trend: "; font-weight: bold; color: #bbbbbb; }
+.birthday-col::before { content: "Birthday: "; font-weight: bold; color: #bbbbbb; }
+.performance-score-col::before { content: "Performance Score: "; font-weight: bold; color: #bbbbbb; }
+
+.points-col, .win-percent-col, .matches-col, .wins-col, .losses-col, .games-won-col, .game-diff-avg-col, .cumulative-game-diff-col, .trend-col, .birthday-col, .partners-col, .best-partner-col, .performance-score-col {
+    color: #fff500;
+}
+
+div.st-emotion-cache-1jm692n {
+    margin-bottom: 0px !important;
+    padding-bottom: 0px !important;
+}
+div.st-emotion-cache-1jm692n h3 {
+    margin-bottom: 0px !important;
+    padding-bottom: 0px !important;
+    line-height: 1 !important;
+}
+
+.rankings-table-container > div {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+.rankings-table-container > .rankings-table-scroll {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    flex: 1 0 auto;
+    padding: 10px 0;
+    font-size: 14px;
+    text-align: center;
+    margin: 2px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Update the calculate_rankings function to include performance scores
 def calculate_rankings(matches_to_rank):
