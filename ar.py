@@ -1185,11 +1185,16 @@ def load_bookings():
 def save_bookings(df):
     try:
         df_to_save = df.copy()
+        
         if 'date' in df_to_save.columns:
-            # Keep full datetime with seconds
+            # Convert to datetime and drop invalid rows
             df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce')
             df_to_save = df_to_save.dropna(subset=['date'])
-            df_to_save['date'] = df_to_save['date'].dt.strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Force consistent string format with seconds
+            df_to_save['date'] = df_to_save['date'].apply(
+                lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else None
+            )
 
         # Check for and remove duplicate booking_id values
         duplicates = df_to_save[df_to_save.duplicated(subset=['booking_id'], keep=False)]
@@ -1200,10 +1205,12 @@ def save_bookings(df):
         # Replace NaN with None for JSON compliance
         df_to_save = df_to_save.where(pd.notna(df_to_save), None)
 
-        # Perform upsert
+        # Perform upsert to Supabase
         supabase.table(bookings_table_name).upsert(df_to_save.to_dict("records")).execute()
+
     except Exception as e:
         st.error(f"Error saving bookings: {str(e)}")
+
 
 
 
