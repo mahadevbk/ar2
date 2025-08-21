@@ -440,6 +440,10 @@ def load_matches():
         for col in expected_columns:
             if col not in df.columns:
                 df[col] = ""
+        
+        # Ensure date is in datetime format with proper timezone handling
+        df['date'] = pd.to_datetime(df['date'], errors='coerce', utc=True).dt.tz_convert('Asia/Dubai')
+        
         st.session_state.matches_df = df
     except Exception as e:
         st.error(f"Error loading matches: {str(e)}")
@@ -448,16 +452,17 @@ def save_matches(df):
     try:
         df_to_save = df.copy()
         if 'date' in df_to_save.columns:
-            df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce')
-            df_to_save = df_to_save.dropna(subset=['date'])
+            # Ensure date is in datetime format and converted to UTC for storage
+            df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce').dt.tz_localize('Asia/Dubai').dt.tz_convert('UTC')
             df_to_save['date'] = df_to_save['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+            df_to_save = df_to_save.dropna(subset=['date'])
         
         duplicates = df_to_save[df_to_save.duplicated(subset=['match_id'], keep=False)]
         if not duplicates.empty:
             st.warning(f"Found duplicate match_id values: {duplicates['match_id'].tolist()}")
             df_to_save = df_to_save.drop_duplicates(subset=['match_id'], keep='last')
 
-        # Replace NaN with None for JSON compliance before saving
+        # Replace NaN with None for JSON compliance
         df_to_save = df_to_save.where(pd.notna(df_to_save), None)
             
         supabase.table(matches_table_name).upsert(df_to_save.to_dict("records")).execute()
