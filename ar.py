@@ -1757,6 +1757,7 @@ with tabs[0]:
             trend_chart = create_trend_sparkline(trend)
             if trend_chart:
                 st.plotly_chart(trend_chart, use_container_width=True, key=f"{key_prefix}_trend_{player_name}")
+                st.markdown(f"<div class='trend-col' style='text-align: center; margin-top: -15px;'>{trend}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
 
