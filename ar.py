@@ -1146,9 +1146,10 @@ h3 {
 .games-won-col::before { content: "Games Won: "; font-weight: bold; color: #bbbbbb; }
 .game-diff-avg-col::before { content: "Game Diff Avg: "; font-weight: bold; color: #bbbbbb; }
 .cumulative-game-diff-col::before { content: "Cumulative Game Diff.: "; font-weight: bold; color: #bbbbbb; }
+.performance-score-col::before { content: "Performance Score: "; font-weight: bold; color: #bbbbbb; }
 .trend-col::before { content: "Recent Trend: "; font-weight: bold; color: #bbbbbb; }
 .birthday-col::before { content: "Birthday: "; font-weight: bold; color: #bbbbbb; }
-.performance-score-col::before { content: "Performance Score: "; font-weight: bold; color: #bbbbbb; }
+
 
 .points-col, .win-percent-col, .matches-col, .wins-col, .losses-col, .games-won-col, .game-diff-avg-col, .cumulative-game-diff-col, .trend-col, .birthday-col, .partners-col, .best-partner-col, .performance-score-col {
     color: #fff500;
