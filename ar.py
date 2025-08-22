@@ -855,26 +855,26 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
-        
+
         col1, col2 = st.columns([1, 2])
 
         with col1:  # Left column for visuals
             if profile_image:
-                # MODIFICATION: Removed the `caption` attribute entirely
                 st.image(profile_image, width=150)
 
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                st.plotly_chart(win_loss_chart, use_container_width=True)
+                # FIX: Added unique key
+                st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{key_prefix}_win_loss_{player}")
 
             st.markdown("##### Recent Trend")
             trend_chart = create_trend_sparkline(trend)
             if trend_chart:
-                st.plotly_chart(trend_chart, use_container_width=True)
+                # FIX: Added unique key
+                st.plotly_chart(trend_chart, use_container_width=True, key=f"{key_prefix}_trend_{player}")
 
         with col2:  # Right column for stats
-            # MODIFICATION: Removed the st.subheader(player) as it's now in the header
             m_col1, m_col2, m_col3 = st.columns(3)
             m_col1.metric("Points", f"{player_data['Points']:.1f}")
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
@@ -894,8 +894,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.markdown("##### Match Breakdown")
             match_type_chart = create_match_type_bar_chart(singles_count, doubles_count)
             if match_type_chart:
-                st.plotly_chart(match_type_chart, use_container_width=True)
-
+                # FIX: Added unique key
+                st.plotly_chart(match_type_chart, use_container_width=True, key=f"{key_prefix}_match_type_{player}")
 
 
 
