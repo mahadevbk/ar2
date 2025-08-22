@@ -909,8 +909,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             """, unsafe_allow_html=True)
 
             with st.expander("View Full Partner Stats"):
-                st.markdown(partners_list_str, unsafe_allow_html=True)           
-
+                st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
 
