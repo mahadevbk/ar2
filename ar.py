@@ -288,7 +288,7 @@ div.st-emotion-cache-1jm692n h3 {
 }
 /* Style the value inside the st.metric component */
 [data-testid="stMetric"] > div:nth-of-type(1) {
-    color: #FF991C !important; /* Optic Yellow #fff500 */
+    color: #FF7518 !important; /* Optic Yellow #fff500 */
 }
 </style>
 
