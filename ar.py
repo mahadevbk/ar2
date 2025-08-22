@@ -884,8 +884,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
         with col1:  # Left column for visuals
             if profile_image:
-                #st.image(profile_image, width=150)
-                st.markdown(f'<img src="{profile_image}" class="profile-image" style="width: 175px; height: 175px;">', unsafe_allow_html=True)
+                st.image(profile_image, width=150)
+                #st.markdown(f'<img src="{profile_image}" class="profile-image" style="width: 175px; height: 175px;">', unsafe_allow_html=True)
 
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
