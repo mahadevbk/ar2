@@ -819,8 +819,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         # --- Data Calculation & Formatting ---
         profile_image = player_info.get("profile_image_url", "")
         wins, losses = int(player_data["Wins"]), int(player_data["Losses"])
-        singles_count = int(player_data["Singles Matches"])
-        doubles_count = int(player_data["Doubles Matches"])
         trend = get_player_trend(player, matches_df)
 
         doubles_perf_score = _calculate_performance_score(doubles_rank_df[doubles_rank_df['Player'] == player].iloc[0], doubles_rank_df) if player in doubles_rank_df['Player'].values else 0.0
@@ -838,18 +836,16 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             except ValueError:
                 birthday_str = ""
 
-        # --- Partner Calculation Logic (from old code) ---
+        # --- Partner Calculation Logic ---
         partners_list_str = "No doubles matches played."
         best_partner_str = "N/A"
         if player in partner_stats and partner_stats[player]:
-            # Create a detailed list for the expander
             partners_list_items = [
                 f'<li><b>{p}</b>: {item["wins"]}W - {item["losses"]}L ({item["matches"]} played)</li>'
                 for p, item in partner_stats[player].items() if p != "Visitor"
             ]
             partners_list_str = f"<ul>{''.join(partners_list_items)}</ul>"
 
-            # Find the most effective partner
             sorted_partners = sorted(
                 [(p, item) for p, item in partner_stats[player].items() if p != "Visitor"],
                 key=lambda item: (
@@ -907,12 +903,14 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
                 <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
                 <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
+                <span class="performance-score-col" style="display: block;">Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
                 <span class="best-partner-col" style="display: block;"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}</span>
             </div>
             """, unsafe_allow_html=True)
 
             with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
+           
 
 
 
