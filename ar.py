@@ -62,7 +62,7 @@ st.markdown("""
     height: 100px;
     object-fit: cover;
     border: 1px solid #fff500;
-    border-radius: 5%;
+    border-radius: 10%;
     margin-right: 10px;
     vertical-align: middle;
     transition: transform 0.2s;
