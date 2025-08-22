@@ -752,6 +752,8 @@ def calculate_rankings(matches_to_rank):
 # Updated display_player_insights function to ensure performance score 
 
 
+# Paste all the helper functions (create_win_loss_donut, etc.) here first...
+# ...
 
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
@@ -815,7 +817,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     for player in sorted(active_players):
         player_info = players_df[players_df["name"] == player].iloc[0]
         player_data = rank_df[rank_df["Player"] == player].iloc[0]
-        
+
         # --- Data Calculation ---
         profile_image = player_info.get("profile_image_url", "")
         wins, losses = int(player_data["Wins"]), int(player_data["Losses"])
@@ -823,7 +825,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         doubles_count = matches_df[(matches_df['match_type'] == 'Doubles') & ((matches_df['team1_player1'] == player) | (matches_df['team1_player2'] == player) | (matches_df['team2_player1'] == player) | (matches_df['team2_player2'] == player))].shape[0]
         trend = get_player_trend(player, matches_df)
 
-        # Performance Scores
         doubles_perf_score = _calculate_performance_score(doubles_rank_df[doubles_rank_df['Player'] == player].iloc[0], doubles_rank_df) if player in doubles_rank_df['Player'].values else 0.0
         singles_perf_score = _calculate_performance_score(singles_rank_df[singles_rank_df['Player'] == player].iloc[0], singles_rank_df) if player in singles_rank_df['Player'].values else 0.0
 
@@ -833,8 +834,15 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
         with col1: # Left column for visuals
             if profile_image:
-                st.image(profile_image, width=150, caption=f"Rank #{int(player_data['Rank'])}")
-            
+                # =================== FIX IS HERE ===================
+                # This 'try' block prevents the app from crashing if the Rank is not a valid number.
+                try:
+                    rank_display = f"Rank #{int(player_data['Rank'])}"
+                except (ValueError, TypeError):
+                    rank_display = "Unranked"
+                st.image(profile_image, width=150, caption=rank_display)
+                # ================= END OF FIX ======================
+
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
@@ -847,7 +855,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
         with col2: # Right column for stats
             st.subheader(player)
-            
+
             m_col1, m_col2, m_col3 = st.columns(3)
             m_col1.metric("Points", f"{player_data['Points']:.1f}")
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
@@ -863,15 +871,11 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 - *Doubles*: {doubles_perf_score:.1f}
                 - *Singles*: {singles_perf_score:.1f}
             """)
-            
-            # Match Type Chart below text
+
             st.markdown("##### Match Breakdown")
             match_type_chart = create_match_type_bar_chart(singles_count, doubles_count)
             if match_type_chart:
                 st.plotly_chart(match_type_chart, use_container_width=True)
-
-
-
 
 
 
