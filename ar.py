@@ -2730,6 +2730,16 @@ with tabs[2]:
     else:
         st.info("No players available for insights. Please add players above.")
 
+
+    st.markdown("---")
+
+
+    st.markdown("Detailed Player insights uploaded at https://github.com/mahadevbk/ar2/blob/main/Player%20insights.pdf ")
+
+
+
+
+
 with tabs[3]:
     st.header("Court Locations")
     
@@ -3271,7 +3281,7 @@ with tabs[4]:
     st.markdown("---")
 
 
-    st.markdown("Odds Calculation Logic uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
+    st.markdown("Odds Calculation Logic process uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
 
 
 
