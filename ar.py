@@ -1674,12 +1674,28 @@ tabs = st.tabs(tab_names)
 #-------------START OF TABS -----------------------------------------------------------------
 
 
+
+
+
+
+
+
+
+
 with tabs[0]:
     st.header(f"Rankings as of {datetime.now().strftime('%d %b')}")
     ranking_type = st.radio("Select Ranking View", ["Combined", "Doubles", "Singles", "Nerd Stuff", "Table View"], horizontal=True, key="ranking_type_selector")
 
+    # --- PRE-CALCULATE ALL RANKING DATAFRAMES FOR PERFORMANCE SCORES ---
+    # This ensures doubles_rank_df and singles_rank_df are available in all views
+    doubles_matches_df = matches[matches['match_type'] == 'Doubles'].copy()
+    singles_matches_df = matches[matches['match_type'] == 'Singles'].copy()
+    rank_df_doubles, _ = calculate_rankings(doubles_matches_df)
+    rank_df_singles, _ = calculate_rankings(singles_matches_df)
+    # --------------------------------------------------------------------
+
     # Helper function to generate a single player card
-    def display_ranking_card(player_data, players_df, matches_df, partner_stats, key_prefix=""):
+    def display_ranking_card(player_data, players_df, matches_df, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=""):
         player_name = player_data["Player"]
         player_info = players_df[players_df["name"] == player_name].iloc[0] if player_name in players_df.name.values else None
 
@@ -1694,6 +1710,11 @@ with tabs[0]:
         rank_value = player_data['Rank']
         rank_display = re.sub(r'[^0-9]', '', str(rank_value))
 
+        # --- NEW: Performance Score Calculation ---
+        doubles_perf_score = _calculate_performance_score(rank_df_doubles[rank_df_doubles['Player'] == player_name].iloc[0], rank_df_doubles) if player_name in rank_df_doubles['Player'].values else 0.0
+        singles_perf_score = _calculate_performance_score(rank_df_singles[rank_df_singles['Player'] == player_name].iloc[0], rank_df_singles) if player_name in rank_df_singles['Player'].values else 0.0
+        # --- END NEW ---
+
         birthday_str = ""
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
@@ -1703,7 +1724,7 @@ with tabs[0]:
             except ValueError:
                 birthday_str = "" # Keep it empty if parsing fails
 
-        # --- Partner Calculation Logic (copied from display_player_insights) ---
+        # --- Partner Calculation Logic ---
         partners_list_str = "No doubles matches played."
         best_partner_str = "N/A"
         if player_name in partner_stats and partner_stats[player_name]:
@@ -1767,12 +1788,16 @@ with tabs[0]:
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
             m_col3.metric("Matches", f"{int(player_data['Matches'])}")
 
-            # --- Detailed Stats Display ---
+            # --- UPDATED: Detailed Stats Display ---
             st.markdown(f"""
             <div style="line-height: 2;">
                 <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
                 <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
                 <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
+                <span class="performance-score-col" style="display: block;">
+                    <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
+                    <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
+                </span>
                 <span class="best-partner-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}
                 </span>
@@ -1785,22 +1810,20 @@ with tabs[0]:
                     st.markdown(partners_list_str, unsafe_allow_html=True)
 
     if ranking_type == "Doubles":
-        filtered_matches = matches[matches['match_type'] == 'Doubles'].copy()
-        rank_df, partner_stats = calculate_rankings(filtered_matches)
+        rank_df, partner_stats = calculate_rankings(doubles_matches_df)
         if rank_df.empty:
             st.info("No ranking data available for this view.")
         else:
             for index, row in rank_df.iterrows():
-                display_ranking_card(row, players_df, filtered_matches, partner_stats, key_prefix=f"doubles_{index}")
+                display_ranking_card(row, players_df, doubles_matches_df, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"doubles_{index}")
 
     elif ranking_type == "Singles":
-        filtered_matches = matches[matches['match_type'] == 'Singles'].copy()
-        rank_df, partner_stats = calculate_rankings(filtered_matches)
+        rank_df, partner_stats = calculate_rankings(singles_matches_df)
         if rank_df.empty:
             st.info("No ranking data available for this view.")
         else:
             for index, row in rank_df.iterrows():
-                display_ranking_card(row, players_df, filtered_matches, partner_stats, key_prefix=f"singles_{index}")
+                display_ranking_card(row, players_df, singles_matches_df, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"singles_{index}")
 
     elif ranking_type == "Nerd Stuff":
         if matches.empty or players_df.empty:
@@ -1981,12 +2004,10 @@ with tabs[0]:
                 st.plotly_chart(nerd_chart, use_container_width=True)
             else:
                 st.info("Not enough data to generate the performance chart.")
-            # --- End of Inserted Chart Section ---
-            # --- Start of new chart integration ---
+
             st.markdown("---")
             st.markdown("### 🤝 Partnership Performance Analyzer")
 
-            # Get a list of players who have played doubles
             doubles_players = []
             if partner_stats:
                 doubles_players = sorted([p for p in partner_stats.keys() if p != "Visitor"])
@@ -2005,8 +2026,6 @@ with tabs[0]:
                         st.plotly_chart(partnership_chart, use_container_width=True)
                     else:
                         st.info(f"{selected_player_for_partners} has no partnership data to display.")
-
-            # --- End of new chart integration ---
 
             st.markdown("---")
             with st.expander("Process being used for Rankings" , expanded=False, icon="➡️"):
@@ -2056,11 +2075,9 @@ with tabs[0]:
         filtered_matches = matches.copy()
         rank_df, partner_stats = calculate_rankings(filtered_matches)
 
-        # --- START: New Top 3 Players Display ---
         if not rank_df.empty and len(rank_df) >= 3:
             top_3_players = rank_df.head(3)
 
-            # Custom CSS for the podium display
             st.markdown("""
             <style>
             .podium-container {
@@ -2080,7 +2097,7 @@ with tabs[0]:
                 align-items: center;
                 text-align: center;
                 color: white;
-                width: 32%; /* Ensure they fit side-by-side */
+                width: 32%;
             }
             .podium-item img {
                 width: 90px;
@@ -2102,19 +2119,16 @@ with tabs[0]:
                 font-weight: bold;
                 color: white;
             }
-            /* Use flexbox order to arrange 2nd, 1st, 3rd */
-            .podium-item.rank-1 { order: 2; align-self: flex-start; } /* Center and Top */
-            .podium-item.rank-2 { order: 1; } /* Left */
-            .podium-item.rank-3 { order: 3; } /* Right */
+            .podium-item.rank-1 { order: 2; align-self: flex-start; }
+            .podium-item.rank-2 { order: 1; }
+            .podium-item.rank-3 { order: 3; }
             </style>
             """, unsafe_allow_html=True)
 
-            # Extract player data
             p1 = top_3_players.iloc[0]
             p2 = top_3_players.iloc[1]
             p3 = top_3_players.iloc[2]
 
-            # Create the HTML structure
             podium_html = f"""
             <div class="podium-container">
                 <div class="podium-item rank-2">
@@ -2135,15 +2149,12 @@ with tabs[0]:
             </div>
             """
             st.markdown(podium_html, unsafe_allow_html=True)
-        # --- END: New Top 3 Players Display ---
 
         if rank_df.empty:
             st.info("No ranking data available for this view.")
         else:
-            # Display the rest of the players in the new card format
             for index, row in rank_df.iterrows():
-                display_ranking_card(row, players_df, filtered_matches, partner_stats, key_prefix=f"combined_{index}")
-
+                display_ranking_card(row, players_df, filtered_matches, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"combined_{index}")
 
 
 
