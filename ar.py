@@ -3064,7 +3064,7 @@ with tabs[4]:
                                     if screenshot_edit:
                                         screenshot_url_edit = upload_image_to_supabase(screenshot_edit, booking_id, image_type="booking")
     
-                                    time_24hr_edit = datetime.strptime(time_edit, "%I:%M %p").strftime("%H:%M")
+                                    time_24hr_edit = datetime.strptime(time_edit, "%I:%M %p").strftime("%H:%M:%S")
                                     updated_booking = {
                                         "booking_id": booking_id,
                                         "date": date_edit.isoformat(),
