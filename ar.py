@@ -892,28 +892,28 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
 
          with col2:  # Right column for stats
-             m_col1, m_col2, m_col3 = st.columns(3)
-             m_col1.metric("Points", f"{player_data['Points']:.1f}")
-             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
-             m_col3.metric("Matches", f"{int(player_data['Matches'])}")
+            m_col1, m_col2, m_col3 = st.columns(3)
+            m_col1.metric("Points", f"{player_data['Points']:.1f}")
+            m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
+            m_col3.metric("Matches", f"{int(player_data['Matches'])}")
              
              # Detailed Stats Display
-             st.markdown(f"""
-                 <div style="line-height: 2;">
-                     <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
-                     <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
-                     <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
-                     <span class="performance-score-col" style="display: block;">
-                         <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
-                         <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
-                     </span>
-                     <span class="best-partner-col" style="display: block;">
-                         <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}
-                     </span>
-                 </div>
-                 """, unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style="line-height: 2;">
+                    <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
+                    <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
+                    <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
+                    <span class="performance-score-col" style="display: block;">
+                        <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
+                        <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
+                    </span>
+                    <span class="best-partner-col" style="display: block;">
+                        <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
         
-             with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
+            with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
                  st.markdown(partners_list_str, unsafe_allow_html=True)
           
 
