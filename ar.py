@@ -765,7 +765,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     # --- Birthday View (No Changes Here) ---
     view_option = st.radio("Select View", ["Player Insights", "Birthdays"], horizontal=True, key=f"{key_prefix}view_selector")
     if view_option == "Birthdays":
-        # ... (Your existing birthday code remains exactly the same)
         birthday_data = []
         for player in selected_players:
             player_info = players_df[players_df["name"] == player].iloc[0] if player in players_df["name"].values else None
@@ -820,31 +819,56 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         # --- Data Calculation & Formatting ---
         profile_image = player_info.get("profile_image_url", "")
         wins, losses = int(player_data["Wins"]), int(player_data["Losses"])
-        singles_count = matches_df[(matches_df['match_type'] == 'Singles') & ((matches_df['team1_player1'] == player) | (matches_df['team2_player1'] == player))].shape[0]
-        doubles_count = matches_df[(matches_df['match_type'] == 'Doubles') & ((matches_df['team1_player1'] == player) | (matches_df['team1_player2'] == player) | (matches_df['team2_player1'] == player) | (matches_df['team2_player2'] == player))].shape[0]
+        singles_count = int(player_data["Singles Matches"])
+        doubles_count = int(player_data["Doubles Matches"])
         trend = get_player_trend(player, matches_df)
 
         doubles_perf_score = _calculate_performance_score(doubles_rank_df[doubles_rank_df['Player'] == player].iloc[0], doubles_rank_df) if player in doubles_rank_df['Player'].values else 0.0
         singles_perf_score = _calculate_performance_score(singles_rank_df[singles_rank_df['Player'] == player].iloc[0], singles_rank_df) if player in singles_rank_df['Player'].values else 0.0
 
-        # Get Rank and clean it to show only the number
         rank_value = player_data['Rank']
         rank_display = re.sub(r'[^0-9]', '', str(rank_value))
 
-        # Get and format Birthday
         birthday_str = ""
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
             try:
                 bday_obj = datetime.strptime(raw_birthday, "%d-%m")
-                birthday_str = bday_obj.strftime("%d %b")  # e.g., "25 Dec"
+                birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
-                birthday_str = ""  # Keep it blank if format is wrong
+                birthday_str = ""
+
+        # --- Partner Calculation Logic (from old code) ---
+        partners_list_str = "No doubles matches played."
+        best_partner_str = "N/A"
+        if player in partner_stats and partner_stats[player]:
+            # Create a detailed list for the expander
+            partners_list_items = [
+                f'<li><b>{p}</b>: {item["wins"]}W - {item["losses"]}L ({item["matches"]} played)</li>'
+                for p, item in partner_stats[player].items() if p != "Visitor"
+            ]
+            partners_list_str = f"<ul>{''.join(partners_list_items)}</ul>"
+
+            # Find the most effective partner
+            sorted_partners = sorted(
+                [(p, item) for p, item in partner_stats[player].items() if p != "Visitor"],
+                key=lambda item: (
+                    item[1]['wins'] / item[1]['matches'] if item[1]['matches'] > 0 else 0,
+                    item[1]['game_diff_sum'] / item[1]['matches'] if item[1]['matches'] > 0 else 0,
+                    item[1]['wins']
+                ),
+                reverse=True
+            )
+            if sorted_partners:
+                best_partner_name = sorted_partners[0][0]
+                best_stats = sorted_partners[0][1]
+                best_win_percent = (best_stats['wins'] / best_stats['matches'] * 100) if best_stats['matches'] > 0 else 0
+                best_partner_str = f"{best_partner_name} ({best_win_percent:.1f}% Win Rate)"
+
 
         # --- Card Layout ---
         st.markdown("---")
 
-        # --- NEW: Top header section for Name, Rank, and Birthday ---
         header_html = f"""
         <div style="margin-bottom: 15px;">
             <h2 style="color: #fff500; margin-bottom: 5px; font-size: 2.0em; font-weight: bold;">{player}</h2>
@@ -865,37 +889,30 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                # FIX: Added unique key
                 st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{key_prefix}_win_loss_{player}")
 
             st.markdown("##### Recent Trend")
-            trend_chart = create_trend_sparkline(trend)
-            if trend_chart:
-                # FIX: Added unique key
-                st.plotly_chart(trend_chart, use_container_width=True, key=f"{key_prefix}_trend_{player}")
+            st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
+
 
         with col2:  # Right column for stats
             m_col1, m_col2, m_col3 = st.columns(3)
             m_col1.metric("Points", f"{player_data['Points']:.1f}")
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
             m_col3.metric("Matches", f"{int(player_data['Matches'])}")
-
+            
+            # --- Detailed Stats Display ---
             st.markdown(f"""
-            - **Record**: {wins} Wins, {losses} Losses
-            - **Match Types**: {doubles_count} Doubles, {singles_count} Singles
-            - **Game Stats**:
-                - *Avg Game Diff*: {player_data['Game Diff Avg']:.2f}
-                - *Total Games Won*: {int(player_data['Games Won'])}
-            - **Performance Score**:
-                - *Doubles*: {doubles_perf_score:.1f}
-                - *Singles*: {singles_perf_score:.1f}
-            """)
+            <div style="line-height: 2;">
+                <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
+                <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
+                <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
+                <span class="best-partner-col" style="display: block;"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-            st.markdown("##### Match Breakdown")
-            match_type_chart = create_match_type_bar_chart(singles_count, doubles_count)
-            if match_type_chart:
-                # FIX: Added unique key
-                st.plotly_chart(match_type_chart, use_container_width=True, key=f"{key_prefix}_match_type_{player}")
+            with st.expander("View Full Partner Stats"):
+                st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
 
