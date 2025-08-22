@@ -586,7 +586,6 @@ def get_player_trend(player, matches, max_matches=5):
 
 
 
-# Update the calculate_rankings function to remove the overall Performance Score
 def calculate_rankings(matches_to_rank):
     scores = defaultdict(float)
     wins = defaultdict(int)
@@ -750,7 +749,7 @@ def calculate_rankings(matches_to_rank):
 
     return rank_df, partner_stats
 
-# Update the display_player_insights function to display only singles and doubles performance scores
+# Updated display_player_insights function to ensure performance score is displayed only once
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -822,7 +821,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.info("No players with matches played are available for insights.")
             return
 
-        # Calculate singles and doubles rankings
+        # Calculate singles and doubles rankings for performance scores
         doubles_matches_df = matches_df[matches_df['match_type'] == 'Doubles']
         singles_matches_df = matches_df[matches_df['match_type'] == 'Singles']
         doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
@@ -867,9 +866,9 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             doubles_count = player_matches_df[player_matches_df['match_type'] == 'Doubles'].shape[0]
             singles_count = player_matches_df[player_matches_df['match_type'] == 'Singles'].shape[0]
 
-            # Calculate performance scores for singles and doubles using existing function
-            doubles_perf_score = 0
-            singles_perf_score = 0
+            # Calculate performance scores for singles and doubles
+            doubles_perf_score = 0.0
+            singles_perf_score = 0.0
             if selected_player in doubles_rank_df['Player'].values:
                 player_stats = doubles_rank_df[doubles_rank_df['Player'] == selected_player].iloc[0]
                 doubles_perf_score = _calculate_performance_score(player_stats, doubles_rank_df)
@@ -899,6 +898,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                     best_win_percent = (best_stats['wins'] / best_stats['matches'] * 100) if best_stats['matches'] > 0 else 0
                     best_partner = f"{best_partner_name} ({best_stats['wins']} {'win' if best_stats['wins'] == 1 else 'wins'}, {best_win_percent:.1f}% win rate)"
 
+            # Styled variables for display
             points_styled = f"<span style='font-weight:bold; color:#fff500;'>{points:.1f}</span>"
             win_percent_styled = f"<span style='font-weight:bold; color:#fff500;'>{win_percent:.1f}%</span>"
             matches_styled = f"<span style='font-weight:bold; color:#fff500;'>{matches} (Doubles: {doubles_count}, Singles: {singles_count})</span>"
@@ -913,6 +913,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             trend_styled = f"<span style='font-weight:bold; color:#fff500;'>{trend}</span>"
             performance_score_styled = f"<span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>"
 
+            # Render player insights card with performance score only once
             st.markdown(f"""
             <div class="ranking-row">
                 <div class="rank-profile-player-group">
@@ -932,14 +933,14 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <div class="partners-col"><span style='font-weight:bold; color:#bbbbbb;'>Partners: </span>{partners_styled}</div>
                 <div class="best-partner-col"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_styled}</div>
                 <div class="trend-col">{trend_styled}</div>
-                <div class="performance-score-col"><span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>{performance_score_styled}</div>
+                <div class="performance-score-col">{performance_score_styled}</div>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# CSS remains unchanged from the previous version, as it already includes the necessary styling for .performance-score-col
+# CSS (unchanged, as it already supports .performance-score-col correctly)
 st.markdown("""
 <style>
 .stApp {
