@@ -749,7 +749,7 @@ def calculate_rankings(matches_to_rank):
 
     return rank_df, partner_stats
 
-# Updated display_player_insights function to ensure performance score is displayed only once
+# Updated display_player_insights function to ensure performance score 
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -921,6 +921,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                     <div class="profile-col">{profile_html}</div>
                     <div class="player-col">{player_styled}</div>
                 </div>
+                <div class="birthday-col">{birthday_styled}</div>
                 <div class="points-col">{points_styled}</div>
                 <div class="win-percent-col">{win_percent_styled}</div>
                 <div class="matches-col">{matches_styled}</div>
@@ -930,7 +931,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <div class="cumulative-game-diff-col">{cumulative_game_diff_styled}</div>
                 <div class="games-won-col">{games_won_styled}</div>
                 <div class="performance-score-col">{performance_score_styled}</div>
-                <div class="birthday-col">{birthday_styled}</div>
                 <div class="partners-col"><span style='font-weight:bold; color:#bbbbbb;'>Partners: </span>{partners_styled}</div>
                 <div class="best-partner-col"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_styled}</div>
                 <div class="trend-col">{trend_styled}</div>
