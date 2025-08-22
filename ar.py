@@ -898,18 +898,24 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             m_col3.metric("Matches", f"{int(player_data['Matches'])}")
             
             # --- Detailed Stats Display ---
-            st.markdown(f"""
-            <div style="line-height: 2;">
-                <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
-                <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
-                <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
-                <span class="performance-score-col" style="display: block;">Performance Score : Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
-                <span class="best-partner-col" style="display: block;"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}</span>
-            </div>
-            """, unsafe_allow_html=True)
+          st.markdown(f"""
+          <div style="line-height: 2;">
+              <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
+              <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
+              <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
+              <span class="performance-score-col" style="display: block;">
+                  <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
+                  <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
+              </span>
+              <span class="best-partner-col" style="display: block;">
+                  <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}
+              </span>
+          </div>
+          """, unsafe_allow_html=True)  
+          
 
-            with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
-                st.markdown(partners_list_str, unsafe_allow_html=True)
+          with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
+               st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
 
