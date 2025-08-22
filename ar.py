@@ -1850,6 +1850,28 @@ def display_birthday_message(birthday_players):
         </div>
         """, unsafe_allow_html=True)
 
+
+
+
+def create_win_loss_donut(wins, losses):
+    if wins == 0 and losses == 0:
+        return None
+    fig = go.Figure(data=[go.Pie(labels=['Wins', 'Losses'],
+                                 values=[wins, losses],
+                                 hole=.6,
+                                 marker_colors=['#00a86b', '#ff4136'],
+                                 textinfo='none')])
+    fig.update_layout(
+        showlegend=False,
+        height=100,
+        width=100,
+        margin=dict(t=0, b=0, l=0, r=0),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    return fig
+
+
     
 
 # --- Main App Logic ---
