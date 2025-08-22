@@ -749,11 +749,10 @@ def calculate_rankings(matches_to_rank):
 
     return rank_df, partner_stats
 
-# Updated display_player_insights function to ensure performance score 
+# -----------------------------Updated display_player_insights function to ensure performance score ----------------------------
 
 
-# Paste all the helper functions (create_win_loss_donut, etc.) here first...
-# ...
+
 
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
@@ -818,7 +817,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         player_info = players_df[players_df["name"] == player].iloc[0]
         player_data = rank_df[rank_df["Player"] == player].iloc[0]
 
-        # --- Data Calculation ---
+        # --- Data Calculation & Formatting ---
         profile_image = player_info.get("profile_image_url", "")
         wins, losses = int(player_data["Wins"]), int(player_data["Losses"])
         singles_count = matches_df[(matches_df['match_type'] == 'Singles') & ((matches_df['team1_player1'] == player) | (matches_df['team2_player1'] == player))].shape[0]
@@ -828,20 +827,41 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         doubles_perf_score = _calculate_performance_score(doubles_rank_df[doubles_rank_df['Player'] == player].iloc[0], doubles_rank_df) if player in doubles_rank_df['Player'].values else 0.0
         singles_perf_score = _calculate_performance_score(singles_rank_df[singles_rank_df['Player'] == player].iloc[0], singles_rank_df) if player in singles_rank_df['Player'].values else 0.0
 
+        # Get Rank and clean it to show only the number
+        rank_value = player_data['Rank']
+        rank_display = re.sub(r'[^0-9]', '', str(rank_value))
+
+        # Get and format Birthday
+        birthday_str = ""
+        raw_birthday = player_info.get("birthday")
+        if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
+            try:
+                bday_obj = datetime.strptime(raw_birthday, "%d-%m")
+                birthday_str = bday_obj.strftime("%d %b")  # e.g., "25 Dec"
+            except ValueError:
+                birthday_str = ""  # Keep it blank if format is wrong
+
         # --- Card Layout ---
         st.markdown("---")
+
+        # --- NEW: Top header section for Name, Rank, and Birthday ---
+        header_html = f"""
+        <div style="margin-bottom: 15px;">
+            <h2 style="color: #fff500; margin-bottom: 5px; font-size: 2.0em; font-weight: bold;">{player}</h2>
+            <span style="font-weight: bold; color: #bbbbbb; font-size: 1.1em;">
+                Rank: <span style="color: #fff500;">#{rank_display}</span>
+            </span>
+            {f' | <span style="font-weight: bold; color: #bbbbbb; font-size: 1.1em;">🎂 Birthday: <span style="color: #fff500;">{birthday_str}</span></span>' if birthday_str else ''}
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
+        
         col1, col2 = st.columns([1, 2])
 
-        with col1: # Left column for visuals
+        with col1:  # Left column for visuals
             if profile_image:
-                # =================== FIX IS HERE ===================
-                # This 'try' block prevents the app from crashing if the Rank is not a valid number.
-                try:
-                    rank_display = f"Rank #{int(player_data['Rank'])}"
-                except (ValueError, TypeError):
-                    rank_display = "Unranked"
-                st.image(profile_image, width=150, caption=rank_display)
-                # ================= END OF FIX ======================
+                # MODIFICATION: Removed the `caption` attribute entirely
+                st.image(profile_image, width=150)
 
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
@@ -853,9 +873,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             if trend_chart:
                 st.plotly_chart(trend_chart, use_container_width=True)
 
-        with col2: # Right column for stats
-            st.subheader(player)
-
+        with col2:  # Right column for stats
+            # MODIFICATION: Removed the st.subheader(player) as it's now in the header
             m_col1, m_col2, m_col3 = st.columns(3)
             m_col1.metric("Points", f"{player_data['Points']:.1f}")
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
@@ -876,9 +895,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             match_type_chart = create_match_type_bar_chart(singles_count, doubles_count)
             if match_type_chart:
                 st.plotly_chart(match_type_chart, use_container_width=True)
-
-
-
 
 
 
