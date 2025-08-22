@@ -887,7 +887,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             if win_loss_chart:
                 st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{key_prefix}_win_loss_{player}")
 
-            st.markdown("##### Recent Trend")
+            st.markdown("#####")
             st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
 
         with col2:  # Right column for stats
