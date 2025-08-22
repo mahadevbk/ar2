@@ -929,11 +929,12 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <div class="game-diff-avg-col">{game_diff_avg_styled}</div>
                 <div class="cumulative-game-diff-col">{cumulative_game_diff_styled}</div>
                 <div class="games-won-col">{games_won_styled}</div>
+                <div class="performance-score-col">{performance_score_styled}</div>
                 <div class="birthday-col">{birthday_styled}</div>
                 <div class="partners-col"><span style='font-weight:bold; color:#bbbbbb;'>Partners: </span>{partners_styled}</div>
                 <div class="best-partner-col"><span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_styled}</div>
                 <div class="trend-col">{trend_styled}</div>
-                <div class="performance-score-col">{performance_score_styled}</div>
+                
             </div>
             """, unsafe_allow_html=True)
 
