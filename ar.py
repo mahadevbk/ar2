@@ -769,6 +769,60 @@ def calculate_rankings(matches_to_rank):
 
     return rank_df, partner_stats
 
+
+
+#------CHART FOR PLAYER TO INSIGHTS -------------------------------------
+
+
+def create_trend_chart(trend):
+    if not trend or trend == 'No recent matches':
+        return None
+
+    results = trend.split()[::-1]  # Reverse to show oldest to newest
+
+    fig = go.Figure()
+
+    x = list(range(1, len(results) + 1))
+    y = [1 if r == 'W' else 0 for r in results]
+    colors = ['#00FF00' if r == 'W' else '#FF0000' for r in results]  # Green for W, Red for L
+
+    fig.add_trace(go.Bar(
+        x=x,
+        y=y,
+        marker_color=colors,
+        width=0.4
+    ))
+
+    fig.update_layout(
+        height=150,
+        margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#fff500'),
+        xaxis=dict(
+            title='Recent Matches (Oldest to Newest)',
+            tickmode='array',
+            tickvals=x,
+            ticktext=[f"M{i}" for i in x],
+            title_font=dict(color='#fff500'),
+            tickfont=dict(color='#fff500')
+        ),
+        yaxis=dict(
+            showticklabels=False,
+            showgrid=False,
+            zeroline=False
+        ),
+        showlegend=False
+    )
+
+    return fig
+
+
+
+
+
+
+
 # -----------------------------Updated display_player_insights function to ensure performance score ----------------------------
 
 
