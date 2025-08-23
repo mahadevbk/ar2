@@ -828,7 +828,6 @@ def create_trend_chart(trend):
 
 
 
-
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -962,7 +961,12 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             if win_loss_chart:
                 st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{key_prefix}_win_loss_{player}")
 
-            st.markdown("#####")
+            st.markdown("##### Recent Trend")
+            trend_chart = create_trend_chart(trend)
+            if trend_chart:
+                st.plotly_chart(trend_chart, use_container_width=True, key=f"{key_prefix}_trend_{player}")
+            else:
+                st.markdown("No recent matches")
             st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
 
         with col2:  # Right column for stats
@@ -988,8 +992,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             """, unsafe_allow_html=True)
 
             with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
-                st.markdown(partners_list_str, unsafe_allow_html=True)          
-
+                st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
 
