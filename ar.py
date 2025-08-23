@@ -299,8 +299,8 @@ div.st-emotion-cache-1jm692n h3 {
 
 [data-testid="stHorizontalBlock"] {
     flex: 1 1 45% !important; /* Each column ~45% width */
-    min-width: 300px;          /* Prevent too narrow columns */
-    max-width: 600px;          /* Keep nice size */
+    min-width: 400px;          /* Prevent too narrow columns */
+    max-width: 700px;          /* Keep nice size */
     margin: 10px;
 }
 
