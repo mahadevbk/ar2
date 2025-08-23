@@ -778,7 +778,7 @@ def create_trend_chart(trend):
     if not trend or trend == 'No recent matches':
         return None
 
-    results = trend.split()[::-1]  # Reverse to show oldest to newest
+    results = trend.split()  # Keep original order (newest to oldest)
 
     fig = go.Figure()
 
@@ -800,7 +800,7 @@ def create_trend_chart(trend):
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#fff500'),
         xaxis=dict(
-            title='Recent Matches (Oldest to Newest)',
+            title='Recent Matches (Newest to Oldest)',
             tickmode='array',
             tickvals=x,
             ticktext=[f"M{i}" for i in x],
@@ -993,7 +993,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-
 
 
 
