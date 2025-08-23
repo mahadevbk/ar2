@@ -291,6 +291,20 @@ div.st-emotion-cache-1jm692n h3 {
     color: #FF7518 !important; /* Optic Yellow #fff500 */
 }
 </style>
+/* Prevent columns from stacking vertically on small screens */
+.block-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+[data-testid="stHorizontalBlock"] {
+    flex: 1 1 45% !important; /* Each column ~45% width */
+    min-width: 300px;          /* Prevent too narrow columns */
+    max-width: 500px;          /* Keep nice size */
+    margin: 10px;
+}
+
 
 """, unsafe_allow_html=True)
 
