@@ -290,7 +290,6 @@ div.st-emotion-cache-1jm692n h3 {
 [data-testid="stMetric"] > div:nth-of-type(1) {
     color: #FF7518 !important; /* Optic Yellow #fff500 */
 }
-</style>
 /* Prevent columns from stacking vertically on small screens */
 .block-container {
     display: flex;
@@ -304,6 +303,9 @@ div.st-emotion-cache-1jm692n h3 {
     max-width: 500px;          /* Keep nice size */
     margin: 10px;
 }
+
+</style>
+
 
 
 """, unsafe_allow_html=True)
