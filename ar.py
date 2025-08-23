@@ -997,7 +997,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
 
 
-#------------------- Update the display_player_insights  and calculate rankings function --------------------------------
+#------------------- END OF display_player_insights  and calculate rankings function --------------------------------
 
 
 
