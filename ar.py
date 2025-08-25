@@ -1567,7 +1567,7 @@ def generate_whatsapp_link(row):
     for s in [row['set1'], row['set2'], row['set3']]:
         if s:
             if "Tie Break" in s:
-                tie_break_scores = s.replace("Tie Break", "").strip().split('-')
+                #tie_break_scores = s.replace("Tie Break", "").strip().split('-')
                 if int(tie_break_scores[0]) > int(tie_break_scores[1]):
                     scores_list.append(f'*7-6({tie_break_scores[0]}:{tie_break_scores[1]})*')
                 else:
