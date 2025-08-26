@@ -2679,6 +2679,20 @@ with tabs[3]:
         {"name": "Mira Oasis 3 B", "url": "https://maps.app.goo.gl/ouXQGUxYSZSfaW1z9"},
         {"name": "Mira Oasis 3 C", "url": "https://maps.app.goo.gl/kf7A9K7DoYm4PEPu8"},
     ]
+
+    # Mudon, Arabian Ranches 2, Dubai Hills and other courts
+    Other_courts = [
+        {"name": "Mudon Main courts - Rahat", "url": "https://maps.app.goo.gl/AZ8WJ1mnnwMgNxhz7?g_st=aw"},
+        {"name": "Mudon Arabella", "url": "https://maps.app.goo.gl/iudbB5YqrGKyHNqM6?g_st=aw"},
+        {"name": "Mudon Arabella 3", "url": "https://maps.app.goo.gl/o46ERJCq8LKg1Cz59?g_st=aw"},
+        {"name": "AR2 Rosa", "url": "https://maps.app.goo.gl/at1EKgatfMmvAg7g8?g_st=aw"},
+        {"name": "AR2 Palma", "url": "https://maps.app.goo.gl/oKxXvbXKYe3JgJco8?g_st=aw"},
+        {"name": "AR 2 Fitness First", "url": "https://maps.app.goo.gl/iZGipHv8KdfW82dW9?g_st=aw"},
+        {"name": "Dubai Hills Maple", "url": "https://maps.app.goo.gl/rypmwnSGbGeknykv6?g_st=aw"},
+    ]
+    
+
+
     
     # Function to display courts in a grid
     def display_courts(section_title, courts_list):
@@ -2701,6 +2715,9 @@ with tabs[3]:
         display_courts("", ar_courts)  # No extra title inside expander
     with st.expander("Mira & Mira Oasis Tennis Courts", expanded=False, icon="➡️"):
         display_courts("", mira_courts)
+    with st.expander("Mudon, AR2 & Other Tennis Courts", expanded=False, icon="➡️"):
+        display_courts("", Other_courts)  
+
 
         
 #-----TAB 4 WITH THUMBNAILS INSIDE BOOKING BOX AND WHATSAPP SHARE WITH PROPER FORMATTING--------------------------------------------
