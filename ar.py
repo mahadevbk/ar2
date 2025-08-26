@@ -2682,7 +2682,7 @@ with tabs[3]:
     ]
 
     # Mudon, Arabian Ranches 2, Dubai Hills and other courts
-    Other_courts = [
+    Mudon_Other_courts = [
         {"name": "Mudon Main courts - Rahat", "url": "https://maps.app.goo.gl/AZ8WJ1mnnwMgNxhz7?g_st=aw"},
         {"name": "Mudon Arabella", "url": "https://maps.app.goo.gl/iudbB5YqrGKyHNqM6?g_st=aw"},
         {"name": "Mudon Arabella 3", "url": "https://maps.app.goo.gl/o46ERJCq8LKg1Cz59?g_st=aw"},
@@ -2717,7 +2717,7 @@ with tabs[3]:
     with st.expander("Mira & Mira Oasis Tennis Courts", expanded=False, icon="➡️"):
         display_courts("", mira_courts)
     with st.expander("Mudon, AR2 & Other Tennis Courts", expanded=False, icon="➡️"):
-        display_courts("", Other_courts)  
+        display_courts("", Mudon_Other_courts)  
 
 
         
