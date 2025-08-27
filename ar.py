@@ -2887,9 +2887,13 @@ with tabs[4]:
                                 diff = abs(team1_score - team2_score)
                                 odds_team1 = (team1_score / (team1_score + team2_score)) * 100 if team1_score + team2_score > 0 else 50
                                 odds_team2 = 100 - odds_team1
-                                pairing_str = f"{', '.join(team1)} vs {', '.join(team2)}"
+                                team1_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in team1])
+                                team2_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in team2])
+                                pairing_str = f"{team1_str} vs {team2_str}"
+                                plain_pairing_str = f"{', '.join(team1)} vs {', '.join(team2)}"
                                 all_pairings.append({
                                     'pairing': pairing_str,
+                                    'plain_pairing': plain_pairing_str,
                                     'team1_odds': odds_team1,
                                     'team2_odds': odds_team2,
                                     'diff': diff
@@ -2899,12 +2903,12 @@ with tabs[4]:
                             plain_suggestion = "\n*Possible Pairings and Odds:*\n"
                             for idx, pairing in enumerate(all_pairings[:3], 1):  # Limit to three pairings
                                 pairing_suggestion += (
-                                    f"<div>Option {idx}: <span style='font-weight:bold;'>{pairing['pairing']}</span> "
+                                    f"<div>Option {idx}: {pairing['pairing']} "
                                     f"(<span style='font-weight:bold; color:#fff500;'>{pairing['team1_odds']:.1f}%</span> vs "
                                     f"<span style='font-weight:bold; color:#fff500;'>{pairing['team2_odds']:.1f}%</span>)</div>"
                                 )
                                 plain_suggestion += (
-                                    f"Option {idx}: {pairing['pairing']} ({pairing['team1_odds']:.1f}% vs {pairing['team2_odds']:.1f}%)\n"
+                                    f"Option {idx}: {pairing['plain_pairing']} ({pairing['team1_odds']:.1f}% vs {pairing['team2_odds']:.1f}%)\n"
                                 )
                     elif row['match_type'] == "Doubles" and len(players) < 4:
                         pairing_suggestion = "<div><strong style='color:white;'>Pairing Odds:</strong> Not enough players for pairing odds</div>"
@@ -2924,8 +2928,7 @@ with tabs[4]:
                                 p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{players[1]}</span>"
                                 pairing_suggestion = (
                                     f"<div><strong style='color:white;'>Odds:</strong> "
-                                    f"<span style='font-weight:bold;'>{p1_styled}</span> ({p1_odds:.1f}%) vs "
-                                    f"<span style='font-weight:bold;'>{p2_styled}</span> ({p2_odds:.1f}%)</div>"
+                                    f"{p1_styled} ({p1_odds:.1f}%) vs {p2_styled} ({p2_odds:.1f}%)</div>"
                                 )
                                 plain_suggestion = f"\n*Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)*"
                 except Exception as e:
@@ -3179,7 +3182,6 @@ with tabs[4]:
                                 st.error(f"Failed to delete booking: {str(e)}")
                                 st.session_state.edit_booking_key += 1
                                 st.rerun()
-
 
     st.markdown("---")
 
