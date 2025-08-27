@@ -2922,23 +2922,27 @@ with tabs[4]:
                             pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
                             plain_suggestion = f"\n*Suggestion: Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available.*"
                         else:
-                            suggested_pairing, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
-                            if team1_odds is not None and team2_odds is not None:
-                                teams = suggested_pairing.split(' vs ')
-                                team1_players = teams[0].replace('Team 1: ', '')
-                                team2_players = teams[1].replace('Team 2: ', '')
+                            all_pairings = get_all_pairings_with_odds(players, rank_df)
+                            if all_pairings:
+                                booking_id = row['booking_id']
+                                idx_key = f"{booking_id}_pairing_idx"
+                                if idx_key not in st.session_state:
+                                    st.session_state[idx_key] = 0
+                                idx = st.session_state[idx_key]
+                                current_pairing = all_pairings[idx % len(all_pairings)]
+                                team1 = current_pairing['team1']
+                                team2 = current_pairing['team2']
+                                team1_odds = current_pairing['team1_odds']
+                                team2_odds = current_pairing['team2_odds']
                                 pairing_suggestion = (
                                     f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                    f"<span style='font-weight:bold;'>{team1_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
-                                    f"<span style='font-weight:bold;'>{team2_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
+                                    f"<span style='font-weight:bold;'>{team1}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
+                                    f"<span style='font-weight:bold;'>{team2}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
                                 )
-                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', team1_players)} ({team1_odds:.1f}%) vs {re.sub(r'<.*?>', '', team2_players)} ({team2_odds:.1f}%)*"
+                                plain_suggestion = f"\n*Suggested Pairing: {team1} ({team1_odds:.1f}%) vs {team2} ({team2_odds:.1f}%)*"
                             else:
-                                pairing_suggestion = (
-                                    f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                    f"<span style='font-weight:bold;'>{suggested_pairing}</span></div>"
-                                )
-                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', suggested_pairing).replace('Suggested Pairing: ', '').strip()}*"
+                                pairing_suggestion = "<div><strong style='color:white;'>Suggested Pairing:</strong> Unable to calculate pairings</div>"
+                                plain_suggestion = "\n*Suggested Pairing: Unable to calculate pairings*"
                     elif row['match_type'] == "Singles" and len(players) == 2:
                         rank_df = singles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
