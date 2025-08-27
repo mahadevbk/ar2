@@ -2813,14 +2813,12 @@ with tabs[4]:
         if 'players' in bookings_df.columns:
             bookings_df = bookings_df.drop(columns=['players'])
         
-        # Create datetime column
         bookings_df['datetime'] = pd.to_datetime(
             bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
             errors='coerce',
             utc=True
         ).dt.tz_convert('Asia/Dubai')
         
-        # Filter upcoming bookings
         upcoming_bookings = bookings_df[
             (bookings_df['datetime'].notna()) & 
             (bookings_df['datetime'] >= pd.Timestamp.now(tz='Asia/Dubai'))
@@ -2829,51 +2827,34 @@ with tabs[4]:
         if upcoming_bookings.empty:
             st.info("No upcoming bookings found.")
         else:
-            # =====================================================================
-            # START: MODIFICATION FOR NEW ODDS CALCULATION
-            # =====================================================================
             try:
-                # Calculate format-specific rankings for odds calculation
                 doubles_matches_df = st.session_state.matches_df[st.session_state.matches_df['match_type'] == 'Doubles']
                 singles_matches_df = st.session_state.matches_df[st.session_state.matches_df['match_type'] == 'Singles']
-                
                 doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
                 singles_rank_df, _ = calculate_rankings(singles_matches_df)
             except Exception as e:
                 doubles_rank_df = pd.DataFrame()
                 singles_rank_df = pd.DataFrame()
-                st.warning(f"Unable to load rankings for pairing suggestions: {str(e)}")
-            # =====================================================================
-            # END: MODIFICATION FOR NEW ODDS CALCULATION
-            # =====================================================================
-
-                # ... (rest of the code remains unchanged until the upcoming_bookings loop)
-
-            
-            # ... (rest of the code remains unchanged until the upcoming_bookings loop)
+                st.warning(f"Unable to load rankings for pairing odds: {str(e)}")
             
             for _, row in upcoming_bookings.iterrows():
                 players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
                 players_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in players]) if players else "No players specified"
                 standby_str = f"<span style='font-weight:bold; color:#fff500;'>{row['standby_player']}</span>" if row['standby_player'] else "None"
                 date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
-                ###time_ampm = datetime.strptime(row['time'], "%H:%M").strftime("%-I:%M %p")
                 time_value = str(row['time']).strip()
             
                 time_ampm = ""
                 if time_value and time_value not in ["NaT", "nan", "None"]:
                     try:
-                        # Try HH:MM
                         dt_obj = datetime.strptime(time_value, "%H:%M")
                     except ValueError:
                         try:
-                            # Try HH:MM:SS
                             dt_obj = datetime.strptime(time_value, "%H:%M:%S")
                         except ValueError:
                             dt_obj = None
-                    
                     if dt_obj:
-                        time_ampm = dt_obj.strftime("%-I:%M %p")  # e.g. 2:30 PM
+                        time_ampm = dt_obj.strftime("%-I:%M %p")
                 
                 court_url = court_url_mapping.get(row['court_name'], "#")
                 court_name_html = f"<a href='{court_url}' target='_blank' style='font-weight:bold; color:#fff500; text-decoration:none;'>{row['court_name']}</a>"
@@ -2881,43 +2862,61 @@ with tabs[4]:
                 pairing_suggestion = ""
                 plain_suggestion = ""
                 try:
-                    # =====================================================================
-                    # START: MODIFICATION FOR NEW ODDS CALCULATION
-                    # =====================================================================
                     if row['match_type'] == "Doubles" and len(players) == 4:
                         rank_df = doubles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
                         if unranked:
                             styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
-                            message = f"Players {styled_unranked} are unranked, therefore no pairing suggestion or odds available."
-                            pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
-                            plain_suggestion = f"\n*Suggestion: Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available.*"
+                            message = f"Players {styled_unranked} are unranked, therefore no pairing odds available."
+                            pairing_suggestion = f"<div><strong style='color:white;'>Pairing Odds:</strong> {message}</div>"
+                            plain_suggestion = f"\n*Pairing Odds: Players {', '.join(unranked)} are unranked, therefore no pairing odds available.*"
                         else:
-                            suggested_pairing, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
-                            if team1_odds is not None and team2_odds is not None:
-                                teams = suggested_pairing.split(' vs ')
-                                team1_players = teams[0].replace('Team 1: ', '')
-                                team2_players = teams[1].replace('Team 2: ', '')
-                                pairing_suggestion = (
-                                    f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                    f"<span style='font-weight:bold;'>{team1_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
-                                    f"<span style='font-weight:bold;'>{team2_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
+                            all_pairings = []
+                            player_list = list(players)
+                            seen_pairings = set()
+                            for team1 in combinations(player_list, 2):
+                                team1_set = frozenset(team1)
+                                team2 = tuple(p for p in player_list if p not in team1)
+                                team2_set = frozenset(team2)
+                                pairing_key = frozenset([team1_set, team2_set])
+                                if pairing_key in seen_pairings:
+                                    continue
+                                seen_pairings.add(pairing_key)
+                                team1_score = sum(_calculate_performance_score(rank_df[rank_df['Player'] == p].iloc[0], rank_df) for p in team1)
+                                team2_score = sum(_calculate_performance_score(rank_df[rank_df['Player'] == p].iloc[0], rank_df) for p in team2)
+                                diff = abs(team1_score - team2_score)
+                                odds_team1 = (team1_score / (team1_score + team2_score)) * 100 if team1_score + team2_score > 0 else 50
+                                odds_team2 = 100 - odds_team1
+                                pairing_str = f"{', '.join(team1)} vs {', '.join(team2)}"
+                                all_pairings.append({
+                                    'pairing': pairing_str,
+                                    'team1_odds': odds_team1,
+                                    'team2_odds': odds_team2,
+                                    'diff': diff
+                                })
+                            all_pairings.sort(key=lambda x: x['diff'])
+                            pairing_suggestion = "<div><strong style='color:white;'>Possible Pairings and Odds:</strong></div>"
+                            plain_suggestion = "\n*Possible Pairings and Odds:*\n"
+                            for idx, pairing in enumerate(all_pairings[:3], 1):  # Limit to three pairings
+                                pairing_suggestion += (
+                                    f"<div>Option {idx}: <span style='font-weight:bold;'>{pairing['pairing']}</span> "
+                                    f"(<span style='font-weight:bold; color:#fff500;'>{pairing['team1_odds']:.1f}%</span> vs "
+                                    f"<span style='font-weight:bold; color:#fff500;'>{pairing['team2_odds']:.1f}%</span>)</div>"
                                 )
-                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', team1_players)} ({team1_odds:.1f}%) vs {re.sub(r'<.*?>', '', team2_players)} ({team2_odds:.1f}%)*"
-                            else:
-                                pairing_suggestion = (
-                                    f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                    f"<span style='font-weight:bold;'>{suggested_pairing}</span></div>"
+                                plain_suggestion += (
+                                    f"Option {idx}: {pairing['pairing']} ({pairing['team1_odds']:.1f}% vs {pairing['team2_odds']:.1f}%)\n"
                                 )
-                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', suggested_pairing).replace('Suggested Pairing: ', '').strip()}*"
+                    elif row['match_type'] == "Doubles" and len(players) < 4:
+                        pairing_suggestion = "<div><strong style='color:white;'>Pairing Odds:</strong> Not enough players for pairing odds</div>"
+                        plain_suggestion = "\n*Pairing Odds: Not enough players for pairing odds*"
                     elif row['match_type'] == "Singles" and len(players) == 2:
                         rank_df = singles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
                         if unranked:
                             styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
-                            message = f"Players {styled_unranked} are unranked, therefore no pairing suggestion or odds available."
-                            pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
-                            plain_suggestion = f"\n*Suggestion: Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available.*"
+                            message = f"Players {styled_unranked} are unranked, therefore no odds available."
+                            pairing_suggestion = f"<div><strong style='color:white;'>Odds:</strong> {message}</div>"
+                            plain_suggestion = f"\n*Odds: Players {', '.join(unranked)} are unranked, therefore no odds available.*"
                         else:
                             p1_odds, p2_odds = suggest_singles_odds(players, singles_rank_df)
                             if p1_odds is not None:
@@ -2929,31 +2928,21 @@ with tabs[4]:
                                     f"<span style='font-weight:bold;'>{p2_styled}</span> ({p2_odds:.1f}%)</div>"
                                 )
                                 plain_suggestion = f"\n*Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)*"
-                    # =====================================================================
-                    # END: MODIFICATION FOR NEW ODDS CALCULATION
-                    # =====================================================================
-                    elif row['match_type'] == "Doubles" and len(players) < 4:
-                        pairing_suggestion = "<div><strong style='color:white;'>Suggested Pairing:</strong> Not enough players for pairing suggestion</div>"
-                        plain_suggestion = "\n*Suggested Pairing: Not enough players for pairing suggestion*"
                 except Exception as e:
-                    pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> Error calculating: {e}</div>"
-                    plain_suggestion = f"\n*Suggestion: Error calculating: {str(e)}*"
-            
+                    pairing_suggestion = f"<div><strong style='color:white;'>Pairing Odds:</strong> Error calculating: {e}</div>"
+                    plain_suggestion = f"\n*Pairing Odds: Error calculating: {str(e)}*"
+                
                 weekday = pd.to_datetime(row['date']).strftime('%a')
                 date_part = pd.to_datetime(row['date']).strftime('%d %b')
-                full_date = f"{weekday} , {date_part} , {time_ampm}"
+                full_date = f"{weekday}, {date_part}, {time_ampm}"
                 court_name = row['court_name']
                 players_list = "\n".join([f"{i+1}. *{p}*" for i, p in enumerate(players)]) if players else "No players"
-                standby_text = f"\nSTD. BY : *{row['standby_player']}*" if row['standby_player'] else ""
+                standby_text = f"\nSTD. BY: *{row['standby_player']}*" if row['standby_player'] else ""
                 
-                share_text = f"*Game Booking :* \nDate : *{full_date}* \nCourt : *{court_name}*\nPlayers :\n{players_list}{standby_text}{plain_suggestion}\nCourt location : {court_url}"
+                share_text = f"*Game Booking:*\nDate: *{full_date}*\nCourt: *{court_name}*\nPlayers:\n{players_list}{standby_text}{plain_suggestion}\nCourt location: {court_url}"
                 encoded_text = urllib.parse.quote(share_text)
                 whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0&app_absent=0"
-            
-                # ... (rest of the booking display code remains unchanged)
-
-
-                  
+                
                 booking_text = f"""
                 <div class="booking-row" style='background-color: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
                     <div><strong>Date:</strong> <span style='font-weight:bold; color:#fff500;'>{date_str}</span></div>
@@ -2969,7 +2958,7 @@ with tabs[4]:
                         </a>
                     </div>
                 """
-    
+                
                 visuals_html = '<div style="display: flex; flex-direction: row; align-items: center; margin-top: 10px;">'
                 screenshot_url = row["screenshot_url"] if row["screenshot_url"] and isinstance(row["screenshot_url"], str) else None
                 if screenshot_url:
@@ -2994,7 +2983,7 @@ with tabs[4]:
                     visuals_html += f'<div title="{player_name}" style="width: 50px; height: 50px; margin-right: 8px; border-radius: 50%; background-color: #07314f; border: 2px solid #fff500; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff500; font-weight: bold;">{initial}</div>'
                 visuals_html += '</div></div>'
                 booking_text += visuals_html + '</div>'
-    
+                
                 try:
                     st.markdown(booking_text, unsafe_allow_html=True)
                 except Exception as e:
@@ -3034,8 +3023,6 @@ with tabs[4]:
                                 """, unsafe_allow_html=True)
                             col_idx += 1
     
-            #st.markdown("<hr style='border-top: 1px solid #333333; margin: 15px 0;'>", unsafe_allow_html=True)
-    
     st.markdown("---")
     
     st.subheader("✏️ Manage Existing Booking")
@@ -3046,14 +3033,12 @@ with tabs[4]:
     if bookings_df.empty:
         st.info("No bookings available to manage.")
     else:
-        # Check for duplicate booking_ids
         duplicate_ids = bookings_df[bookings_df.duplicated(subset=['booking_id'], keep=False)]['booking_id'].unique()
         if len(duplicate_ids) > 0:
             st.warning(f"Found duplicate booking_id values: {duplicate_ids.tolist()}. Please remove duplicates in Supabase before editing.")
         else:
             booking_options = []
     
-            # --- Safe time formatting helper ---
             def format_time_safe(time_str):
                 if not time_str or str(time_str).lower() in ["nat", "nan", "none"]:
                     return "Unknown Time"
@@ -3087,12 +3072,9 @@ with tabs[4]:
                         key=f"edit_booking_date_{booking_id}"
                     )
     
-                    # Safe conversion of current booking time
                     current_time_ampm = format_time_safe(booking_row["time"])
-    
                     hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]
                     time_index = hours.index(current_time_ampm) if current_time_ampm in hours else 0
-    
                     time_edit = st.selectbox("Booking Time *", hours, index=time_index, key=f"edit_booking_time_{booking_id}")
                     match_type_edit = st.radio("Match Type", ["Doubles", "Singles"],
                                                index=0 if booking_row["match_type"] == "Doubles" else 1,
@@ -3197,7 +3179,6 @@ with tabs[4]:
                                 st.error(f"Failed to delete booking: {str(e)}")
                                 st.session_state.edit_booking_key += 1
                                 st.rerun()
-
 
 
     st.markdown("---")
