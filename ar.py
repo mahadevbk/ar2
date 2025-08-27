@@ -2252,35 +2252,6 @@ with tabs[0]:
 
 with tabs[1]:
     st.header("Matches")
-
-        # --- MATCH UP EXPANDER ---
-    with st.expander("Match up", expanded=False, icon="➡️"):
-        match_type = st.radio("Select Match Type", ["Singles", "Doubles"])
-
-        # Player selection
-        if match_type == "Singles":
-            player1 = st.selectbox("Select Player 1", players_list, key="singles_p1")
-            player2 = st.selectbox("Select Player 2", players_list, key="singles_p2")
-        else:  # Doubles
-            player1_team1 = st.selectbox("Select Team 1 - Player 1", players_list, key="doubles_t1p1")
-            player2_team1 = st.selectbox("Select Team 1 - Player 2", players_list, key="doubles_t1p2")
-            player1_team2 = st.selectbox("Select Team 2 - Player 1", players_list, key="doubles_t2p1")
-            player2_team2 = st.selectbox("Select Team 2 - Player 2", players_list, key="doubles_t2p2")
-
-        if st.button("Match up"):
-            st.subheader("Match Odds")
-            if match_type == "Singles":
-                st.write(f"Odds for {player1} vs {player2}:")
-                # Replace this with your odds calculation logic
-                st.write(f"{player1}: 1.8 | {player2}: 2.0")
-            else:
-                st.write(f"Odds for [{player1_team1}, {player2_team1}] vs [{player1_team2}, {player2_team2}]:")
-                # Replace this with your odds calculation logic
-                st.write(f"Team 1: 1.9 | Team 2: 1.9")
-
-
-
-    
     with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
         st.subheader("Enter Match Result")
         match_type_new = st.radio("Match Type", ["Doubles", "Singles"], horizontal=True, key=f"post_match_type_new_{st.session_state.form_key_suffix}")
