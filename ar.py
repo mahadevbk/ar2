@@ -2953,8 +2953,8 @@ with tabs[4]:
                                     'diff': diff
                                 })
                             all_pairings.sort(key=lambda x: x['diff'])
-                            pairing_suggestion = "<div><strong style='color:white;'>Possible Pairings and Odds:</strong></div>"
-                            plain_suggestion = "\n*Possible Pairings and Odds:*\n"
+                            pairing_suggestion = "<div><strong style='color:white;'>Pairing Combos and Odds:</strong></div>"
+                            plain_suggestion = "\n*Pairing Combos and Odds:*\n"
                             for idx, pairing in enumerate(all_pairings[:3], 1):  # Limit to three pairings
                                 pairing_suggestion += (
                                     f"<div>Option {idx}: {pairing['pairing']} "
