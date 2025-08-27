@@ -1485,6 +1485,32 @@ def suggest_singles_odds(players, singles_rank_df):
 # ==============================================================================
 
 
+def get_all_pairings_with_odds(players, rank_df):
+    all_pairings = []
+    for team1_comb in combinations(players, 2):
+        team1 = list(team1_comb)
+        team2 = [p for p in players if p not in team1]
+        team1_score = _calculate_team_score(team1, rank_df)
+        team2_score = _calculate_team_score(team2, rank_df)
+        total = team1_score + team2_score
+        if total == 0:
+            continue
+        team1_odds = (team1_score / total) * 100
+        team2_odds = 100 - team1_odds
+        team1_str = ' '.join(sorted(team1))
+        team2_str = ' '.join(sorted(team2))
+        balance_diff = abs(team1_odds - 50)
+        all_pairings.append({
+            'team1': team1_str,
+            'team2': team2_str,
+            'team1_odds': team1_odds,
+            'team2_odds': team2_odds,
+            'balance_diff': balance_diff
+        })
+
+
+
+
 def delete_booking_from_db(booking_id):
     try:
         supabase.table(bookings_table_name).delete().eq("booking_id", booking_id).execute()
