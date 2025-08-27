@@ -959,12 +959,12 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{key_prefix}_win_loss_{player}")
+                st.plotly_chart(win_loss_chart, width='stretch', key=f"{key_prefix}_win_loss_{player}")
 
             st.markdown("##### Recent Trend")
             trend_chart = create_trend_chart(trend)
             if trend_chart:
-                st.plotly_chart(trend_chart, use_container_width=True, key=f"{key_prefix}_trend_{player}")
+                st.plotly_chart(trend_chart, width='stretch', key=f"{key_prefix}_trend_{player}")
             else:
                 st.markdown("No recent matches")
             st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
@@ -1742,7 +1742,7 @@ if not matches.empty and ("match_id" not in matches.columns or matches["match_id
             matches.at[i, "match_id"] = generate_match_id(matches, match_date_for_id)
     save_matches(matches)
 
-st.image("https://raw.githubusercontent.com/mahadevbk/ar2/main/dubai.png", use_container_width=True)
+st.image("https://raw.githubusercontent.com/mahadevbk/ar2/main/dubai.png", width='stretch')
 
 tab_names = ["Rankings", "Matches", "Player Profile", "Maps", "Bookings","Mini Tourney"]
 
@@ -1851,12 +1851,12 @@ with tabs[0]:
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{key_prefix}_win_loss_{player_name}")
+                st.plotly_chart(win_loss_chart, width='stretch', key=f"{key_prefix}_win_loss_{player_name}")
 
             st.markdown("##### Trend")
             trend_chart = create_trend_sparkline(trend)
             if trend_chart:
-                st.plotly_chart(trend_chart, use_container_width=True, key=f"{key_prefix}_trend_{player_name}")
+                st.plotly_chart(trend_chart, width='stretch', key=f"{key_prefix}_trend_{player_name}")
                 st.markdown(f"<div class='trend-col' style='text-align: center; margin-top: -15px;'>{trend}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
@@ -2080,7 +2080,7 @@ with tabs[0]:
             st.markdown("### 📊 Player Performance Overview")
             nerd_chart = create_nerd_stats_chart(rank_df)
             if nerd_chart:
-                st.plotly_chart(nerd_chart, use_container_width=True)
+                st.plotly_chart(nerd_chart, width='stretch')
             else:
                 st.info("Not enough data to generate the performance chart.")
 
@@ -2102,7 +2102,7 @@ with tabs[0]:
                 if selected_player_for_partners:
                     partnership_chart = create_partnership_chart(selected_player_for_partners, partner_stats, players_df)
                     if partnership_chart:
-                        st.plotly_chart(partnership_chart, use_container_width=True)
+                        st.plotly_chart(partnership_chart, width='stretch')
                     else:
                         st.info(f"{selected_player_for_partners} has no partnership data to display.")
 
