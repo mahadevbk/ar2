@@ -2799,6 +2799,8 @@ with tabs[4]:
                             st.rerun()
     
     st.markdown("---")
+        #--------
+    st.markdown("---")
     
     st.subheader("📅 Upcoming Bookings")
     bookings_df = st.session_state.bookings_df.copy()
@@ -2829,9 +2831,6 @@ with tabs[4]:
         if upcoming_bookings.empty:
             st.info("No upcoming bookings found.")
         else:
-            # =====================================================================
-            # START: MODIFICATION FOR NEW ODDS CALCULATION
-            # =====================================================================
             try:
                 # Calculate format-specific rankings for odds calculation
                 doubles_matches_df = st.session_state.matches_df[st.session_state.matches_df['match_type'] == 'Doubles']
@@ -2843,21 +2842,12 @@ with tabs[4]:
                 doubles_rank_df = pd.DataFrame()
                 singles_rank_df = pd.DataFrame()
                 st.warning(f"Unable to load rankings for pairing suggestions: {str(e)}")
-            # =====================================================================
-            # END: MODIFICATION FOR NEW ODDS CALCULATION
-            # =====================================================================
-
-                # ... (rest of the code remains unchanged until the upcoming_bookings loop)
-
-            
-            # ... (rest of the code remains unchanged until the upcoming_bookings loop)
             
             for _, row in upcoming_bookings.iterrows():
                 players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
                 players_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in players]) if players else "No players specified"
                 standby_str = f"<span style='font-weight:bold; color:#fff500;'>{row['standby_player']}</span>" if row['standby_player'] else "None"
                 date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
-                ###time_ampm = datetime.strptime(row['time'], "%H:%M").strftime("%-I:%M %p")
                 time_value = str(row['time']).strip()
             
                 time_ampm = ""
@@ -2881,9 +2871,6 @@ with tabs[4]:
                 pairing_suggestion = ""
                 plain_suggestion = ""
                 try:
-                    # =====================================================================
-                    # START: MODIFICATION FOR NEW ODDS CALCULATION
-                    # =====================================================================
                     if row['match_type'] == "Doubles" and len(players) == 4:
                         rank_df = doubles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
@@ -2893,23 +2880,44 @@ with tabs[4]:
                             pairing_suggestion = f"<div><strong style='color:white;'>Suggestion:</strong> {message}</div>"
                             plain_suggestion = f"\n*Suggestion: Players {', '.join(unranked)} are unranked, therefore no pairing suggestion or odds available.*"
                         else:
-                            suggested_pairing, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
-                            if team1_odds is not None and team2_odds is not None:
-                                teams = suggested_pairing.split(' vs ')
-                                team1_players = teams[0].replace('Team 1: ', '')
-                                team2_players = teams[1].replace('Team 2: ', '')
+                            all_pairings = get_all_pairings_with_odds(players, rank_df)
+                            if all_pairings:
+                                booking_id = row['booking_id']
+                                idx_key = f"{booking_id}_pairing_idx"
+                                if idx_key not in st.session_state:
+                                    st.session_state[idx_key] = 0
+                                idx = st.session_state[idx_key]
+                                current_pairing = all_pairings[idx % len(all_pairings)]
+                                team1 = current_pairing['team1']
+                                team2 = current_pairing['team2']
+                                team1_odds = current_pairing['team1_odds']
+                                team2_odds = current_pairing['team2_odds']
                                 pairing_suggestion = (
                                     f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                    f"<span style='font-weight:bold;'>{team1_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
-                                    f"<span style='font-weight:bold;'>{team2_players}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
+                                    f"<span style='font-weight:bold;'>{team1}</span> (<span style='font-weight:bold; color:#fff500;'>{team1_odds:.1f}%</span>) vs "
+                                    f"<span style='font-weight:bold;'>{team2}</span> (<span style='font-weight:bold; color:#fff500;'>{team2_odds:.1f}%</span>)</div>"
                                 )
-                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', team1_players)} ({team1_odds:.1f}%) vs {re.sub(r'<.*?>', '', team2_players)} ({team2_odds:.1f}%)*"
+                                plain_suggestion = f"\n*Suggested Pairing: {team1} ({team1_odds:.1f}%) vs {team2} ({team2_odds:.1f}%)*"
+                                # Add second and third pairing options if available
+                                if len(all_pairings) > 1:
+                                    second_pairing = all_pairings[(idx + 1) % len(all_pairings)]
+                                    pairing_suggestion += (
+                                        f"<div><strong style='color:white;'>Pairing Option 2:</strong> "
+                                        f"<span style='font-weight:bold;'>{second_pairing['team1']}</span> (<span style='font-weight:bold; color:#fff500;'>{second_pairing['team1_odds']:.1f}%</span>) vs "
+                                        f"<span style='font-weight:bold;'>{second_pairing['team2']}</span> (<span style='font-weight:bold; color:#fff500;'>{second_pairing['team2_odds']:.1f}%</span>)</div>"
+                                    )
+                                    plain_suggestion += f"\n*Pairing Option 2: {second_pairing['team1']} ({second_pairing['team1_odds']:.1f}%) vs {second_pairing['team2']} ({second_pairing['team2_odds']:.1f}%)*"
+                                if len(all_pairings) > 2:
+                                    third_pairing = all_pairings[(idx + 2) % len(all_pairings)]
+                                    pairing_suggestion += (
+                                        f"<div><strong style='color:white;'>Pairing Option 3:</strong> "
+                                        f"<span style='font-weight:bold;'>{third_pairing['team1']}</span> (<span style='font-weight:bold; color:#fff500;'>{third_pairing['team1_odds']:.1f}%</span>) vs "
+                                        f"<span style='font-weight:bold;'>{third_pairing['team2']}</span> (<span style='font-weight:bold; color:#fff500;'>{third_pairing['team2_odds']:.1f}%</span>)</div>"
+                                    )
+                                    plain_suggestion += f"\n*Pairing Option 3: {third_pairing['team1']} ({third_pairing['team1_odds']:.1f}%) vs {third_pairing['team2']} ({third_pairing['team2_odds']:.1f}%)*"
                             else:
-                                pairing_suggestion = (
-                                    f"<div><strong style='color:white;'>Suggested Pairing:</strong> "
-                                    f"<span style='font-weight:bold;'>{suggested_pairing}</span></div>"
-                                )
-                                plain_suggestion = f"\n*Suggested Pairing: {re.sub(r'<.*?>', '', suggested_pairing).replace('Suggested Pairing: ', '').strip()}*"
+                                pairing_suggestion = "<div><strong style='color:white;'>Suggested Pairing:</strong> Unable to calculate pairings</div>"
+                                plain_suggestion = "\n*Suggested Pairing: Unable to calculate pairings*"
                     elif row['match_type'] == "Singles" and len(players) == 2:
                         rank_df = singles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
@@ -2929,9 +2937,6 @@ with tabs[4]:
                                     f"<span style='font-weight:bold;'>{p2_styled}</span> ({p2_odds:.1f}%)</div>"
                                 )
                                 plain_suggestion = f"\n*Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)*"
-                    # =====================================================================
-                    # END: MODIFICATION FOR NEW ODDS CALCULATION
-                    # =====================================================================
                     elif row['match_type'] == "Doubles" and len(players) < 4:
                         pairing_suggestion = "<div><strong style='color:white;'>Suggested Pairing:</strong> Not enough players for pairing suggestion</div>"
                         plain_suggestion = "\n*Suggested Pairing: Not enough players for pairing suggestion*"
@@ -2949,11 +2954,7 @@ with tabs[4]:
                 share_text = f"*Game Booking :* \nDate : *{full_date}* \nCourt : *{court_name}*\nPlayers :\n{players_list}{standby_text}{plain_suggestion}\nCourt location : {court_url}"
                 encoded_text = urllib.parse.quote(share_text)
                 whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0&app_absent=0"
-            
-                # ... (rest of the booking display code remains unchanged)
-
-
-                  
+                
                 booking_text = f"""
                 <div class="booking-row" style='background-color: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
                     <div><strong>Date:</strong> <span style='font-weight:bold; color:#fff500;'>{date_str}</span></div>
@@ -2969,7 +2970,7 @@ with tabs[4]:
                         </a>
                     </div>
                 """
-    
+        
                 visuals_html = '<div style="display: flex; flex-direction: row; align-items: center; margin-top: 10px;">'
                 screenshot_url = row["screenshot_url"] if row["screenshot_url"] and isinstance(row["screenshot_url"], str) else None
                 if screenshot_url:
@@ -2994,9 +2995,13 @@ with tabs[4]:
                     visuals_html += f'<div title="{player_name}" style="width: 50px; height: 50px; margin-right: 8px; border-radius: 50%; background-color: #07314f; border: 2px solid #fff500; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff500; font-weight: bold;">{initial}</div>'
                 visuals_html += '</div></div>'
                 booking_text += visuals_html + '</div>'
-    
+        
                 try:
                     st.markdown(booking_text, unsafe_allow_html=True)
+                    if row['match_type'] == "Doubles" and len(players) == 4 and not unranked and all_pairings:
+                        if st.button("Reorder Pairing", key=f"reorder_pairing_{row['booking_id']}"):
+                            st.session_state[idx_key] = (st.session_state[idx_key] + 1) % len(all_pairings)
+                            st.rerun()
                 except Exception as e:
                     st.warning(f"Failed to render HTML for booking {row['booking_id']}: {str(e)}")
                     st.markdown(f"""
@@ -3034,8 +3039,6 @@ with tabs[4]:
                                 """, unsafe_allow_html=True)
                             col_idx += 1
     
-            #st.markdown("<hr style='border-top: 1px solid #333333; margin: 15px 0;'>", unsafe_allow_html=True)
-    
     st.markdown("---")
     
     st.subheader("✏️ Manage Existing Booking")
@@ -3053,7 +3056,7 @@ with tabs[4]:
         else:
             booking_options = []
     
-            # --- Safe time formatting helper ---
+            # Safe time formatting helper
             def format_time_safe(time_str):
                 if not time_str or str(time_str).lower() in ["nat", "nan", "none"]:
                     return "Unknown Time"
@@ -3089,7 +3092,6 @@ with tabs[4]:
     
                     # Safe conversion of current booking time
                     current_time_ampm = format_time_safe(booking_row["time"])
-    
                     hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]
                     time_index = hours.index(current_time_ampm) if current_time_ampm in hours else 0
     
@@ -3197,14 +3199,10 @@ with tabs[4]:
                                 st.error(f"Failed to delete booking: {str(e)}")
                                 st.session_state.edit_booking_key += 1
                                 st.rerun()
-
-
-
+    
     st.markdown("---")
-
-
+    
     st.markdown("Odds Calculation Logic process uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
-
 
 
 
