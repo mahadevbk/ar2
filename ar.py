@@ -2727,6 +2727,39 @@ with tabs[3]:
 
 
 with tabs[4]:
+        # --- MATCH UP EXPANDER ---
+    with st.expander("Match up"):
+        match_type = st.radio("Select Match Type", ["Singles", "Doubles"], horizontal=True)
+
+        if match_type == "Singles":
+            p1 = st.selectbox("Player 1", [""] + available_players, key="matchup_singles_p1")
+            p2 = st.selectbox("Player 2", [""] + available_players, key="matchup_singles_p2")
+
+            if st.button("Match up", key="btn_matchup_singles"):
+                st.subheader("Match Odds")
+                if p1 and p2:
+                    odds1, odds2 = suggest_singles_odds([p1, p2], calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])[0])
+                    st.write(f"Odds → {p1}: {odds1:.1f}% | {p2}: {odds2:.1f}%")
+                else:
+                    st.warning("Please select both players.")
+        
+        else:  # Doubles
+            t1p1 = st.selectbox("Team 1 - Player 1", [""] + available_players, key="matchup_doubles_t1p1")
+            t1p2 = st.selectbox("Team 1 - Player 2", [""] + available_players, key="matchup_doubles_t1p2")
+            t2p1 = st.selectbox("Team 2 - Player 1", [""] + available_players, key="matchup_doubles_t2p1")
+            t2p2 = st.selectbox("Team 2 - Player 2", [""] + available_players, key="matchup_doubles_t2p2")
+
+            if st.button("Match up", key="btn_matchup_doubles"):
+                st.subheader("Match Odds")
+                players = [t1p1, t1p2, t2p1, t2p2]
+                pairing_text, team1_odds, team2_odds = suggest_balanced_pairing(players, calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Doubles"])[0])
+                if pairing_text:
+                    st.markdown(pairing_text, unsafe_allow_html=True)
+                    st.write(f"Team 1: {team1_odds:.1f}% | Team 2: {team2_odds:.1f}%")
+                else:
+                    st.warning("Please select all four players.")
+
+    # --- EXISTING BOOKING MANAGEMENT 
     load_bookings()
     with st.expander("Add New Booking", expanded=False, icon="➡️"):
         st.subheader("Add New Booking")
