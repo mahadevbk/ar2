@@ -2728,7 +2728,7 @@ with tabs[3]:
 
 with tabs[4]:
         # --- MATCH UP EXPANDER ---
-    with st.expander("Match up"):
+    with st.expander("Match up", expanded=False, icon="➡️"):
         match_type = st.radio("Select Match Type", ["Singles", "Doubles"], horizontal=True)
 
         if match_type == "Singles":
