@@ -1507,6 +1507,9 @@ def get_all_pairings_with_odds(players, rank_df):
             'team2_odds': team2_odds,
             'balance_diff': balance_diff
         })
+    # Sort by balance_diff ascending (best first)
+    all_pairings.sort(key=lambda x: x['balance_diff'])
+    return all_pairings
 
 
 
