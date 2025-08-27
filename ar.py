@@ -1484,6 +1484,111 @@ def suggest_singles_odds(players, singles_rank_df):
 # END: NEW COMPLEX ODDS CALCULATION FUNCTIONS
 # ==============================================================================
 
+def get_all_pairings_with_odds(players, rank_df):
+    all_pairings = []
+    for team1_comb in combinations(players, 2):
+        team1 = list(team1_comb)
+        team2 = [p for p in players if p not in team1]
+        team1_score = _calculate_team_score(team1, rank_df)
+        team2_score = _calculate_team_score(team2, rank_df)
+        total = team1_score + team2_score
+        if total == 0:
+            continue
+        team1_odds = (team1_score / total) * 100
+        team2_odds = 100 - team1_odds
+        team1_str = ' '.join(sorted(team1))
+        team2_str = ' '.join(sorted(team2))
+        balance_diff = abs(team1_odds - 50)
+        all_pairings.append({
+            'team1': team1_str,
+            'team2': team2_str,
+            'team1_odds': team1_odds,
+            'team2_odds': team2_odds,
+            'balance_diff': balance_diff
+        })
+    # Sort by balance_diff ascending (best first)
+    all_pairings.sort(key=lambda x: x['balance_diff'])
+    return all_pairings
+
+# Placeholder for _calculate_team_score (assuming it exists elsewhere)
+def _calculate_team_score(team, rank_df):
+    score = 0
+    for player in team:
+        player_row = rank_df[rank_df['Player'] == player]
+        if not player_row.empty:
+            score += player_row['Rating'].iloc[0]
+    return score
+
+with st.expander("Add New Booking", expanded=False, icon="➡️"):
+    st.subheader("Add New Booking")
+    match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
+    
+    with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
+        date = st.date_input("Booking Date *", value=datetime.today())
+        hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:00 %p") for h in range(6, 22)]
+        time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
+        
+        if match_type == "Doubles":
+            col1, col2 = st.columns(2)
+            with col1:
+                p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"t1p1_{st.session_state.form_key_suffix}")
+                p2 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"t1p2_{st.session_state.form_key_suffix}")
+            with col2:
+                p3 = st.selectbox("Player 3 (optional)", [""] + available_players, key=f"t2p1_{st.session_state.form_key_suffix}")
+                p4 = st.selectbox("Player 4 (optional)", [""] + available_players, key=f"t2p2_{st.session_state.form_key_suffix}")
+        else:
+            p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"s1p1_{st.session_state.form_key_suffix}")
+            p3 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"s1p2_{st.session_state.form_key_suffix}")
+            p2 = ""
+            p4 = ""
+        
+        standby = st.selectbox("Standby Player (optional)", [""] + available_players, key=f"standby_{st.session_state.form_key_suffix}")
+        court = st.selectbox("Court Name *", [""] + court_names, key=f"court_{st.session_state.form_key_suffix}")
+        screenshot = st.file_uploader("Booking Screenshot (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"screenshot_{st.session_state.form_key_suffix}")
+        st.markdown("*Required fields", unsafe_allow_html=True)
+        
+        submit = st.form_submit_button("Add Booking")
+        if submit:
+            if not court:
+                st.error("Court name is required.")
+            elif not date or not time:
+                st.error("Booking date and time are required.")
+            else:
+                selected_players = [p for p in [p1, p2, p3, p4, standby] if p]
+                if match_type == "Doubles" and len(set(selected_players)) != len(selected_players):
+                    st.error("Please select different players for each position.")
+                else:
+                    booking_id = str(uuid.uuid4())
+                    screenshot_url = upload_image_to_supabase(screenshot, booking_id, image_type="booking") if screenshot else None
+                    time_24hr = datetime.strptime(time, "%I:%M %p").strftime("%H:%M:%S")
+                    new_booking = {
+                        "booking_id": booking_id,
+                        "date": date.isoformat(),
+                        "time": time_24hr,
+                        "match_type": match_type,
+                        "court_name": court,
+                        "player1": p1 if p1 else None,
+                        "player2": p2 if p2 else None,
+                        "player3": p3 if p3 else None,
+                        "player4": p4 if p4 else None,
+                        "standby_player": standby if standby else None,
+                        "screenshot_url": screenshot_url
+                    }
+                    st.session_state.bookings_df = pd.concat([st.session_state.bookings_df, pd.DataFrame([new_booking])], ignore_index=True)
+                    try:
+                        expected_columns = ['booking_id', 'date', 'time', 'match_type', 'court_name', 'player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']
+                        bookings_to_save = st.session_state.bookings_df[expected_columns].copy()
+                        for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
+                            bookings_to_save[col] = bookings_to_save[col].replace("", None)
+                        save_bookings(bookings_to_save)
+                        load_bookings()
+                        st.success("Booking added successfully.")
+                        st.session_state.form_key_suffix += 1
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to save booking: {str(e)}")
+                        st.rerun()
+
 
 def delete_booking_from_db(booking_id):
     try:
