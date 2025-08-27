@@ -3068,6 +3068,11 @@ with tabs[4]:
                             col_idx += 1
     
             #st.markdown("<hr style='border-top: 1px solid #333333; margin: 15px 0;'>", unsafe_allow_html=True)
+
+            if row['match_type'] == "Doubles" and len(players) == 4 and not unranked and all_pairings:
+              if st.button("Reorder Pairing", key=f"reorder_pairing_{row['booking_id']}"):
+                  st.session_state[idx_key] = (st.session_state[idx_key] + 1) % len(all_pairings)
+                  st.rerun()
     
     st.markdown("---")
     
