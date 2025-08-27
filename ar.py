@@ -2729,21 +2729,11 @@ with tabs[3]:
 with tabs[4]:
         # --- MATCH UP EXPANDER ---
     with st.expander("Match up", expanded=False, icon="➡️"):
+        
         match_type = st.radio("Select Match Type", ["Singles", "Doubles"], horizontal=True)
 
-        if match_type == "Singles":
-            p1 = st.selectbox("Player 1", [""] + available_players, key="matchup_singles_p1")
-            p2 = st.selectbox("Player 2", [""] + available_players, key="matchup_singles_p2")
-
-            if st.button("Match up", key="btn_matchup_singles"):
-                st.subheader("Match Odds")
-                if p1 and p2:
-                    odds1, odds2 = suggest_singles_odds([p1, p2], calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])[0])
-                    st.write(f"Odds → {p1}: {odds1:.1f}% | {p2}: {odds2:.1f}%")
-                else:
-                    st.warning("Please select both players.")
-        
-        else:  # Doubles
+        if match_type == "Doubles":
+        #else:  # Doubles
             t1p1 = st.selectbox("Team 1 - Player 1", [""] + available_players, key="matchup_doubles_t1p1")
             t1p2 = st.selectbox("Team 1 - Player 2", [""] + available_players, key="matchup_doubles_t1p2")
             t2p1 = st.selectbox("Team 2 - Player 1", [""] + available_players, key="matchup_doubles_t2p1")
@@ -2752,12 +2742,43 @@ with tabs[4]:
             if st.button("Match up", key="btn_matchup_doubles"):
                 st.subheader("Match Odds")
                 players = [t1p1, t1p2, t2p1, t2p2]
-                pairing_text, team1_odds, team2_odds = suggest_balanced_pairing(players, calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Doubles"])[0])
-                if pairing_text:
-                    st.markdown(pairing_text, unsafe_allow_html=True)
-                    st.write(f"Team 1: {team1_odds:.1f}% | Team 2: {team2_odds:.1f}%")
+                doubles_rank_df, _ = calculate_rankings(
+                    st.session_state.matches_df[st.session_state.matches_df['match_type']=="Doubles"]
+                )
+                # check if all players exist in doubles rankings
+                if all(p in doubles_rank_df["Player"].values for p in players if p):
+                    pairing_text, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
+                    if pairing_text:
+                        st.markdown(pairing_text, unsafe_allow_html=True)
+                        st.write(f"Team 1: {team1_odds:.1f}% | Team 2: {team2_odds:.1f}%")
+                    else:
+                        st.info("No odds available for this combination.")
                 else:
-                    st.warning("Please select all four players.")
+                    st.info("No odds available (one or more players have no doubles match history).")
+
+        #if match_type == "Singles":
+        else:  # Singles
+            p1 = st.selectbox("Player 1", [""] + available_players, key="matchup_singles_p1")
+            p2 = st.selectbox("Player 2", [""] + available_players, key="matchup_singles_p2")
+
+            if st.button("Match up", key="btn_matchup_singles"):
+                st.subheader("Match Odds")
+                if p1 and p2:
+                    singles_rank_df, _ = calculate_rankings(
+                        st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"]
+                    )
+                    if p1 in singles_rank_df["Player"].values and p2 in singles_rank_df["Player"].values:
+                        odds1, odds2 = suggest_singles_odds([p1, p2], singles_rank_df)
+                        st.write(f"Odds → {p1}: {odds1:.1f}% | {p2}: {odds2:.1f}%")
+                    else:
+                        st.info("No odds available (one or both players have no singles match history).")
+                else:
+                    st.warning("Please select both players.")
+        
+        
+
+        
+
 
     # --- EXISTING BOOKING MANAGEMENT 
     load_bookings()
