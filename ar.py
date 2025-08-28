@@ -642,15 +642,19 @@ def calculate_rankings(matches_to_rank):
                 else:
                     team1_games, team2_games = map(int, str(set_score).split('-'))
 
-                set_difference = team1_games - team2_games
-                match_gd_sum += set_difference
+                # Explicitly calculate game difference for each team's perspective
+                team1_set_diff = team1_games - team2_games
+                team2_set_diff = team2_games - team1_games # This is the inverse
+                
+                match_gd_sum += team1_set_diff # For partner stats
 
+                # Add the calculated difference directly to each player
                 for p in t1:
                     games_won[p] += team1_games
-                    cumulative_game_diff[p] += set_difference
+                    cumulative_game_diff[p] += team1_set_diff
                 for p in t2:
                     games_won[p] += team2_games
-                    cumulative_game_diff[p] -= set_difference
+                    cumulative_game_diff[p] += team2_set_diff
 
             except (ValueError, TypeError):
                 continue
@@ -718,7 +722,6 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
-
 
 
 
