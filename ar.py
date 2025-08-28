@@ -2543,7 +2543,8 @@ with tabs[1]:
         set1_index = all_scores.index(row["set1"]) if row["set1"] in all_scores else 0
         set2_index = all_scores.index(row["set2"]) if row["set2"] in all_scores else 0
         set3_index = all_scores.index(row["set3"]) if row["set3"] in all_scores else 0
-        with st.expander("Edit Match Details"):
+        #with st.expander("Edit Match Details"):
+        with st.expander("Edit Match Details", expanded=True):
             date_edit = st.date_input("Match Date", value=current_date_dt.date(), key=f"edit_date_{selected_id}")
             time_edit = st.time_input("Match Time", value=current_date_dt.time(), key=f"edit_time_{selected_id}")
             match_type_edit = st.radio("Match Type", ["Doubles", "Singles"], index=0 if row["match_type"] == "Doubles" else 1, key=f"edit_match_type_{selected_id}")
