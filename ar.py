@@ -2850,25 +2850,22 @@ with tabs[4]:
         match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
         
         with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
-            date = st.date_input("Booking Date *", value=datetime.today())
-            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:00 %p") for h in range(6, 22)]
-            time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
-            
+            # ...
             if match_type == "Doubles":
                 col1, col2 = st.columns(2)
                 with col1:
-                    p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"t1p1_{st.session_state.form_key_suffix}")
-                    p2 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"t1p2_{st.session_state.form_key_suffix}")
+                    p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"new_booking_t1p1_{st.session_state.form_key_suffix}")
+                    p2 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"new_booking_t1p2_{st.session_state.form_key_suffix}")
                 with col2:
-                    p3 = st.selectbox("Player 3 (optional)", [""] + available_players, key=f"t2p1_{st.session_state.form_key_suffix}")
-                    p4 = st.selectbox("Player 4 (optional)", [""] + available_players, key=f"t2p2_{st.session_state.form_key_suffix}")
+                    p3 = st.selectbox("Player 3 (optional)", [""] + available_players, key=f"new_booking_t2p1_{st.session_state.form_key_suffix}")
+                    p4 = st.selectbox("Player 4 (optional)", [""] + available_players, key=f"new_booking_t2p2_{st.session_state.form_key_suffix}")
             else:
-                p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"s1p1_{st.session_state.form_key_suffix}")
-                p3 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"s1p2_{st.session_state.form_key_suffix}")
+                p1 = st.selectbox("Player 1 (optional)", [""] + available_players, key=f"new_booking_s1p1_{st.session_state.form_key_suffix}")
+                p3 = st.selectbox("Player 2 (optional)", [""] + available_players, key=f"new_booking_s1p2_{st.session_state.form_key_suffix}")
                 p2 = ""
                 p4 = ""
             
-            standby = st.selectbox("Standby Player (optional)", [""] + available_players, key=f"standby_{st.session_state.form_key_suffix}")
+            standby = st.selectbox("Standby Player (optional)", [""] + available_players, key=f"new_booking_standby_{st.session_state.form_key_suffix}")
             court = st.selectbox("Court Name *", [""] + court_names, key=f"court_{st.session_state.form_key_suffix}")
             screenshot = st.file_uploader("Booking Screenshot (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"screenshot_{st.session_state.form_key_suffix}")
             st.markdown("*Required fields", unsafe_allow_html=True)
