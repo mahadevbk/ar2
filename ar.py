@@ -1698,7 +1698,8 @@ court_names = [
 fun_verbs = [
     "defeated", "thrashed", "crushed", "beat the hell out of",
     "smashed", "obliterated", "demolished", "outplayed",
-    "vanquished", "dominated", "trounced", "routed", "got the better of",  "inexplicably, def.", "in an upset, def."
+    "vanquished", "dominated", "trounced", "routed", "got the better of",  "inexplicably, def.", "in an upset, def.", 
+    "destroyed"
 ]
 
 
