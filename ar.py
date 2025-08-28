@@ -616,12 +616,13 @@ def calculate_rankings(matches_to_rank):
     doubles_matches = defaultdict(int)
     games_won = defaultdict(int)
     cumulative_game_diff = defaultdict(int)
-    match_game_diff_avgs = defaultdict(list)  # New: Track per-match game difference averages
+    match_game_diff_avgs = defaultdict(list)  # Store per-match game difference averages
     partner_stats = defaultdict(lambda: defaultdict(lambda: {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'game_diff_sum': 0}))
-    
+
     for _, row in matches_to_rank.iterrows():
         match_type = row['match_type']
         
+        # Define teams based on match type
         if match_type == 'Doubles':
             t1 = [row['team1_player1'], row['team1_player2']]
             t2 = [row['team2_player1'], row['team2_player2']]
@@ -634,40 +635,41 @@ def calculate_rankings(matches_to_rank):
         match_gd_sum = 0
         set_count = 0
         for set_score in [row['set1'], row['set2'], row['set3']]:
-            if set_score and ('-' in set_score or 'Tie Break' in set_score):
-                try:
-                    team1_games, team2_games = 0, 0
-                    is_tie_break = "Tie Break" in set_score
-                    
-                    if is_tie_break:
-                        tie_break_scores = [int(s) for s in set_score.replace("Tie Break", "").strip().split('-')]
-                        if tie_break_scores[0] > tie_break_scores[1]:
-                            team1_games, team2_games = 7, 6
-                        else:
-                            team1_games, team2_games = 6, 7
+            if not set_score or ('-' not in set_score and 'Tie Break' not in set_score):
+                continue
+            try:
+                team1_games, team2_games = 0, 0
+                is_tie_break = "Tie Break" in set_score
+                
+                if is_tie_break:
+                    tie_break_scores = [int(s) for s in set_score.replace("Tie Break", "").strip().split('-')]
+                    if tie_break_scores[0] > tie_break_scores[1]:
+                        team1_games, team2_games = 7, 6  # Winner gets 7, loser gets 6
                     else:
-                        team1_games, team2_games = map(int, set_score.split('-'))
+                        team1_games, team2_games = 6, 7
+                else:
+                    team1_games, team2_games = map(int, set_score.split('-'))
 
-                    team1_total_games += team1_games
-                    team2_total_games += team2_games
-                    match_gd_sum += team1_games - team2_games
-                    set_count += 1
+                team1_total_games += team1_games
+                team2_total_games += team2_games
+                match_gd_sum += team1_games - team2_games
+                set_count += 1
 
-                    set_difference = team1_games - team2_games
-                    for p in t1:
-                        if p != "Visitor":
-                            games_won[p] += team1_games
-                            cumulative_game_diff[p] += set_difference
-                    for p in t2:
-                        if p != "Visitor":
-                            games_won[p] += team2_games
-                            cumulative_game_diff[p] -= set_difference
+                set_difference = team1_games - team2_games
+                for p in t1:
+                    if p != "Visitor":
+                        games_won[p] += team1_games
+                        cumulative_game_diff[p] += set_difference  # Sum GD per set
+                for p in t2:
+                    if p != "Visitor":
+                        games_won[p] += team2_games
+                        cumulative_game_diff[p] -= set_difference  # Negate for Team 2
 
-                except ValueError:
-                    continue
+            except (ValueError, TypeError):
+                continue  # Skip invalid set scores
         
+        # Calculate per-match game difference average
         match_gd_avg = match_gd_sum / set_count if set_count > 0 else 0
-        # New: Store the per-match game difference average for each player
         for p in t1:
             if p != "Visitor":
                 match_game_diff_avgs[p].append(match_gd_avg)
@@ -675,6 +677,7 @@ def calculate_rankings(matches_to_rank):
             if p != "Visitor":
                 match_game_diff_avgs[p].append(-match_gd_avg)
 
+        # Update scores, wins, losses, and match counts
         if row["winner"] == "Team 1":
             for p in t1:
                 if p != "Visitor":
@@ -705,7 +708,7 @@ def calculate_rankings(matches_to_rank):
                     matches_played[p] += 1
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
-        else:
+        else:  # Tie
             for p in t1 + t2:
                 if p != "Visitor":
                     scores[p] += 1.5
@@ -713,7 +716,8 @@ def calculate_rankings(matches_to_rank):
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
 
-        if row['match_type'] == 'Doubles':
+        # Update partner stats for doubles
+        if match_type == 'Doubles':
             for p1 in t1:
                 for p2 in t1:
                     if p1 != p2 and p1 != "Visitor" and p2 != "Visitor":
@@ -772,7 +776,6 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
-
 
 
 
