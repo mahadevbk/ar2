@@ -1546,13 +1546,14 @@ def generate_whatsapp_link(row):
     else:
         date_str = "Unknown Date" # Fallback text
 
-    # Headline text: use "tied with" for ties
+    # Headline text: use "tied with" for ties and a random verb for wins
+    verb = random.choice(fun_verbs)
     if row["winner"] == "Tie":
         headline = f"*{t1} tied with {t2}*"
     elif row["winner"] == "Team 1":
-        headline = f"*{t1} def. {t2}*"
+        headline = f"*{t1} {verb} {t2}*"
     else:  # Team 2
-        headline = f"*{t2} def. {t1}*"
+        headline = f"*{t2} {verb} {t1}*"
 
     share_text = f"{headline}\nSet scores {scores_str} on *{date_str}*"
     encoded_text = urllib.parse.quote(share_text)
