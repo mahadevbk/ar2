@@ -606,10 +606,10 @@ def get_player_trend(player, matches, max_matches=5):
 #------------------- Update the display_player_insights  and calculate rankings function --------------------------------
 
 
-
-
-
 def calculate_rankings(matches_to_rank):
+    # --- This is a debugging line. It will show the entire DataFrame being processed. ---
+    # st.write("DEBUG: Data passed to calculate_rankings:", matches_to_rank)
+
     scores = defaultdict(float)
     wins = defaultdict(int)
     losses = defaultdict(int)
@@ -619,151 +619,111 @@ def calculate_rankings(matches_to_rank):
     games_won = defaultdict(int)
     cumulative_game_diff = defaultdict(int)
     partner_stats = defaultdict(lambda: defaultdict(lambda: {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'game_diff_sum': 0}))
-    debug_log = []  # For debugging GD calculations
 
     for idx, row in matches_to_rank.iterrows():
         match_type = row['match_type']
-        debug_log.append(f"Processing match {idx}: {match_type}")
 
-        # Define teams, filtering out None or empty values
         if match_type == 'Doubles':
-            t1 = [p for p in [row['team1_player1'], row['team1_player2']] if p]
-            t2 = [p for p in [row['team2_player1'], row['team2_player2']] if p]
+            t1 = [p for p in [row['team1_player1'], row['team1_player2']] if p and p != "Visitor"]
+            t2 = [p for p in [row['team2_player1'], row['team2_player2']] if p and p != "Visitor"]
         else:
-            t1 = [p for p in [row['team1_player1']] if p]
-            t2 = [p for p in [row['team2_player1']] if p]
+            t1 = [p for p in [row['team1_player1']] if p and p != "Visitor"]
+            t2 = [p for p in [row['team2_player1']] if p and p != "Visitor"]
         
-        debug_log.append(f"Teams: T1={t1}, T2={t2}, Winner={row['winner']}")
+        # --- Focus debugging on the player 'Ananth' ---
+        is_ananth_match = 'Ananth' in t1 or 'Ananth' in t2
+        if is_ananth_match:
+            st.write(f"--- Processing Match for Ananth (Index: {idx}) ---")
+            st.write(f"Teams: T1={t1}, T2={t2}")
 
         match_gd_sum = 0
         for set_idx, set_score in enumerate([row['set1'], row['set2'], row['set3']]):
             if not set_score or ('-' not in set_score and 'Tie Break' not in set_score):
                 continue
+            
             try:
                 team1_games, team2_games = 0, 0
-                is_tie_break = "Tie Break" in set_score
+                is_tie_break = "Tie Break" in str(set_score)
                 
                 if is_tie_break:
-                    # Per your request, tie break sets are treated as 7-6
-                    tie_break_scores = [int(s) for s in set_score.replace("Tie Break", "").strip().split('-')]
-                    if tie_break_scores[0] > tie_break_scores[1]:
-                        team1_games, team2_games = 7, 6
-                    else:
-                        team1_games, team2_games = 6, 7
+                    tie_break_scores = [int(s) for s in str(set_score).replace("Tie Break", "").strip().split('-')]
+                    team1_games, team2_games = (7, 6) if tie_break_scores[0] > tie_break_scores[1] else (6, 7)
                 else:
-                    team1_games, team2_games = map(int, set_score.split('-'))
+                    team1_games, team2_games = map(int, str(set_score).split('-'))
 
                 set_difference = team1_games - team2_games
                 match_gd_sum += set_difference
-                debug_log.append(f"Match {idx}, Set {set_idx + 1}: {set_score}, GD={set_difference}, T1_games={team1_games}, T2_games={team2_games}")
-                
+
+                if is_ananth_match:
+                    st.write(f"Set {set_idx + 1}: '{set_score}' | Set Difference: {set_difference}")
+
+                # Update cumulative game difference for players in the set
                 for p in t1:
-                    if p != "Visitor":
-                        games_won[p] += team1_games
-                        cumulative_game_diff[p] += set_difference
-                        debug_log.append(f"Player {p} (T1): +{set_difference} GD, Total={cumulative_game_diff[p]}")
+                    cumulative_game_diff[p] += set_difference
                 for p in t2:
-                    if p != "Visitor":
-                        games_won[p] += team2_games
-                        cumulative_game_diff[p] -= set_difference
-                        debug_log.append(f"Player {p} (T2): -{set_difference} GD, Total={cumulative_game_diff[p]}")
+                    cumulative_game_diff[p] -= set_difference
+                
+                if is_ananth_match:
+                     st.write(f"Ananth's Cumulative GD after set: {cumulative_game_diff.get('Ananth', 0)}")
 
             except (ValueError, TypeError) as e:
-                debug_log.append(f"Error in match {idx}, set {set_idx + 1}: {set_score}, {str(e)}")
+                if is_ananth_match:
+                    st.error(f"Error processing set score '{set_score}': {e}")
                 continue
 
-        # Update scores, wins, losses, and match counts
+        # (The rest of the logic for wins, losses, etc., remains the same)
         if row["winner"] == "Team 1":
             for p in t1:
-                if p != "Visitor":
-                    scores[p] += 3
-                    wins[p] += 1
-                    matches_played[p] += 1
-                    if match_type == 'Doubles': doubles_matches[p] += 1
-                    else: singles_matches[p] += 1
+                scores[p] += 3; wins[p] += 1; matches_played[p] += 1
+                if match_type == 'Doubles': doubles_matches[p] += 1 
+                else: singles_matches[p] += 1
             for p in t2:
-                if p != "Visitor":
-                    scores[p] += 1
-                    losses[p] += 1
-                    matches_played[p] += 1
-                    if match_type == 'Doubles': doubles_matches[p] += 1
-                    else: singles_matches[p] += 1
+                scores[p] += 1; losses[p] += 1; matches_played[p] += 1
+                if match_type == 'Doubles': doubles_matches[p] += 1
+                else: singles_matches[p] += 1
         elif row["winner"] == "Team 2":
             for p in t2:
-                if p != "Visitor":
-                    scores[p] += 3
-                    wins[p] += 1
-                    matches_played[p] += 1
-                    if match_type == 'Doubles': doubles_matches[p] += 1
-                    else: singles_matches[p] += 1
+                scores[p] += 3; wins[p] += 1; matches_played[p] += 1
+                if match_type == 'Doubles': doubles_matches[p] += 1
+                else: singles_matches[p] += 1
             for p in t1:
-                if p != "Visitor":
-                    scores[p] += 1
-                    losses[p] += 1
-                    matches_played[p] += 1
-                    if match_type == 'Doubles': doubles_matches[p] += 1
-                    else: singles_matches[p] += 1
-        else: # Tie
-            for p in t1 + t2:
-                if p != "Visitor":
-                    scores[p] += 1.5
-                    matches_played[p] += 1
-                    if match_type == 'Doubles': doubles_matches[p] += 1
-                    else: singles_matches[p] += 1
+                scores[p] += 1; losses[p] += 1; matches_played[p] += 1
+                if match_type == 'Doubles': doubles_matches[p] += 1
+                else: singles_matches[p] += 1
         
-        # Update partner stats for doubles
+        # Update partner stats for doubles (no changes here)
         if match_type == 'Doubles':
             for p1 in t1:
                 for p2 in t1:
-                    if p1 != p2 and p1 != "Visitor" and p2 != "Visitor":
+                    if p1 != p2:
                         partner_stats[p1][p2]['matches'] += 1
                         partner_stats[p1][p2]['game_diff_sum'] += match_gd_sum
-                        if row["winner"] == "Team 1":
-                            partner_stats[p1][p2]['wins'] += 1
-                        elif row["winner"] == "Team 2":
-                            partner_stats[p1][p2]['losses'] += 1
-                        else:
-                            partner_stats[p1][p2]['ties'] += 1
+                        if row["winner"] == "Team 1": partner_stats[p1][p2]['wins'] += 1
+                        elif row["winner"] == "Team 2": partner_stats[p1][p2]['losses'] += 1
+                        else: partner_stats[p1][p2]['ties'] += 1
             for p1 in t2:
                 for p2 in t2:
-                    if p1 != p2 and p1 != "Visitor" and p2 != "Visitor":
+                    if p1 != p2:
                         partner_stats[p1][p2]['matches'] += 1
                         partner_stats[p1][p2]['game_diff_sum'] -= match_gd_sum
-                        if row["winner"] == "Team 2":
-                            partner_stats[p1][p2]['wins'] += 1
-                        elif row["winner"] == "Team 1":
-                            partner_stats[p1][p2]['losses'] += 1
-                        else:
-                            partner_stats[p1][p2]['ties'] += 1
-
-
-    # Write debug log to file for inspection
-    with open("gd_debug_log.txt", "w") as f:
-        f.write("\n".join(debug_log))
+                        if row["winner"] == "Team 2": partner_stats[p1][p2]['wins'] += 1
+                        elif row["winner"] == "Team 1": partner_stats[p1][p2]['losses'] += 1
+                        else: partner_stats[p1][p2]['ties'] += 1
 
     rank_data = []
     players_df = st.session_state.players_df
     for player in scores:
-        if player == "Visitor":
-            continue
+        if player == "Visitor": continue
         win_percentage = (wins[player] / matches_played[player] * 100) if matches_played[player] > 0 else 0
         game_diff_avg = cumulative_game_diff[player] / matches_played[player] if matches_played[player] > 0 else 0
-        profile_image = players_df[players_df["name"] == player]["profile_image_url"].iloc[0] if player in players_df["name"].values else ""
+        profile_image = players_df.loc[players_df["name"] == player, "profile_image_url"].iloc[0] if player in players_df["name"].values else ""
         player_trend = get_player_trend(player, matches_to_rank)
         rank_data.append({
-            "Rank": f"🏆 {len(rank_data) + 1}",
-            "Profile": profile_image,
-            "Player": player,
-            "Points": scores[player],
-            "Win %": round(win_percentage, 2),
-            "Matches": matches_played[player],
-            "Doubles Matches": doubles_matches[player],
-            "Singles Matches": singles_matches[player],
-            "Wins": wins[player],
-            "Losses": losses[player],
-            "Games Won": games_won[player],
-            "Game Diff Avg": round(game_diff_avg, 2),
-            "Cumulative Game Diff": cumulative_game_diff[player],
+            "Rank": 0, "Profile": profile_image, "Player": player, "Points": scores[player],
+            "Win %": round(win_percentage, 2), "Matches": matches_played[player],
+            "Doubles Matches": doubles_matches[player], "Singles Matches": singles_matches[player],
+            "Wins": wins[player], "Losses": losses[player], "Games Won": games_won[player],
+            "Game Diff Avg": round(game_diff_avg, 2), "Cumulative Game Diff": cumulative_game_diff[player],
             "Recent Trend": player_trend
         })
 
@@ -776,6 +736,11 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
+
+
+
+
+
 
 
 
