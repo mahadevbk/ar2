@@ -1735,7 +1735,7 @@ court_names = [
 fun_verbs = [
     "defeated", "thrashed", "crushed", "beat the hell out of",
     "smashed", "obliterated", "demolished", "outplayed",
-    "vanquished", "dominated"
+    "vanquished", "dominated", "barely beat", "inexplicably, def.", "in an upset, def."
 ]
 
 
