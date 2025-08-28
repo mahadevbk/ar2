@@ -2338,7 +2338,7 @@ with tabs[1]:
                     st.session_state.form_key_suffix += 1
                     st.rerun()
 
-    st.markdown("---")
+    #st.markdown("---")
     st.markdown("---")
     st.subheader("Match History")
 
