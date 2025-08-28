@@ -2256,6 +2256,7 @@ with tabs[0]:
 #---------------END OF TAB[0]-------------------------------------------------------------
 
 
+
 with tabs[1]:
     st.header("Matches")
     with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
@@ -2266,25 +2267,53 @@ with tabs[1]:
             st.warning("No players available. Please add players in the Player Profile tab.")
         else:
             with st.form(key=f"new_match_form_{st.session_state.form_key_suffix}"):
-                #
-                # updated version match posting version
+                # Form inputs
+                date_str = st.date_input("Match Date *", value=datetime.today(), key=f"match_date_{st.session_state.form_key_suffix}")
+                if match_type_new == "Doubles":
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        team1_player1 = st.selectbox("Team 1 - Player 1 *", [""] + available_players, key=f"t1p1_{st.session_state.form_key_suffix}")
+                        team1_player2 = st.selectbox("Team 1 - Player 2 *", [""] + available_players, key=f"t1p2_{st.session_state.form_key_suffix}")
+                    with col2:
+                        team2_player1 = st.selectbox("Team 2 - Player 1 *", [""] + available_players, key=f"t2p1_{st.session_state.form_key_suffix}")
+                        team2_player2 = st.selectbox("Team 2 - Player 2 *", [""] + available_players, key=f"t2p2_{st.session_state.form_key_suffix}")
+                else:  # Singles
+                    team1_player1 = st.selectbox("Player 1 *", [""] + available_players, key=f"s1p1_{st.session_state.form_key_suffix}")
+                    team2_player1 = st.selectbox("Player 2 *", [""] + available_players, key=f"s1p2_{st.session_state.form_key_suffix}")
+                    team1_player2 = ""
+                    team2_player2 = ""
+                set1 = st.selectbox("Set 1 Score *", [""] + tennis_scores(), key=f"set1_{st.session_state.form_key_suffix}")
+                set2 = st.selectbox("Set 2 Score (optional)", [""] + tennis_scores(), key=f"set2_{st.session_state.form_key_suffix}")
+                set3 = st.selectbox("Set 3 Score (optional)", [""] + tennis_scores(), key=f"set3_{st.session_state.form_key_suffix}")
+                winner = st.radio("Winner *", ["Team 1", "Team 2", "Tie"], key=f"winner_{st.session_state.form_key_suffix}")
+                uploaded_image = st.file_uploader("Match Image (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"match_image_{st.session_state.form_key_suffix}")
+                st.markdown("*Required fields", unsafe_allow_html=True)
+                submit = st.form_submit_button("Add Match")
 
                 if submit:
-                    if match_type == "Doubles":
-                        selected_players = [team1_player1, team1_player2, team2_player1, team2_player2]
-                        if len(set(selected_players)) != len(selected_players):
-                            st.error("Please select different players for each position.")
-                            valid = False
-                        else:
-                            valid = True
-                    else:  # Singles
-                        if team1_player1 == team2_player1:
-                            st.error("Please select different players for singles.")
-                            valid = False
-                        else:
-                            valid = True
+                    valid = True
+                    # Validate required fields
+                    if not date_str or not set1 or not winner:
+                        st.error("Please fill in all required fields: Match Date, Set 1 Score, and Winner.")
+                        valid = False
+                    # Validate player selections
+                    if valid:
+                        if match_type_new == "Doubles":
+                            if not all([team1_player1, team1_player2, team2_player1, team2_player2]):
+                                st.error("All player fields are required for doubles.")
+                                valid = False
+                            elif len(set([team1_player1, team1_player2, team2_player1, team2_player2])) != 4:
+                                st.error("Please select different players for each position.")
+                                valid = False
+                        else:  # Singles
+                            if not team1_player1 or not team2_player1:
+                                st.error("Both player fields are required for singles.")
+                                valid = False
+                            elif team1_player1 == team2_player1:
+                                st.error("Please select different players for singles.")
+                                valid = False
 
-                    # New validation for score consistency with winner
+                    # Validate score consistency with winner
                     if valid:
                         team1_sets_won = 0
                         team2_sets_won = 0
@@ -2295,11 +2324,13 @@ with tabs[1]:
                                     tb_score = score.replace("Tie Break ", "").replace("Tie Break", "").strip()
                                     try:
                                         t1, t2 = map(int, tb_score.split("-"))
+                                        # Adjust scores based on winner
+                                        if winner == "Team 2":
+                                            t1, t2 = t2, t1  # Swap scores if Team 2 wins
                                         if t1 > t2:
                                             team1_sets_won += 1
                                         elif t2 > t1:
                                             team2_sets_won += 1
-                                        # For tie, if equal, but tie break can't be equal
                                     except ValueError:
                                         st.error(f"Invalid tie break score: {score}")
                                         valid = False
@@ -2307,11 +2338,13 @@ with tabs[1]:
                                 else:
                                     try:
                                         t1, t2 = map(int, score.split("-"))
+                                        # Adjust scores based on winner
+                                        if winner == "Team 2":
+                                            t1, t2 = t2, t1  # Swap scores if Team 2 wins
                                         if t1 > t2:
                                             team1_sets_won += 1
                                         elif t2 > t1:
                                             team2_sets_won += 1
-                                        # Equal not possible in standard scores
                                     except ValueError:
                                         st.error(f"Invalid score: {score}")
                                         valid = False
@@ -2329,33 +2362,58 @@ with tabs[1]:
                                 valid = False
 
                     if valid:
-                        match_datetime = parser.parse(date_str)
-                        match_id = generate_match_id(st.session_state.matches_df, match_datetime)
-                        image_url = upload_image_to_supabase(uploaded_image, match_id) if uploaded_image else ""
-                        new_match = {
-                            "match_id": match_id,
-                            "date": date_str,
-                            "match_type": match_type,
-                            "team1_player1": team1_player1,
-                            "team1_player2": team1_player2 if match_type == "Doubles" else "",
-                            "team2_player1": team2_player1,
-                            "team2_player2": team2_player2 if match_type == "Doubles" else "",
-                            "set1": set1,
-                            "set2": set2,
-                            "set3": set3,
-                            "winner": winner,
-                            "match_image_url": image_url
-                        }
-                        st.session_state.matches_df = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match])], ignore_index=True)
-                        save_matches(st.session_state.matches_df)
-                        load_matches()
-                        st.success("Match added successfully.")
-                        st.session_state.form_key_suffix += 1
-                        st.rerun()
+                        try:
+                            match_datetime = parser.parse(str(date_str))
+                            match_id = generate_match_id(st.session_state.matches_df, match_datetime)
+                            image_url = upload_image_to_supabase(uploaded_image, match_id) if uploaded_image else ""
+                            # Adjust set scores for storage based on winner
+                            final_set1 = set1
+                            final_set2 = set2
+                            final_set3 = set3
+                            if winner == "Team 2" and final_set1:
+                                if "Tie Break" in final_set1:
+                                    t1, t2 = map(int, final_set1.replace("Tie Break ", "").replace("Tie Break", "").strip().split("-"))
+                                    final_set1 = f"Tie Break {t2}-{t1}"
+                                else:
+                                    t1, t2 = map(int, final_set1.split("-"))
+                                    final_set1 = f"{t2}-{t1}"
+                            if winner == "Team 2" and final_set2:
+                                if "Tie Break" in final_set2:
+                                    t1, t2 = map(int, final_set2.replace("Tie Break ", "").replace("Tie Break", "").strip().split("-"))
+                                    final_set2 = f"Tie Break {t2}-{t1}"
+                                else:
+                                    t1, t2 = map(int, final_set2.split("-"))
+                                    final_set2 = f"{t2}-{t1}"
+                            if winner == "Team 2" and final_set3:
+                                if "Tie Break" in final_set3:
+                                    t1, t2 = map(int, final_set3.replace("Tie Break ", "").replace("Tie Break", "").strip().split("-"))
+                                    final_set3 = f"Tie Break {t2}-{t1}"
+                                else:
+                                    t1, t2 = map(int, final_set3.split("-"))
+                                    final_set3 = f"{t2}-{t1}"
+                            new_match = {
+                                "match_id": match_id,
+                                "date": date_str.isoformat(),
+                                "match_type": match_type_new,
+                                "team1_player1": team1_player1,
+                                "team1_player2": team1_player2,
+                                "team2_player1": team2_player1,
+                                "team2_player2": team2_player2,
+                                "set1": final_set1,
+                                "set2": final_set2,
+                                "set3": final_set3,
+                                "winner": winner,
+                                "match_image_url": image_url
+                            }
+                            st.session_state.matches_df = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match])], ignore_index=True)
+                            save_matches(st.session_state.matches_df)
+                            load_matches()
+                            st.success("Match added successfully.")
+                            st.session_state.form_key_suffix += 1
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Failed to add match: {str(e)}")
 
-
-
-    #st.markdown("---")
     st.markdown("---")
     st.subheader("Match History")
 
@@ -2382,7 +2440,7 @@ with tabs[1]:
             (filtered_matches['team2_player2'] == player_search)
         ]
 
-    # --- START: Robust Date Handling and Sorting ---
+    # Robust Date Handling and Sorting
     if not filtered_matches.empty:
         # Convert date column, turning errors into NaT (Not a Time)
         filtered_matches['date'] = pd.to_datetime(filtered_matches['date'], errors='coerce')
@@ -2405,7 +2463,6 @@ with tabs[1]:
             display_matches = pd.DataFrame()  # Ensure an empty dataframe if no valid dates
     else:
         display_matches = pd.DataFrame()
-    # --- END: Robust Date Handling and Sorting ---
 
     def format_match_players(row):
         if row["match_type"] == "Singles":
@@ -2462,10 +2519,8 @@ with tabs[1]:
         st.info("No matches found for the selected filters.")
     else:
         for index, row in display_matches.iterrows():
-            # Create four columns: serial number, image, match details, and share button
             cols = st.columns([1, 1, 7, 1])
             with cols[0]:
-                # Display serial number
                 st.markdown(f"<span style='font-weight:bold; color:#fff500;'>{row['serial_number']}</span>", unsafe_allow_html=True)
             with cols[1]:
                 if row["match_image_url"]:
@@ -2481,11 +2536,9 @@ with tabs[1]:
                 st.markdown(f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>', unsafe_allow_html=True)
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
 
-    #st.markdown("---")
     st.markdown("---")
     st.subheader("✏️ Manage Existing Match")
     clean_match_options = []
-    # Note: We are using 'display_matches' which is already sorted with the latest first
     for _, row in display_matches.iterrows():
         score_plain = f"{row['set1']}"
         if row['set2']:
@@ -2516,11 +2569,9 @@ with tabs[1]:
                 desc_plain = f"{row['team2_player1']} & {row['team2_player2']} {verb} {row['team1_player1']} & {row['team1_player2']}"
         clean_match_options.append(f"{desc_plain} | {score_plain} | {date_plain} | {row['match_id']}")
     
-    # Use a unique key to avoid conflicts
     selected_match_to_edit = st.selectbox("Select a match to edit or delete", [""] + clean_match_options, key="select_match_to_edit_1")
     if selected_match_to_edit:
         selected_id = selected_match_to_edit.split(" | ")[-1]
-        # Use display_matches which is the final sorted and valid dataframe
         row = display_matches[display_matches["match_id"] == selected_id].iloc[0]
         idx = st.session_state.matches_df[st.session_state.matches_df["match_id"] == selected_id].index[0]
         current_date_dt = pd.to_datetime(row["date"])
@@ -2533,7 +2584,6 @@ with tabs[1]:
             time_edit = st.time_input("Match Time", value=current_date_dt.time(), key=f"edit_time_{selected_id}")
             match_type_edit = st.radio("Match Type", ["Doubles", "Singles"], index=0 if row["match_type"] == "Doubles" else 1, key=f"edit_match_type_{selected_id}")
             
-            # Conditionally render player selectboxes based on match type
             if match_type_edit == "Doubles":
                 col1, col2 = st.columns(2)
                 with col1:
@@ -2545,8 +2595,8 @@ with tabs[1]:
             else:  # Singles
                 p1_edit = st.selectbox("Player 1", [""] + available_players, index=available_players.index(row["team1_player1"]) + 1 if row["team1_player1"] in available_players else 0, key=f"edit_t1p1_{selected_id}")
                 p3_edit = st.selectbox("Player 2", [""] + available_players, index=available_players.index(row["team2_player1"]) + 1 if row["team2_player1"] in available_players else 0, key=f"edit_t2p1_{selected_id}")
-                p2_edit = ""  # Explicitly set to empty for Singles
-                p4_edit = ""  # Explicitly set to empty for Singles
+                p2_edit = ""
+                p4_edit = ""
             
             set1_edit = st.selectbox("Set 1", all_scores, index=set1_index, key=f"edit_set1_{selected_id}")
             set2_edit = st.selectbox("Set 2 (optional)", all_scores, index=set2_index, key=f"edit_set2_{selected_id}")
@@ -2581,6 +2631,10 @@ with tabs[1]:
                 load_matches()
                 st.success("Match deleted.")
                 st.rerun()
+
+
+
+
 
 
 
