@@ -606,6 +606,9 @@ def get_player_trend(player, matches, max_matches=5):
 #------------------- Update the display_player_insights  and calculate rankings function --------------------------------
 
 
+
+
+
 def calculate_rankings(matches_to_rank):
     scores = defaultdict(float)
     wins = defaultdict(int)
@@ -773,7 +776,6 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
-
 
 
 
