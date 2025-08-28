@@ -2266,77 +2266,94 @@ with tabs[1]:
             st.warning("No players available. Please add players in the Player Profile tab.")
         else:
             with st.form(key=f"new_match_form_{st.session_state.form_key_suffix}"):
-                if match_type_new == "Doubles":
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        p1_new = st.selectbox("Team 1 - Player 1", [""] + available_players, key=f"t1p1_new_post_{st.session_state.form_key_suffix}")
-                        p2_new = st.selectbox("Team 1 - Player 2", [""] + available_players, key=f"t1p2_new_post_{st.session_state.form_key_suffix}")
-                    with col2:
-                        p3_new = st.selectbox("Team 2 - Player 1", [""] + available_players, key=f"t2p1_new_post_{st.session_state.form_key_suffix}")
-                        p4_new = st.selectbox("Team 2 - Player 2", [""] + available_players, key=f"t2p2_new_post_{st.session_state.form_key_suffix}")
-                else:
-                    p1_new = st.selectbox("Player 1", [""] + available_players, key=f"s1p1_new_post_{st.session_state.form_key_suffix}")
-                    p3_new = st.selectbox("Player 2", [""] + available_players, key=f"s1p2_new_post_{st.session_state.form_key_suffix}")
-                    p2_new = ""
-                    p4_new = ""
-                set1_new = st.selectbox("Set 1 *", tennis_scores(), index=4, key=f"set1_new_post_{st.session_state.form_key_suffix}")
-                set2_new = st.selectbox("Set 2 *" if match_type_new == "Doubles" else "Set 2 (optional)", [""] + tennis_scores(), key=f"set2_new_post_{st.session_state.form_key_suffix}")
-                set3_new = st.selectbox("Set 3 (optional)", [""] + tennis_scores(), key=f"set3_new_post_{st.session_state.form_key_suffix}")
-                winner_new = st.radio("Winner", ["Team 1", "Team 2", "Tie"], key=f"winner_new_post_{st.session_state.form_key_suffix}")
-                match_image_new = st.file_uploader("Upload Match Image (optional)", type=["jpg", "jpeg", "png", "gif", "bmp", "webp"], key=f"match_image_new_post_{st.session_state.form_key_suffix}")
-                st.markdown("*Required fields", unsafe_allow_html=True)
-                submit_button = st.form_submit_button("Submit Match")
-            if submit_button:
-                selected_players = [p1_new, p2_new, p3_new, p4_new] if match_type_new == "Doubles" else [p1_new, p3_new]
-                if "" in selected_players:
-                    st.error("Please select all players.")
-                elif len(selected_players) != len(set(selected_players)):
-                    st.error("Please select different players for each position.")
-                elif not set1_new:
-                    st.error("Set 1 score is required.")
-                elif match_type_new == "Doubles" and not set2_new:
-                    st.error("Set 2 score is required for doubles matches.")
-                else:
-                    new_match_date = datetime.now()
-                    match_id_new = generate_match_id(st.session_state.matches_df, new_match_date)
-                    image_url_new = ""
-                    if match_image_new:
-                        image_url_new = upload_image_to_supabase(match_image_new, match_id_new, image_type="match")
-                    new_match_entry = {
-                        "match_id": match_id_new,
-                        "date": new_match_date,
-                        "match_type": match_type_new,
-                        "team1_player1": p1_new,
-                        "team1_player2": p2_new,
-                        "team2_player1": p3_new,
-                        "team2_player2": p4_new,
-                        "set1": set1_new,
-                        "set2": set2_new,
-                        "set3": set3_new,
-                        "winner": winner_new,
-                        "match_image_url": image_url_new
-                    }
-                    matches_to_save = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match_entry])], ignore_index=True)
-                    save_matches(matches_to_save)
-                    load_matches()  # Reload data from DB
-                    # Construct team strings for success message
-                    if match_type_new == "Doubles":
-                        team1_str = f"{p1_new} & {p2_new}"
-                        team2_str = f"{p3_new} & {p4_new}"
-                    else:
-                        team1_str = p1_new
-                        team2_str = p3_new
-                    verb = random.choice(fun_verbs)
-                    success_msg = (
-                        f"Match {match_id_new} added: {team1_str} {verb} {team2_str}"
-                        if winner_new == "Team 1"
-                        else f"{team2_str} {verb} {team1_str}"
-                        if winner_new == "Team 2"
-                        else "Tie"
-                    )
-                    st.success(success_msg)
-                    st.session_state.form_key_suffix += 1
-                    st.rerun()
+                #
+                # updated version match posting version
+
+                if submit:
+                    if match_type == "Doubles":
+                        selected_players = [team1_player1, team1_player2, team2_player1, team2_player2]
+                        if len(set(selected_players)) != len(selected_players):
+                            st.error("Please select different players for each position.")
+                            valid = False
+                        else:
+                            valid = True
+                    else:  # Singles
+                        if team1_player1 == team2_player1:
+                            st.error("Please select different players for singles.")
+                            valid = False
+                        else:
+                            valid = True
+
+                    # New validation for score consistency with winner
+                    if valid:
+                        team1_sets_won = 0
+                        team2_sets_won = 0
+                        sets = [set1, set2, set3]
+                        for score in sets:
+                            if score and score != "":
+                                if "Tie Break" in score:
+                                    tb_score = score.replace("Tie Break ", "").replace("Tie Break", "").strip()
+                                    try:
+                                        t1, t2 = map(int, tb_score.split("-"))
+                                        if t1 > t2:
+                                            team1_sets_won += 1
+                                        elif t2 > t1:
+                                            team2_sets_won += 1
+                                        # For tie, if equal, but tie break can't be equal
+                                    except ValueError:
+                                        st.error(f"Invalid tie break score: {score}")
+                                        valid = False
+                                        break
+                                else:
+                                    try:
+                                        t1, t2 = map(int, score.split("-"))
+                                        if t1 > t2:
+                                            team1_sets_won += 1
+                                        elif t2 > t1:
+                                            team2_sets_won += 1
+                                        # Equal not possible in standard scores
+                                    except ValueError:
+                                        st.error(f"Invalid score: {score}")
+                                        valid = False
+                                        break
+
+                        if valid:
+                            if winner == "Team 1" and team1_sets_won <= team2_sets_won:
+                                st.error("The scores indicate Team 2 won more sets or it's equal. Please check winner selection or scores.")
+                                valid = False
+                            elif winner == "Team 2" and team2_sets_won <= team1_sets_won:
+                                st.error("The scores indicate Team 1 won more sets or it's equal. Please check winner selection or scores.")
+                                valid = False
+                            elif winner == "Tie" and team1_sets_won != team2_sets_won:
+                                st.error("For a tie, the number of sets won should be equal.")
+                                valid = False
+
+                    if valid:
+                        match_datetime = parser.parse(date_str)
+                        match_id = generate_match_id(st.session_state.matches_df, match_datetime)
+                        image_url = upload_image_to_supabase(uploaded_image, match_id) if uploaded_image else ""
+                        new_match = {
+                            "match_id": match_id,
+                            "date": date_str,
+                            "match_type": match_type,
+                            "team1_player1": team1_player1,
+                            "team1_player2": team1_player2 if match_type == "Doubles" else "",
+                            "team2_player1": team2_player1,
+                            "team2_player2": team2_player2 if match_type == "Doubles" else "",
+                            "set1": set1,
+                            "set2": set2,
+                            "set3": set3,
+                            "winner": winner,
+                            "match_image_url": image_url
+                        }
+                        st.session_state.matches_df = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match])], ignore_index=True)
+                        save_matches(st.session_state.matches_df)
+                        load_matches()
+                        st.success("Match added successfully.")
+                        st.session_state.form_key_suffix += 1
+                        st.rerun()
+
+
 
     #st.markdown("---")
     st.markdown("---")
@@ -2464,7 +2481,7 @@ with tabs[1]:
                 st.markdown(f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>', unsafe_allow_html=True)
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
 
-    st.markdown("---")
+    #st.markdown("---")
     st.markdown("---")
     st.subheader("✏️ Manage Existing Match")
     clean_match_options = []
