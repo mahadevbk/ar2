@@ -35,6 +35,7 @@ import io
 from datetime import datetime
 import urllib.parse
 import requests
+import random
 
 
 
@@ -1730,6 +1731,14 @@ court_names = [
     "Mudon Arabella","Mudon Arabella 3","AR2 Rosa","AR2 Palma","AR 2 Fitness First","Dubai Hills Maple"
 ]
 
+# List of fun verbs for match results
+fun_verbs = [
+    "defeated", "thrashed", "crushed", "beat the hell out of",
+    "smashed", "obliterated", "demolished", "outplayed",
+    "vanquished", "dominated"
+]
+
+
 players_df = st.session_state.players_df
 matches = st.session_state.matches_df
 players = sorted([p for p in players_df["name"].dropna().tolist() if p != "Visitor"]) if "name" in players_df.columns else []
@@ -2247,9 +2256,6 @@ with tabs[0]:
 #---------------END OF TAB[0]-------------------------------------------------------------
 
 
-
-
-
 with tabs[1]:
     st.header("Matches")
     with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
@@ -2313,13 +2319,28 @@ with tabs[1]:
                     matches_to_save = pd.concat([st.session_state.matches_df, pd.DataFrame([new_match_entry])], ignore_index=True)
                     save_matches(matches_to_save)
                     load_matches()  # Reload data from DB
-                    st.success("Match submitted.")
+                    # Construct team strings for success message
+                    if match_type_new == "Doubles":
+                        team1_str = f"{p1_new} & {p2_new}"
+                        team2_str = f"{p3_new} & {p4_new}"
+                    else:
+                        team1_str = p1_new
+                        team2_str = p3_new
+                    verb = random.choice(fun_verbs)
+                    success_msg = (
+                        f"Match {match_id_new} added: {team1_str} {verb} {team2_str}"
+                        if winner_new == "Team 1"
+                        else f"{team2_str} {verb} {team1_str}"
+                        if winner_new == "Team 2"
+                        else "Tie"
+                    )
+                    st.success(success_msg)
                     st.session_state.form_key_suffix += 1
                     st.rerun()
 
-    #st.markdown("---")
-    #st.markdown("---")
-    #st.subheader("Match History")
+    st.markdown("---")
+    st.markdown("---")
+    st.subheader("Match History")
 
     # Create columns for the filters
     col1_filter, col2_filter = st.columns(2)
@@ -2364,34 +2385,34 @@ with tabs[1]:
             # Re-sort descending for display (newest first)
             display_matches = valid_matches.sort_values(by='date', ascending=False).reset_index(drop=True)
         else:
-            display_matches = pd.DataFrame() # Ensure an empty dataframe if no valid dates
+            display_matches = pd.DataFrame()  # Ensure an empty dataframe if no valid dates
     else:
         display_matches = pd.DataFrame()
     # --- END: Robust Date Handling and Sorting ---
-
 
     def format_match_players(row):
         if row["match_type"] == "Singles":
             p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team1_player1']}</span>"
             p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team2_player1']}</span>"
+            verb = random.choice(fun_verbs)
             if row["winner"] == "Tie":
                 return f"{p1_styled} tied with {p2_styled}"
             elif row["winner"] == "Team 1":
-                return f"{p1_styled} def. {p2_styled}"
+                return f"{p1_styled} {verb} {p2_styled}"
             else:  # Team 2
-                return f"{p2_styled} def. {p1_styled}"
+                return f"{p2_styled} {verb} {p1_styled}"
         else:  # Doubles
             p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team1_player1']}</span>"
             p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team1_player2']}</span>"
             p3_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team2_player1']}</span>"
             p4_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team2_player2']}</span>"
+            verb = random.choice(fun_verbs)
             if row["winner"] == "Tie":
                 return f"{p1_styled} & {p2_styled} tied with {p3_styled} & {p4_styled}"
             elif row["winner"] == "Team 1":
-                return f"{p1_styled} & {p2_styled} def. {p3_styled} & {p4_styled}"
+                return f"{p1_styled} & {p2_styled} {verb} {p3_styled} & {p4_styled}"
             else:  # Team 2
-                return f"{p3_styled} & {p4_styled} def. {p1_styled} & {p2_styled}"
-
+                return f"{p3_styled} & {p4_styled} {verb} {p1_styled} & {p2_styled}"
 
     def format_match_scores_and_date(row):
         score_parts_plain = []
@@ -2442,12 +2463,9 @@ with tabs[1]:
                 share_link = generate_whatsapp_link(row)
                 st.markdown(f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>', unsafe_allow_html=True)
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
-# ... (rest of the code remains unchanged)
 
     st.markdown("---")
-   
     st.markdown("---")
-   
     st.subheader("✏️ Manage Existing Match")
     clean_match_options = []
     # Note: We are using 'display_matches' which is already sorted with the latest first
@@ -2464,19 +2482,21 @@ with tabs[1]:
             date_plain = "Invalid Date"
             
         if row["match_type"] == "Singles":
+            verb = random.choice(fun_verbs)
             if row["winner"] == "Tie":
                 desc_plain = f"{row['team1_player1']} tied with {row['team2_player1']}"
             elif row["winner"] == "Team 1":
-                desc_plain = f"{row['team1_player1']} def. {row['team2_player1']}"
+                desc_plain = f"{row['team1_player1']} {verb} {row['team2_player1']}"
             else:  # Team 2
-                desc_plain = f"{row['team2_player1']} def. {row['team1_player1']}"
+                desc_plain = f"{row['team2_player1']} {verb} {row['team1_player1']}"
         else:  # Doubles
+            verb = random.choice(fun_verbs)
             if row["winner"] == "Tie":
                 desc_plain = f"{row['team1_player1']} & {row['team1_player2']} tied with {row['team2_player1']} & {row['team2_player2']}"
             elif row["winner"] == "Team 1":
-                desc_plain = f"{row['team1_player1']} & {row['team1_player2']} def. {row['team2_player1']} & {row['team2_player2']}"
+                desc_plain = f"{row['team1_player1']} & {row['team1_player2']} {verb} {row['team2_player1']} & {row['team2_player2']}"
             else:  # Team 2
-                desc_plain = f"{row['team2_player1']} & {row['team2_player2']} def. {row['team1_player1']} & {row['team1_player2']}"
+                desc_plain = f"{row['team2_player1']} & {row['team2_player2']} {verb} {row['team1_player1']} & {row['team1_player2']}"
         clean_match_options.append(f"{desc_plain} | {score_plain} | {date_plain} | {row['match_id']}")
     
     # Use a unique key to avoid conflicts
@@ -2544,6 +2564,19 @@ with tabs[1]:
                 load_matches()
                 st.success("Match deleted.")
                 st.rerun()
+
+
+
+
+
+
+
+
+
+
+
+
+#----------------END OF TAB[1]-----------------------------------------------------------
 
 # Player Profile tab
 with tabs[2]:
