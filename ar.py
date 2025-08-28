@@ -607,9 +607,6 @@ def get_player_trend(player, matches, max_matches=5):
 
 
 def calculate_rankings(matches_to_rank):
-    # --- This is a debugging line. It will show the entire DataFrame being processed. ---
-    # st.write("DEBUG: Data passed to calculate_rankings:", matches_to_rank)
-
     scores = defaultdict(float)
     wins = defaultdict(int)
     losses = defaultdict(int)
@@ -629,16 +626,10 @@ def calculate_rankings(matches_to_rank):
         else:
             t1 = [p for p in [row['team1_player1']] if p and p != "Visitor"]
             t2 = [p for p in [row['team2_player1']] if p and p != "Visitor"]
-        
-        # --- Focus debugging on the player 'Ananth' ---
-        is_ananth_match = 'Ananth' in t1 or 'Ananth' in t2
-        if is_ananth_match:
-            st.write(f"--- Processing Match for Ananth (Index: {idx}) ---")
-            st.write(f"Teams: T1={t1}, T2={t2}")
 
         match_gd_sum = 0
-        for set_idx, set_score in enumerate([row['set1'], row['set2'], row['set3']]):
-            if not set_score or ('-' not in set_score and 'Tie Break' not in set_score):
+        for set_score in [row['set1'], row['set2'], row['set3']]:
+            if not set_score or ('-' not in str(set_score) and 'Tie Break' not in str(set_score)):
                 continue
             
             try:
@@ -654,28 +645,20 @@ def calculate_rankings(matches_to_rank):
                 set_difference = team1_games - team2_games
                 match_gd_sum += set_difference
 
-                if is_ananth_match:
-                    st.write(f"Set {set_idx + 1}: '{set_score}' | Set Difference: {set_difference}")
-
-                # Update cumulative game difference for players in the set
                 for p in t1:
+                    games_won[p] += team1_games
                     cumulative_game_diff[p] += set_difference
                 for p in t2:
+                    games_won[p] += team2_games
                     cumulative_game_diff[p] -= set_difference
-                
-                if is_ananth_match:
-                     st.write(f"Ananth's Cumulative GD after set: {cumulative_game_diff.get('Ananth', 0)}")
 
-            except (ValueError, TypeError) as e:
-                if is_ananth_match:
-                    st.error(f"Error processing set score '{set_score}': {e}")
+            except (ValueError, TypeError):
                 continue
 
-        # (The rest of the logic for wins, losses, etc., remains the same)
         if row["winner"] == "Team 1":
             for p in t1:
                 scores[p] += 3; wins[p] += 1; matches_played[p] += 1
-                if match_type == 'Doubles': doubles_matches[p] += 1 
+                if match_type == 'Doubles': doubles_matches[p] += 1
                 else: singles_matches[p] += 1
             for p in t2:
                 scores[p] += 1; losses[p] += 1; matches_played[p] += 1
@@ -690,8 +673,7 @@ def calculate_rankings(matches_to_rank):
                 scores[p] += 1; losses[p] += 1; matches_played[p] += 1
                 if match_type == 'Doubles': doubles_matches[p] += 1
                 else: singles_matches[p] += 1
-        
-        # Update partner stats for doubles (no changes here)
+
         if match_type == 'Doubles':
             for p1 in t1:
                 for p2 in t1:
@@ -736,9 +718,6 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
-
-
-
 
 
 
