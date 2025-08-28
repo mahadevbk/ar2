@@ -615,8 +615,8 @@ def calculate_rankings(matches_to_rank):
     singles_matches = defaultdict(int)
     doubles_matches = defaultdict(int)
     games_won = defaultdict(int)
-    game_diff = defaultdict(float)
     cumulative_game_diff = defaultdict(int)
+    match_game_diff_avgs = defaultdict(list)  # New: Track per-match game difference averages
     partner_stats = defaultdict(lambda: defaultdict(lambda: {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'game_diff_sum': 0}))
     
     for _, row in matches_to_rank.iterrows():
@@ -665,7 +665,15 @@ def calculate_rankings(matches_to_rank):
 
                 except ValueError:
                     continue
+        
         match_gd_avg = match_gd_sum / set_count if set_count > 0 else 0
+        # New: Store the per-match game difference average for each player
+        for p in t1:
+            if p != "Visitor":
+                match_game_diff_avgs[p].append(match_gd_avg)
+        for p in t2:
+            if p != "Visitor":
+                match_game_diff_avgs[p].append(-match_gd_avg)
 
         if row["winner"] == "Team 1":
             for p in t1:
@@ -673,7 +681,6 @@ def calculate_rankings(matches_to_rank):
                     scores[p] += 3
                     wins[p] += 1
                     matches_played[p] += 1
-                    game_diff[p] += match_gd_avg
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
             for p in t2:
@@ -681,7 +688,6 @@ def calculate_rankings(matches_to_rank):
                     scores[p] += 1
                     losses[p] += 1
                     matches_played[p] += 1
-                    game_diff[p] -= match_gd_avg
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
         elif row["winner"] == "Team 2":
@@ -690,7 +696,6 @@ def calculate_rankings(matches_to_rank):
                     scores[p] += 3
                     wins[p] += 1
                     matches_played[p] += 1
-                    game_diff[p] -= match_gd_avg
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
             for p in t1:
@@ -698,7 +703,6 @@ def calculate_rankings(matches_to_rank):
                     scores[p] += 1
                     losses[p] += 1
                     matches_played[p] += 1
-                    game_diff[p] += match_gd_avg
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
         else:
@@ -706,7 +710,6 @@ def calculate_rankings(matches_to_rank):
                 if p != "Visitor":
                     scores[p] += 1.5
                     matches_played[p] += 1
-                    game_diff[p] += match_gd_avg if p in t1 else -match_gd_avg
                     if match_type == 'Doubles': doubles_matches[p] += 1
                     else: singles_matches[p] += 1
 
@@ -740,7 +743,7 @@ def calculate_rankings(matches_to_rank):
         if player == "Visitor":
             continue
         win_percentage = (wins[player] / matches_played[player] * 100) if matches_played[player] > 0 else 0
-        game_diff_avg = (game_diff[player] / matches_played[player]) if matches_played[player] > 0 else 0
+        game_diff_avg = sum(match_game_diff_avgs[player]) / len(match_game_diff_avgs[player]) if match_game_diff_avgs[player] else 0
         profile_image = players_df[players_df["name"] == player]["profile_image_url"].iloc[0] if player in players_df["name"].values else ""
         player_trend = get_player_trend(player, matches_to_rank)
         rank_data.append({
@@ -769,6 +772,8 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
+
+
 
 
 
