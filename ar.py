@@ -607,6 +607,9 @@ def get_player_trend(player, matches, max_matches=5):
 
 
 
+
+
+
 def calculate_rankings(matches_to_rank):
     scores = defaultdict(float)
     wins = defaultdict(int)
@@ -624,11 +627,11 @@ def calculate_rankings(matches_to_rank):
         
         # Define teams based on match type
         if match_type == 'Doubles':
-            t1 = [row['team1_player1'], row['team1_player2']]
-            t2 = [row['team2_player1'], row['team2_player2']]
+            t1 = [p for p in [row['team1_player1'], row['team1_player2']] if p]
+            t2 = [p for p in [row['team2_player1'], row['team2_player2']] if p]
         else:
-            t1 = [row['team1_player1']]
-            t2 = [row['team2_player1']]
+            t1 = [p for p in [row['team1_player1']] if p]
+            t2 = [p for p in [row['team2_player1']] if p]
 
         team1_total_games = 0
         team2_total_games = 0
@@ -655,20 +658,21 @@ def calculate_rankings(matches_to_rank):
                 match_gd_sum += team1_games - team2_games
                 set_count += 1
 
+                # Update cumulative game difference and games won per set
                 set_difference = team1_games - team2_games
                 for p in t1:
                     if p != "Visitor":
                         games_won[p] += team1_games
-                        cumulative_game_diff[p] += set_difference  # Sum GD per set
+                        cumulative_game_diff[p] += set_difference  # Add GD for Team 1
                 for p in t2:
                     if p != "Visitor":
                         games_won[p] += team2_games
-                        cumulative_game_diff[p] -= set_difference  # Negate for Team 2
+                        cumulative_game_diff[p] -= set_difference  # Subtract GD for Team 2
 
             except (ValueError, TypeError):
                 continue  # Skip invalid set scores
         
-        # Calculate per-match game difference average
+        # Calculate and store per-match game difference average
         match_gd_avg = match_gd_sum / set_count if set_count > 0 else 0
         for p in t1:
             if p != "Visitor":
@@ -776,6 +780,10 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
+
+
+
+
 
 
 
