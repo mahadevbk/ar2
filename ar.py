@@ -1691,10 +1691,10 @@ def get_match_verb_and_gda(row):
     Calculate the Game Difference Average (GDA) for a match and select an appropriate verb.
     Returns a tuple of (verb, gda).
     """
-    tight_match_verbs = ["squeaked past", "barely beat", "pipped", "with luck & gusto, def.", "in an upset, def.","survived (barely)"]
+    tight_match_verbs = ["squeaked past", "barely beat", "pipped", "with luck & gusto, def.", "in an upset, def.","survived (barely)","edged past"]
     med_match_verbs = ["defeated", "outplayed", "dominated", "got the better of"]
     easy_match_verbs = ["thrashed", "crushed", "beat the hell out of", "smashed", "obliterated", 
-                        "demolished", "vanquished", "trounced", "routed", "destroyed"]
+                        "demolished", "vanquished", "trounced", "routed", "destroyed","deadpooled"]
     
     game_diffs = []
     for set_score in [row['set1'], row['set2'], row['set3']]:
