@@ -1692,8 +1692,8 @@ def get_match_verb_and_gda(row):
     Returns a tuple of (verb, gda).
     """
     match_0to1 = ["squeaked past", "barely beat", "got lucky against", "got lucky against" ]
-    match_1to2.9 = ["with luck & gusto, def.","survived (barely)","edged past"]
-    match_3to4.9 = ["defeated", "outplayed", "dominated", "got the better of", "vanquished", "trounced"]
+    match_1to2_9 = ["with luck & gusto, def.","survived (barely)","edged past"]
+    match_3to4_9 = ["defeated", "outplayed", "dominated", "got the better of", "vanquished", "trounced"]
     match_5to6 = ["thrashed", "crushed", "beat the hell out of", "smashed", "obliterated", 
                         "demolished", "routed", "destroyed","deadpooled"]
     
@@ -1720,9 +1720,9 @@ def get_match_verb_and_gda(row):
     if 0 <= gda <= 1:
         verb = random.choice(match_0to1)
     elif 1.1 <= gda <= 2.9:
-        verb = random.choice(match_1to2.9)
+        verb = random.choice(match_1to2_9)
     elif 3 <= gda <= 4.9:
-        verb = random.choice(match_3to4.9)
+        verb = random.choice(match_3to4_9)
     elif 5 <= gda <= 6:
         verb = random.choice(match_5to6)
     
