@@ -1690,9 +1690,8 @@ def get_match_verb_and_gda(row):
             continue
         try:
             if "Tie Break" in str(set_score):
-                # Handle tie-breaks
-                scores = [int(s) for s in str(set_score).replace("Tie Break", "").strip().split('-')]
-                game_diff = abs(scores[0] - scores[1])
+                # For tie-break or super tie-break, always GD = 1 (equivalent to 7-6)
+                game_diff = 1
             else:
                 # Handle regular sets
                 team1_games, team2_games = map(int, str(set_score).split('-'))
@@ -1701,7 +1700,7 @@ def get_match_verb_and_gda(row):
         except (ValueError, TypeError):
             continue
     
-    # Calculate GDA
+    # Calculate GDA: sum(GD) / num_sets
     gda = sum(game_diffs) / len(game_diffs) if game_diffs else 0
     
     # Select verb based on GDA
@@ -1709,9 +1708,10 @@ def get_match_verb_and_gda(row):
         verb = random.choice(tight_match_verbs)
     elif 2 <= gda <= 3:
         verb = random.choice(med_match_verbs)
-    else:  # GDA >= 4
+    elif 4 <= gda <= 6:
         verb = random.choice(easy_match_verbs)
-    
+    else:  # GDA > 6 or GDA < 0
+        verb = random.choice(easy_match_verbs)  # Treat as easy match for simplicity
     return verb, gda
 
 
@@ -2266,6 +2266,9 @@ with tabs[0]:
 
 
 
+
+
+
 with tabs[1]:
     st.header("Matches")
     # Check for duplicate match IDs
@@ -2654,6 +2657,8 @@ with tabs[1]:
                 load_matches()
                 st.success("Match deleted.")
                 st.rerun()
+
+
 
 
 
