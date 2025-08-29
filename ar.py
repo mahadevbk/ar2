@@ -2580,9 +2580,16 @@ with tabs[1]:
         if len(duplicate_ids) > 0:
             st.warning(f"Found duplicate match_id values: {duplicate_ids.tolist()}. Please remove duplicates in Supabase before editing.")
         else:
+            # Sort matches by date (newest first)
+            matches_df_sorted = st.session_state.matches_df.copy()
+            matches_df_sorted['date'] = pd.to_datetime(matches_df_sorted['date'], errors='coerce')
+            # Replace NaT with a very old date to push invalid dates to the end
+            matches_df_sorted['date'] = matches_df_sorted['date'].fillna(pd.Timestamp('1900-01-01'))
+            matches_df_sorted = matches_df_sorted.sort_values(by='date', ascending=False)
+            
             match_options = []
-            for _, row in st.session_state.matches_df.iterrows():
-                date_str = pd.to_datetime(row['date']).strftime('%A, %d %b') if 'date' in row and row['date'] else "Unknown Date"
+            for _, row in matches_df_sorted.iterrows():
+                date_str = pd.to_datetime(row['date']).strftime('%A, %d %b') if pd.notna(row['date']) else "Unknown Date"
                 match_type = row['match_type'] if 'match_type' in row else "Unknown Type"
                 if match_type == "Doubles":
                     t1 = f"{row['team1_player1']}/{row['team1_player2']}" if 'team1_player1' in row and 'team1_player2' in row else "Unknown Team 1"
@@ -2618,7 +2625,7 @@ with tabs[1]:
                 with st.expander("Edit Match Details", expanded=True):
                     date_edit = st.date_input(
                         "Match Date",
-                        value=parser.parse(match_row["date"]).date() if match_row["date"] else datetime.now().date(),
+                        value=parser.parse(match_row["date"]).date() if pd.notna(match_row["date"]) else datetime.now().date(),
                         key=f"edit_date_{match_id}"
                     )
                     match_type_edit = st.radio("Match Type", ["Doubles", "Singles"], index=0 if match_row["match_type"] == "Doubles" else 1, key=f"edit_match_type_{match_id}")
@@ -2646,8 +2653,23 @@ with tabs[1]:
                     col_save, col_delete = st.columns(2)
                     with col_save:
                         if st.button("Save Changes", key=f"save_changes_{match_id}"):
-                            # Your existing update/save logic here...
-                            # ...
+                            updated_match = {
+                                "match_id": match_id,
+                                "date": date_edit.isoformat(),
+                                "match_type": match_type_edit,
+                                "team1_player1": t1p1_edit,
+                                "team1_player2": t1p2_edit if match_type_edit == "Doubles" else "",
+                                "team2_player1": t2p1_edit,
+                                "team2_player2": t2p2_edit if match_type_edit == "Doubles" else "",
+                                "set1": set1_edit,
+                                "set2": set2_edit,
+                                "set3": set3_edit,
+                                "winner": winner_edit,
+                                "match_image_url": match_row["match_image_url"]  # Retain existing image unless updated
+                            }
+                            if match_image_edit:
+                                updated_match["match_image_url"] = upload_image_to_supabase(match_image_edit, match_id, image_type="match")
+                            st.session_state.matches_df.loc[match_idx] = updated_match
                             save_matches(st.session_state.matches_df)
                             load_matches()
                             st.success("Match updated successfully.")
