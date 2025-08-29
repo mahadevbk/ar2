@@ -1691,8 +1691,8 @@ def get_match_verb_and_gda(row):
     Calculate the Game Difference Average (GDA) for a match and select an appropriate verb.
     Returns a tuple of (verb, gda).
     """
-    match_0to1 = ["squeaked past", "barely beat", "got lucky against", "got lucky against" ]
-    match_1to2_9 = ["with luck & gusto, def.","survived (barely)","edged past"]
+    match_0to1 = ["squeaked past", "barely beat", "got lucky against", "got lucky against","survived (barely)" ]
+    match_1to2_9 = ["with luck & gusto, def."," defeated","edged past"]
     match_3to4_9 = ["defeated", "outplayed", "dominated", "got the better of", "vanquished", "trounced"]
     match_5to6 = ["thrashed", "crushed", "beat the hell out of", "smashed", "obliterated", 
                         "demolished", "routed", "destroyed","deadpooled"]
