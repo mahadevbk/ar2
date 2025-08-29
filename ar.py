@@ -2537,7 +2537,7 @@ with tabs[1]:
         score_text = ", ".join(score_parts_plain)
         _, gda = get_match_verb_and_gda(row)
         gda_text = f"GDA: {gda:.2f}"
-        target_width = 60
+        #target_width = 60
         padding_spaces = " " * (target_width - len(score_text) - len(gda_text) - 2)  # Adjust for GDA text
         score_parts_html = [f"<span style='font-weight:bold; color:#fff500;'>{s}</span>" for s in score_parts_plain]
         score_html = ", ".join(score_parts_html)
