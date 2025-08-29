@@ -1516,7 +1516,14 @@ def display_match_table(df, title):
     st.dataframe(display_df, height=300)
 
 
+# --- Updated generate_whatsapp_link Function ---
 def generate_whatsapp_link(row):
+    """
+    Generate a WhatsApp share link with match details, including GDA-based verb and GDA value.
+    """
+    # Get verb and GDA
+    verb, gda = get_match_verb_and_gda(row)
+    
     # Build side labels
     if row["match_type"] == "Singles":
         t1 = f"{row['team1_player1']}"
@@ -1524,8 +1531,8 @@ def generate_whatsapp_link(row):
     else:  # Doubles
         t1 = f"{row['team1_player1']} & {row['team1_player2']}"
         t2 = f"{row['team2_player1']} & {row['team2_player2']}"
-
-    # Scores and date
+    
+    # Scores and GDA
     scores_list = []
     for s in [row['set1'], row['set2'], row['set3']]:
         if s:
@@ -1537,25 +1544,30 @@ def generate_whatsapp_link(row):
                     scores_list.append(f'*6-7({tie_break_scores[0]}:{tie_break_scores[1]})*')
             else:
                 scores_list.append(f'*{s.replace("-", ":")}*')
-                
+    
     scores_str = " ".join(scores_list)
+    gda_text = f" | GDA: {gda:.2f}"
     
     # Check if the date is valid before formatting
     if pd.notna(row['date']):
-        date_str = row['date'].strftime('%A, %d %b')
+        date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
     else:
-        date_str = "Unknown Date" # Fallback text
-
-    # Headline text: use "tied with" for ties and a random verb for wins
-    verb = random.choice(fun_verbs)
+        date_str = "Unknown Date"  # Fallback text
+    
+    # Headline text: use "tied with" for ties and GDA-based verb for wins
     if row["winner"] == "Tie":
         headline = f"*{t1} tied with {t2}*"
     elif row["winner"] == "Team 1":
         headline = f"*{t1} {verb} {t2}*"
     else:  # Team 2
         headline = f"*{t2} {verb} {t1}*"
-
-    share_text = f"{headline}\nSet scores {scores_str} on *{date_str}*"
+    
+    # Construct share text
+    share_text = f"{headline}\nSet scores {scores_str}{gda_text}\nDate: *{date_str}*"
+    if row["match_image_url"]:
+        share_text += f"\nImage: {row['match_image_url']}"
+    
+    # Encode text for WhatsApp URL
     encoded_text = urllib.parse.quote(share_text)
     return f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0"
 
