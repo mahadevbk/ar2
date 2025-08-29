@@ -1691,10 +1691,11 @@ def get_match_verb_and_gda(row):
     Calculate the Game Difference Average (GDA) for a match and select an appropriate verb.
     Returns a tuple of (verb, gda).
     """
-    tight_match_verbs = ["squeaked past", "barely beat", "pipped", "with luck & gusto, def.","survived (barely)","edged past"]
-    med_match_verbs = ["defeated", "outplayed", "dominated", "got the better of"]
-    easy_match_verbs = ["thrashed", "crushed", "beat the hell out of", "smashed", "obliterated", 
-                        "demolished", "vanquished", "trounced", "routed", "destroyed","deadpooled"]
+    match_0to1 = ["squeaked past", "barely beat", "got lucky against", "got lucky against" ]
+    match_1to2.9 = ["with luck & gusto, def.","survived (barely)","edged past"]
+    match_3to4.9 = ["defeated", "outplayed", "dominated", "got the better of", "vanquished", "trounced"]
+    match_5to6 = ["thrashed", "crushed", "beat the hell out of", "smashed", "obliterated", 
+                        "demolished", "routed", "destroyed","deadpooled"]
     
     game_diffs = []
     for set_score in [row['set1'], row['set2'], row['set3']]:
@@ -1716,14 +1717,17 @@ def get_match_verb_and_gda(row):
     gda = sum(game_diffs) / len(game_diffs) if game_diffs else 0
     
     # Select verb based on GDA
-    if 0 <= gda <= 2:
-        verb = random.choice(tight_match_verbs)
-    elif 2.1 <= gda <= 3.9:
-        verb = random.choice(med_match_verbs)
-    elif 4 <= gda <= 6:
-        verb = random.choice(easy_match_verbs)
+    if 0 <= gda <= 1:
+        verb = random.choice(match_0to1)
+    elif 1.1 <= gda <= 2.9:
+        verb = random.choice(match_1to2.9)
+    elif 3 <= gda <= 4.9:
+        verb = random.choice(match_3to4.9)
+    elif 5 <= gda <= 6:
+        verb = random.choice(match_5to6)
+    
     else:  # GDA > 6 or GDA < 0
-        verb = random.choice(easy_match_verbs)  # Treat as easy match for simplicity
+        verb = random.choice(match_5to6)  # Treat as easy match for simplicity
     return verb, gda
 
 
