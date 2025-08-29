@@ -2622,7 +2622,7 @@ with tabs[1]:
                     st.error(f"Error retrieving match row: {str(e)}")
                     st.stop()
                 
-                with st.expander("Edit Match Details", expanded=True):
+                with st.expander("Edit Match Details", expanded=False, icon="➡️"):
                     date_edit = st.date_input(
                         "Match Date",
                         value=parser.parse(match_row["date"]).date() if pd.notna(match_row["date"]) else datetime.now().date(),
