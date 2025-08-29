@@ -1704,9 +1704,9 @@ def get_match_verb_and_gda(row):
     gda = sum(game_diffs) / len(game_diffs) if game_diffs else 0
     
     # Select verb based on GDA
-    if 0 <= gda <= 1:
+    if 0 <= gda <= 2:
         verb = random.choice(tight_match_verbs)
-    elif 2 <= gda <= 3:
+    elif 2.1 <= gda <= 3.9:
         verb = random.choice(med_match_verbs)
     elif 4 <= gda <= 6:
         verb = random.choice(easy_match_verbs)
