@@ -1564,8 +1564,8 @@ def generate_whatsapp_link(row):
     
     # Construct share text
     share_text = f"{headline}\nSet scores {scores_str}{gda_text}\nDate: *{date_str}*"
-    if row["match_image_url"]:
-        share_text += f"\nImage: {row['match_image_url']}"
+    #if row["match_image_url"]:
+    #    share_text += f"\nImage: {row['match_image_url']}"
     
     # Encode text for WhatsApp URL
     encoded_text = urllib.parse.quote(share_text)
