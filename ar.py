@@ -1673,6 +1673,50 @@ def create_match_type_bar_chart(singles_count, doubles_count):
     return fig
 
 
+
+def get_match_verb_and_gda(row):
+    """
+    Calculate the Game Difference Average (GDA) for a match and select an appropriate verb.
+    Returns a tuple of (verb, gda).
+    """
+    tight_match_verbs = ["squeaked through", "barely beat", "pipped", "inexplicably, def.", "in an upset, def."]
+    med_match_verbs = ["defeated", "outplayed", "dominated", "got the better of"]
+    easy_match_verbs = ["thrashed", "crushed", "beat the hell out of", "smashed", "obliterated", 
+                        "demolished", "vanquished", "trounced", "routed", "destroyed"]
+    
+    game_diffs = []
+    for set_score in [row['set1'], row['set2'], row['set3']]:
+        if not set_score or ('-' not in str(set_score) and 'Tie Break' not in str(set_score)):
+            continue
+        try:
+            if "Tie Break" in str(set_score):
+                # Handle tie-breaks
+                scores = [int(s) for s in str(set_score).replace("Tie Break", "").strip().split('-')]
+                game_diff = abs(scores[0] - scores[1])
+            else:
+                # Handle regular sets
+                team1_games, team2_games = map(int, str(set_score).split('-'))
+                game_diff = abs(team1_games - team2_games)
+            game_diffs.append(game_diff)
+        except (ValueError, TypeError):
+            continue
+    
+    # Calculate GDA
+    gda = sum(game_diffs) / len(game_diffs) if game_diffs else 0
+    
+    # Select verb based on GDA
+    if 0 <= gda <= 1:
+        verb = random.choice(tight_match_verbs)
+    elif 2 <= gda <= 3:
+        verb = random.choice(med_match_verbs)
+    else:  # GDA >= 4
+        verb = random.choice(easy_match_verbs)
+    
+    return verb, gda
+
+
+
+
     
 
 # --- Main App Logic ---
@@ -2221,8 +2265,15 @@ with tabs[0]:
 
 
 
+
 with tabs[1]:
     st.header("Matches")
+    # Check for duplicate match IDs
+    if st.session_state.matches_df['match_id'].duplicated().any():
+        st.warning("Duplicate match IDs detected in the database. Please remove duplicates in Supabase to enable editing.")
+        duplicate_ids = st.session_state.matches_df[st.session_state.matches_df['match_id'].duplicated(keep=False)]['match_id'].tolist()
+        st.write(f"Duplicate match IDs: {duplicate_ids}")
+    
     with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
         st.subheader("Enter Match Result")
         match_type_new = st.radio("Match Type", ["Doubles", "Singles"], horizontal=True, key=f"post_match_type_new_{st.session_state.form_key_suffix}")
@@ -2429,10 +2480,10 @@ with tabs[1]:
         display_matches = pd.DataFrame()
 
     def format_match_players(row):
+        verb, _ = get_match_verb_and_gda(row)
         if row["match_type"] == "Singles":
             p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team1_player1']}</span>"
             p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team2_player1']}</span>"
-            verb = random.choice(fun_verbs)
             if row["winner"] == "Tie":
                 return f"{p1_styled} tied with {p2_styled}"
             elif row["winner"] == "Team 1":
@@ -2444,7 +2495,6 @@ with tabs[1]:
             p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team1_player2']}</span>"
             p3_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team2_player1']}</span>"
             p4_styled = f"<span style='font-weight:bold; color:#fff500;'>{row['team2_player2']}</span>"
-            verb = random.choice(fun_verbs)
             if row["winner"] == "Tie":
                 return f"{p1_styled} & {p2_styled} tied with {p3_styled} & {p4_styled}"
             elif row["winner"] == "Team 1":
@@ -2466,18 +2516,20 @@ with tabs[1]:
                     score_parts_plain.append(s)
 
         score_text = ", ".join(score_parts_plain)
+        _, gda = get_match_verb_and_gda(row)
+        gda_text = f"GDA: {gda:.2f}"
         target_width = 23
-        padding_spaces = " " * (target_width - len(score_text))
-        
+        padding_spaces = " " * (target_width - len(score_text) - len(gda_text) - 2)  # Adjust for GDA text
         score_parts_html = [f"<span style='font-weight:bold; color:#fff500;'>{s}</span>" for s in score_parts_plain]
         score_html = ", ".join(score_parts_html)
+        gda_html = f"<span style='font-weight:bold; color:#fff500;'>{gda_text}</span>"
         
         if pd.notna(row['date']):
             date_str = row['date'].strftime('%A, %d %b')
         else:
             date_str = "Invalid Date"
             
-        return f"<div style='font-family: monospace; white-space: pre;'>{score_html}{padding_spaces}{date_str}</div>"
+        return f"<div style='font-family: monospace; white-space: pre;'>{score_html} | {gda_html}{padding_spaces}{date_str}</div>"
 
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
@@ -2502,6 +2554,9 @@ with tabs[1]:
 
     st.markdown("---")
     st.subheader("✏️ Manage Existing Match")
+    # Debug: Show available match IDs
+    st.write(f"Available match IDs: {display_matches['match_id'].tolist()}")
+    
     clean_match_options = []
     for _, row in display_matches.iterrows():
         score_plain = f"{row['set1']}"
@@ -2516,7 +2571,7 @@ with tabs[1]:
             date_plain = "Invalid Date"
             
         if row["match_type"] == "Singles":
-            verb = random.choice(fun_verbs)
+            verb, _ = get_match_verb_and_gda(row)
             if row["winner"] == "Tie":
                 desc_plain = f"{row['team1_player1']} tied with {row['team2_player1']}"
             elif row["winner"] == "Team 1":
@@ -2524,7 +2579,7 @@ with tabs[1]:
             else:  # Team 2
                 desc_plain = f"{row['team2_player1']} {verb} {row['team1_player1']}"
         else:  # Doubles
-            verb = random.choice(fun_verbs)
+            verb, _ = get_match_verb_and_gda(row)
             if row["winner"] == "Tie":
                 desc_plain = f"{row['team1_player1']} & {row['team1_player2']} tied with {row['team2_player1']} & {row['team2_player2']}"
             elif row["winner"] == "Team 1":
@@ -2534,6 +2589,10 @@ with tabs[1]:
         clean_match_options.append(f"{desc_plain} | {score_plain} | {date_plain} | {row['match_id']}")
     
     selected_match_to_edit = st.selectbox("Select a match to edit or delete", [""] + clean_match_options, key="select_match_to_edit_1")
+    # Debug: Show selected match
+    if selected_match_to_edit:
+        st.write(f"Selected match: {selected_match_to_edit.split(' | ')[-1]}")
+    
     if selected_match_to_edit:
         selected_id = selected_match_to_edit.split(" | ")[-1]
         row = display_matches[display_matches["match_id"] == selected_id].iloc[0]
@@ -2543,8 +2602,7 @@ with tabs[1]:
         set1_index = all_scores.index(row["set1"]) if row["set1"] in all_scores else 0
         set2_index = all_scores.index(row["set2"]) if row["set2"] in all_scores else 0
         set3_index = all_scores.index(row["set3"]) if row["set3"] in all_scores else 0
-        #with st.expander("Edit Match Details"):
-        with st.expander("Edit Match Details", expanded=True):
+        with st.expander("Edit Match Details"):
             date_edit = st.date_input("Match Date", value=current_date_dt.date(), key=f"edit_date_{selected_id}")
             time_edit = st.time_input("Match Time", value=current_date_dt.time(), key=f"edit_time_{selected_id}")
             match_type_edit = st.radio("Match Type", ["Doubles", "Singles"], index=0 if row["match_type"] == "Doubles" else 1, key=f"edit_match_type_{selected_id}")
@@ -2596,9 +2654,6 @@ with tabs[1]:
                 load_matches()
                 st.success("Match deleted.")
                 st.rerun()
-
-
-
 
 
 
