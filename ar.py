@@ -2548,7 +2548,7 @@ with tabs[1]:
         else:
             date_str = "Invalid Date"
             
-        return f"<div style='font-family: monospace; white-space: pre;'>{score_html}  |  {gda_html}<br><br>{date_str}</div>"
+        return f"<div style='font-family: monospace; white-space: pre;'>{score_html}  |  {gda_html}<br>{date_str}</div>"
 
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
