@@ -865,15 +865,13 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         rank_display = re.sub(r'[^0-9]', '', str(rank_value))
 
         birthday_str = ""
-          raw_birthday = player_info.get("birthday")
-          if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
-              try:
-                # FIX: Add a placeholder year and update the format string
-                 bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
-                 birthday_str = bday_obj.strftime("%d %b")
-              except ValueError:
-                  birthday_str = ""        
-        
+        raw_birthday = player_info.get("birthday")
+        if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
+            try:
+                bday_obj = datetime.strptime(raw_birthday, "%d-%m")
+                birthday_str = bday_obj.strftime("%d %b")
+            except ValueError:
+                birthday_str = ""
 
         # --- Partner Calculation Logic ---
         partners_list_str = "No doubles matches played."
