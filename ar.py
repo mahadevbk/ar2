@@ -1967,7 +1967,7 @@ with tabs[0]:
             st.markdown("---")
             st.markdown("### 🏆 Rankings ; Combined")
             rank_df_combined, _ = calculate_rankings(matches)
-            display_rankings_table(rank_df_combined, "Combined")
+            display_rankings_table(rank_df_combined, "Combined", height=400)
             st.markdown("---")
             # Most Effective Partnership
             st.markdown("### 🤝 Most Effective Partnership")
