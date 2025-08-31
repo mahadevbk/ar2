@@ -1944,6 +1944,12 @@ with tabs[0]:
         else:
             rank_df, partner_stats = calculate_rankings(matches)
 
+            # Insert combined table here
+            # Calculate combined rankings
+            st.markdown("### 🤝 Rankings ; Combined")
+            rank_df_combined, _ = calculate_rankings(matches)
+            display_rankings_table(rank_df_combined, "Combined")
+
             # Most Effective Partnership
             st.markdown("### 🤝 Most Effective Partnership")
             best_partner = None
