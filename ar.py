@@ -2107,14 +2107,30 @@ with tabs[0]:
             st.markdown("---")
 
             # Most Frequent Player
-            st.markdown("### 🏟️ Most Frequent Player")
-            if not rank_df.empty:
-                most_frequent_player = rank_df.sort_values(by="Matches", ascending=False).iloc[0]
-                player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_frequent_player['Player']}</span>"
-                st.markdown(f"{player_styled} has played the most matches, with a total of **{int(most_frequent_player['Matches'])}** matches played.", unsafe_allow_html=True)
+            # Most Frequent Player (Last 7 Days)
+            from datetime import datetime, timedelta
+            st.markdown("### 🏟️ Most Frequent Player (Last 7 Days)")
+            
+            # Ensure matches_df['date'] is in datetime format
+            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce')
+            
+            # Filter matches from the last 7 days
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            recent_matches = st.session_state.matches_df[st.session_state.matches_df['date'] >= seven_days_ago]
+            
+            if recent_matches.empty:
+                st.info("No matches played in the last 7 days to determine the most frequent player.")
             else:
-                st.info("No match data available to determine the most frequent player.")
-
+                # Calculate rankings for recent matches
+                recent_rank_df, _ = calculate_rankings(recent_matches)
+                
+                if not recent_rank_df.empty:
+                    most_frequent_player = recent_rank_df.sort_values(by="Matches", ascending=False).iloc[0]
+                    player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_frequent_player['Player']}</span>"
+                    st.markdown(f"{player_styled} has played the most matches, with a total of **{int(most_frequent_player['Matches'])}** matches played in the last 7 days.", unsafe_allow_html=True)
+                else:
+                    st.info("No match data available to determine the most frequent player in the last 7 days.")
+            
             st.markdown("---")
 
             # Player with highest Game Difference
