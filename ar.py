@@ -1970,6 +1970,7 @@ with tabs[0]:
             display_rankings_table(rank_df_combined, "Combined")
             st.markdown("---")
             # Most Effective Partnership (Last 7 Days)
+            # Most Effective Partnership (Last 7 Days)
             st.markdown("### 🤝 Most Effective Partnership (Last 7 Days)")
 
             # Filter matches from the last 7 days
@@ -1982,16 +1983,16 @@ with tabs[0]:
                 for partner, stats in partners.items():
                     if partner == "Visitor":
                         continue
-                    # Filter matches by timestamp
+                    # Assume stats has a list of match timestamps and outcomes
                     recent_matches = [
-                        match for match in stats.get('match_details', [])
-                        if match.get('timestamp') >= seven_days_ago
+                        match for match in stats.get('matches_list', [])
+                        if match.get('timestamp', datetime.now()) >= seven_days_ago
                     ]
                     if recent_matches:
                         # Calculate stats for recent matches
-                        wins = sum(1 for match in recent_matches if match['result'] == 'win')
-                        losses = sum(1 for match in recent_matches if match['result'] == 'loss')
-                        game_diff_sum = sum(match['game_diff'] for match in recent_matches)
+                        wins = sum(1 for match in recent_matches if match.get('result') == 'win')
+                        losses = sum(1 for match in recent_matches if match.get('result') == 'loss')
+                        game_diff_sum = sum(match.get('game_diff', 0) for match in recent_matches)
                         matches = len(recent_matches)
                         filtered_partner_stats[player][partner] = {
                             'wins': wins,
