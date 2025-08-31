@@ -2134,43 +2134,63 @@ with tabs[0]:
             st.markdown("---")
 
             # Player with highest Game Difference
-            st.markdown("### 📈 Player with highest Game Difference")
-            cumulative_game_diff = defaultdict(int)
-            for _, row in matches.iterrows():
-                t1 = [row['team1_player1'], row['team1_player2']] if row['match_type'] == 'Doubles' else [row['team1_player1']]
-                t2 = [row['team2_player1'], row['team2_player2']] if row['match_type'] == 'Doubles' else [row['team2_player1']]
-                for set_score in [row['set1'], row['set2'], row['set3']]:
-                    if set_score and '-' in set_score:
-                        try:
-                            team1_games, team2_games = map(int, set_score.split('-'))
-                            set_gd = team1_games - team2_games
-                            for p in t1:
-                                if p != "Visitor":
-                                    cumulative_game_diff[p] += set_gd
-                            for p in t2:
-                                if p != "Visitor":
-                                    cumulative_game_diff[p] -= set_gd
-                        except ValueError:
-                            continue
-
-            if cumulative_game_diff:
-                highest_gd_player, highest_gd_value = max(cumulative_game_diff.items(), key=lambda item: item[1])
-                player_styled = f"<span style='font-weight:bold; color:#fff500;'>{highest_gd_player}</span>"
-                st.markdown(f"{player_styled} has the highest cumulative game difference: <span style='font-weight:bold; color:#fff500;'>{highest_gd_value}</span>.", unsafe_allow_html=True)
+            # Player with Highest Game Difference (Last 7 Days)
+            st.markdown("### 📈 Player with Highest Game Difference (Last 7 Days)")
+            
+            # Ensure matches_df['date'] is in datetime format
+            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce')
+            
+            # Filter matches from the last 7 days
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            recent_matches = st.session_state.matches_df[st.session_state.matches_df['date'] >= seven_days_ago]
+            
+            if recent_matches.empty:
+                st.info("No matches played in the last 7 days to calculate game difference.")
             else:
-                st.info("No match data available to calculate game difference.")
-
+                cumulative_game_diff = defaultdict(int)
+                for _, row in recent_matches.iterrows():
+                    t1 = [row['team1_player1'], row['team1_player2']] if row['match_type'] == 'Doubles' else [row['team1_player1']]
+                    t2 = [row['team2_player1'], row['team2_player2']] if row['match_type'] == 'Doubles' else [row['team2_player1']]
+                    for set_score in [row['set1'], row['set2'], row['set3']]:
+                        if set_score and '-' in set_score:
+                            try:
+                                team1_games, team2_games = map(int, set_score.split('-'))
+                                set_gd = team1_games - team2_games
+                                for p in t1:
+                                    if p != "Visitor":
+                                        cumulative_game_diff[p] += set_gd
+                                for p in t2:
+                                    if p != "Visitor":
+                                        cumulative_game_diff[p] -= set_gd
+                            except ValueError:
+                                continue
+            
+                if cumulative_game_diff:
+                    highest_gd_player, highest_gd_value = max(cumulative_game_diff.items(), key=lambda item: item[1])
+                    player_styled = f"<span style='font-weight:bold; color:#fff500;'>{highest_gd_player}</span>"
+                    st.markdown(f"{player_styled} has the highest cumulative game difference: <span style='font-weight:bold; color:#fff500;'>{highest_gd_value}</span> in the last 7 days.", unsafe_allow_html=True)
+                else:
+                    st.info("No valid match data available to calculate game difference in the last 7 days.")
+            
             st.markdown("---")
-
-            # Player with the most wins
-            st.markdown(f"### 👑 Player with the Most Wins")
-            most_wins_player = rank_df.sort_values(by="Wins", ascending=False).iloc[0]
-            player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_wins_player['Player']}</span>"
-            st.markdown(f"{player_styled} holds the record for most wins with **{int(most_wins_player['Wins'])}** wins.", unsafe_allow_html=True)
-
+            
+            # Player with the Most Wins (Last 7 Days)
+            st.markdown("### 👑 Player with the Most Wins (Last 7 Days)")
+            
+            if recent_matches.empty:
+                st.info("No matches played in the last 7 days to determine the player with the most wins.")
+            else:
+                # Calculate rankings for recent matches
+                recent_rank_df, _ = calculate_rankings(recent_matches)
+                
+                if not recent_rank_df.empty:
+                    most_wins_player = recent_rank_df.sort_values(by="Wins", ascending=False).iloc[0]
+                    player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_wins_player['Player']}</span>"
+                    st.markdown(f"{player_styled} holds the record for most wins with **{int(most_wins_player['Wins'])}** wins in the last 7 days.", unsafe_allow_html=True)
+                else:
+                    st.info("No match data available to determine the player with the most wins in the last 7 days.")
+            
             st.markdown("---")
-
-            # Player with the highest win percentage (minimum 5 matches)
             st.markdown(f"### 🔥 Highest Win Percentage (Min. 5 Matches)")
             eligible_players = rank_df[rank_df['Matches'] >= 5].sort_values(by="Win %", ascending=False)
             if not eligible_players.empty:
