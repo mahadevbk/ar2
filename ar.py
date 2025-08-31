@@ -47,7 +47,7 @@ st.markdown("""
 <style>
 .stApp {
   background: linear-gradient(to bottom, #07314f, #031827);
-  background-attachment: fixed;
+  background-attachment: scroll;
 }
 
 /* Styles for printing */
