@@ -47,11 +47,29 @@ st.markdown("""
 <style>
 .stApp {
   background: linear-gradient(to bottom, #07314f, #031827);
-  background-size: cover;
-  background-repeat: repeat;
-  background-position: center;
   background-attachment: fixed;
-  background-color: #031827;
+}
+
+/* Styles for printing */
+@media print {
+  /* This forces browsers to print background colors and images */
+  html, body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Ensure the body takes up the full page */
+  body {
+    background: linear-gradient(to bottom, #07314f, #031827) !important;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Hide the Streamlit header and toolbar when printing */
+  header, .stToolbar {
+    display: none;
+  }
 }
 
 [data-testid="stHeader"] {
