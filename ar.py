@@ -2018,7 +2018,7 @@ with tabs[0]:
                         unsafe_allow_html=True
                     )
                 else:
-                    st.info("No doubles matches have been played in the last 7 days to determine the most effective partnership.")4.4sHow can Grok help?
+                    st.info("No doubles matches have been played in the last 7 days to determine the most effective partnership.")
             st.markdown("---")
 
             # Best Player to Partner With
