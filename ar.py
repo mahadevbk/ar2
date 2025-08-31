@@ -1968,65 +1968,65 @@ with tabs[0]:
             #st.markdown("### 🏆 Rankings ; Combined")
             rank_df_combined, _ = calculate_rankings(matches)
             display_rankings_table(rank_df_combined, "Combined")
-						st.markdown("---")
-						# Most Effective Partnership (Last 7 Days)
-						st.markdown("### 🤝 Most Effective Partnership (Last 7 Days)")
-						
-						# Filter matches from the last 7 days
-						seven_days_ago = datetime.now() - timedelta(days=7)
-						filtered_partner_stats = {}
-						for player, partners in partner_stats.items():
-						    if player == "Visitor":
-						        continue
-						    filtered_partner_stats[player] = {}
-						    for partner, stats in partners.items():
-						        if partner == "Visitor":
-						            continue
-						        # Filter matches by timestamp
-						        recent_matches = [
-						            match for match in stats.get('match_details', [])
-						            if match.get('timestamp') >= seven_days_ago
-						        ]
-						        if recent_matches:
-						            # Calculate stats for recent matches
-						            wins = sum(1 for match in recent_matches if match['result'] == 'win')
-						            losses = sum(1 for match in recent_matches if match['result'] == 'loss')
-						            game_diff_sum = sum(match['game_diff'] for match in recent_matches)
-						            matches = len(recent_matches)
-						            filtered_partner_stats[player][partner] = {
-						                'wins': wins,
-						                'losses': losses,
-						                'game_diff_sum': game_diff_sum,
-						                'matches': matches
-						            }
-						
-						# Find the most effective partnership
-						best_partner = None
-						max_value = -1
-						for player, partners in filtered_partner_stats.items():
-						    for partner, stats in partners.items():
-						        if player < partner:  # Avoid double counting
-						            win_rate = stats['wins'] / stats['matches'] if stats['matches'] > 0 else 0
-						            avg_game_diff = stats['game_diff_sum'] / stats['matches'] if stats['matches'] > 0 else 0
-						            score = win_rate + (avg_game_diff / 10)  # Adjust weight of game diff
-						            if score > max_value:
-						                max_value = score
-						                best_partner = (player, partner, stats)
-						
-						if best_partner:
-						    p1, p2, stats = best_partner
-						    p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{p1}</span>"
-						    p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{p2}</span>"
-						    win_rate = (stats['wins'] / stats['matches'] * 100) if stats['matches'] > 0 else 0
-						    st.markdown(
-						        f"The most effective partnership in the last 7 days is {p1_styled} and {p2_styled} "
-						        f"with **{stats['wins']}** wins, **{stats['losses']}** losses, "
-						        f"and a total game difference of **{stats['game_diff_sum']:.2f}** "
-						        f"(win rate: {win_rate:.1f}%).",
-						        unsafe_allow_html=True
-						    )
-						else:
-						    st.info("No doubles matches have been played in the last 7 days to determine the most effective partnership.")
+            st.markdown("---")
+            # Most Effective Partnership (Last 7 Days)
+            st.markdown("### 🤝 Most Effective Partnership (Last 7 Days)")
+
+            # Filter matches from the last 7 days
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            filtered_partner_stats = {}
+            for player, partners in partner_stats.items():
+                if player == "Visitor":
+                    continue
+                filtered_partner_stats[player] = {}
+                for partner, stats in partners.items():
+                    if partner == "Visitor":
+                        continue
+                    # Filter matches by timestamp
+                    recent_matches = [
+                        match for match in stats.get('match_details', [])
+                        if match.get('timestamp') >= seven_days_ago
+                    ]
+                    if recent_matches:
+                        # Calculate stats for recent matches
+                        wins = sum(1 for match in recent_matches if match['result'] == 'win')
+                        losses = sum(1 for match in recent_matches if match['result'] == 'loss')
+                        game_diff_sum = sum(match['game_diff'] for match in recent_matches)
+                        matches = len(recent_matches)
+                        filtered_partner_stats[player][partner] = {
+                            'wins': wins,
+                            'losses': losses,
+                            'game_diff_sum': game_diff_sum,
+                            'matches': matches
+                        }
+
+            # Find the most effective partnership
+            best_partner = None
+            max_value = -1
+            for player, partners in filtered_partner_stats.items():
+                for partner, stats in partners.items():
+                    if player < partner:  # Avoid double counting
+                        win_rate = stats['wins'] / stats['matches'] if stats['matches'] > 0 else 0
+                        avg_game_diff = stats['game_diff_sum'] / stats['matches'] if stats['matches'] > 0 else 0
+                        score = win_rate + (avg_game_diff / 10)  # Adjust weight of game diff
+                        if score > max_value:
+                            max_value = score
+                            best_partner = (player, partner, stats)
+
+            if best_partner:
+                p1, p2, stats = best_partner
+                p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{p1}</span>"
+                p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{p2}</span>"
+                win_rate = (stats['wins'] / stats['matches'] * 100) if stats['matches'] > 0 else 0
+                st.markdown(
+                    f"The most effective partnership in the last 7 days is {p1_styled} and {p2_styled} "
+                    f"with **{stats['wins']}** wins, **{stats['losses']}** losses, "
+                    f"and a total game difference of **{stats['game_diff_sum']:.2f}** "
+                    f"(win rate: {win_rate:.1f}%).",
+                    unsafe_allow_html=True
+                )
+            else:
+                st.info("No doubles matches have been played in the last 7 days to determine the most effective partnership.")
             st.markdown("---")
 
             # Best Player to Partner With
