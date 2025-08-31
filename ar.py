@@ -810,6 +810,7 @@ def create_trend_chart(trend):
 
 
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
+    from datetime import datetime, timedelta
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
     selected_players = [p for p in selected_players if p != "Visitor"]
@@ -862,6 +863,17 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         st.info("No players with matches played are available for insights.")
         return
 
+    # Filter matches for the last 7 days
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce')
+    recent_doubles = matches_df[
+        (matches_df['match_type'] == 'Doubles') &
+        (matches_df['date'] >= seven_days_ago)
+    ]
+    
+    # Calculate partner stats for recent doubles matches
+    _, recent_partner_stats = calculate_rankings(recent_doubles)
+
     doubles_matches_df = matches_df[matches_df['match_type'] == 'Doubles']
     singles_matches_df = matches_df[matches_df['match_type'] == 'Singles']
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
@@ -886,24 +898,23 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
             try:
-                # FIX: Add a placeholder year and update the format string
                 bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
                 birthday_str = ""
 
-        # --- Partner Calculation Logic ---
-        partners_list_str = "No doubles matches played."
+        # --- Partner Calculation Logic (Last 7 Days) ---
+        partners_list_str = "No doubles matches played in the last 7 days."
         best_partner_str = "N/A"
-        if player in partner_stats and partner_stats[player]:
+        if player in recent_partner_stats and recent_partner_stats[player]:
             partners_list_items = [
                 f'<li><b>{p}</b>: {item["wins"]}W - {item["losses"]}L ({item["matches"]} played)</li>'
-                for p, item in partner_stats[player].items() if p != "Visitor"
+                for p, item in recent_partner_stats[player].items() if p != "Visitor"
             ]
             partners_list_str = f"<ul>{''.join(partners_list_items)}</ul>"
 
             sorted_partners = sorted(
-                [(p, item) for p, item in partner_stats[player].items() if p != "Visitor"],
+                [(p, item) for p, item in recent_partner_stats[player].items() if p != "Visitor"],
                 key=lambda item: (
                     item[1]['wins'] / item[1]['matches'] if item[1]['matches'] > 0 else 0,
                     item[1]['game_diff_sum'] / item[1]['matches'] if item[1]['matches'] > 0 else 0,
@@ -936,7 +947,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         with col1:  # Left column for visuals
             if profile_image:
                 st.image(profile_image, width=150)
-                #st.markdown(f'<img src="{profile_image}" class="profile-image" style="width: 175px; height: 175px;">', unsafe_allow_html=True)
 
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
@@ -968,12 +978,12 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                     <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
                 </span>
                 <span class="best-partner-col" style="display: block;">
-                    <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner: </span>{best_partner_str}
+                    <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner (Last 7 Days): </span>{best_partner_str}
                 </span>
             </div>
             """, unsafe_allow_html=True)
 
-            with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
+            with st.expander("View Full Partner Stats (Last 7 Days)", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
