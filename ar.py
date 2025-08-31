@@ -1947,7 +1947,7 @@ with tabs[0]:
             # Insert combined table here
             # Calculate combined rankings
             st.markdown("---")
-            st.markdown("### 🤝 Rankings ; Combined")
+            st.markdown("### 🏆 Rankings ; Combined")
             rank_df_combined, _ = calculate_rankings(matches)
             display_rankings_table(rank_df_combined, "Combined")
             st.markdown("---")
