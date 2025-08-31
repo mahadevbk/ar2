@@ -2032,7 +2032,7 @@ with tabs[0]:
             st.markdown("---")
 
             # Best Player to Partner With
-            st.markdown("### 🥇 Best Player to Partner With")
+            st.markdown("### 🥇 Best Player to Partner With ( Last 7 days )")
             player_stats = defaultdict(lambda: {'wins': 0, 'gd_sum': 0, 'partners': set()})
             for _, row in matches.iterrows():
                 if row['match_type'] == 'Doubles':
