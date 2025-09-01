@@ -2862,25 +2862,52 @@ with tabs[2]:
                         st.success(f"Profile for {selected_player_manage} updated.")
                         st.rerun()
                 with col_delete:
+                    #if st.button("Remove Player", key=f"remove_player_{selected_player_manage}"):
                     if st.button("Remove Player", key=f"remove_player_{selected_player_manage}"):
                         if selected_player_manage.lower() == "visitor":
                             st.warning("The 'Visitor' player cannot be removed.")
                         else:
-                            # Check for associated matches
-                            if st.session_state.matches_df[
-                                (st.session_state.matches_df["team1_player1"] == selected_player_manage) |
-                                (st.session_state.matches_df["team1_player2"] == selected_player_manage) |
-                                (st.session_state.matches_df["team2_player1"] == selected_player_manage) |
-                                (st.session_state.matches_df["team2_player2"] == selected_player_manage)
-                            ].shape[0] > 0:
-                                st.warning(f"Cannot delete {selected_player_manage} because they have associated matches. Delete their matches first.")
-                            else:
-                                delete_player_from_db(selected_player_manage)
-                                st.session_state.players_df = st.session_state.players_df[st.session_state.players_df["name"] != selected_player_manage].reset_index(drop=True)
-                                save_players(st.session_state.players_df)
-                                load_players()
-                                st.success(f"{selected_player_manage} removed.")
+                            st.session_state.confirm_delete_player = selected_player_manage
+                            st.session_state.confirm_input = ""
+
+                    if 'confirm_delete_player' in st.session_state and st.session_state.confirm_delete_player == selected_player_manage:
+                        st.warning(f"Are you sure you want to delete {selected_player_manage}? This action cannot be undone.")
+                        confirm_text = st.text_input(f"Type '{selected_player_manage}' to confirm deletion:", key=f"confirm_input_{selected_player_manage}")
+                        col_confirm, col_cancel = st.columns(2)
+                        with col_confirm:
+                            if st.button("Confirm Deletion", key=f"confirm_delete_btn_{selected_player_manage}"):
+                                if confirm_text == selected_player_manage:
+                                    # Check for associated matches and replace with "Visitor"
+                                    matches_mask = (
+                                        (st.session_state.matches_df["team1_player1"] == selected_player_manage) |
+                                        (st.session_state.matches_df["team1_player2"] == selected_player_manage) |
+                                        (st.session_state.matches_df["team2_player1"] == selected_player_manage) |
+                                        (st.session_state.matches_df["team2_player2"] == selected_player_manage)
+                                    )
+                                    if matches_mask.any():
+                                        st.session_state.matches_df.loc[matches_mask, "team1_player1"] = st.session_state.matches_df.loc[matches_mask, "team1_player1"].replace(selected_player_manage, "Visitor")
+                                        st.session_state.matches_df.loc[matches_mask, "team1_player2"] = st.session_state.matches_df.loc[matches_mask, "team1_player2"].replace(selected_player_manage, "Visitor")
+                                        st.session_state.matches_df.loc[matches_mask, "team2_player1"] = st.session_state.matches_df.loc[matches_mask, "team2_player1"].replace(selected_player_manage, "Visitor")
+                                        st.session_state.matches_df.loc[matches_mask, "team2_player2"] = st.session_state.matches_df.loc[matches_mask, "team2_player2"].replace(selected_player_manage, "Visitor")
+                                        save_matches(st.session_state.matches_df)
+                                        load_matches()
+                                        st.info(f"Replaced {selected_player_manage} with 'Visitor' in associated matches.")
+
+                                    # Proceed to delete the player
+                                    delete_player_from_db(selected_player_manage)
+                                    st.session_state.players_df = st.session_state.players_df[st.session_state.players_df["name"] != selected_player_manage].reset_index(drop=True)
+                                    save_players(st.session_state.players_df)
+                                    load_players()
+                                    st.success(f"{selected_player_manage} removed successfully.")
+                                    del st.session_state.confirm_delete_player
+                                    st.rerun()
+                                else:
+                                    st.error("Confirmation text does not match. Deletion cancelled.")
+                        with col_cancel:
+                            if st.button("Cancel Deletion", key=f"cancel_delete_btn_{selected_player_manage}"):
+                                del st.session_state.confirm_delete_player
                                 st.rerun()
+
     st.markdown("---")
     st.header("Player Insights")
     rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
