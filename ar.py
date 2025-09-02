@@ -511,25 +511,52 @@ def delete_match_from_db(match_id):
     except Exception as e:
         st.error(f"Error deleting match from database: {str(e)}")
 
+#changed storage from supabase to github pages for images. egress issues in supabase!
 def upload_image_to_supabase(file, file_name, image_type="match"):
+    # Base URL for your GitHub Pages assets.
+    base_url = "https://mahadevbk.github.io/ar2/assets/"
+
+    # Determine the correct folder based on the image type.
+    if image_type == "profile":
+        # Construct the URL for player profile images.
+        return f"{base_url}players/{file_name}"
+    
+    elif image_type == "match":
+        # Construct the URL for match images.
+        return f"{base_url}matches/{file_name}"
+
+    elif image_type == "booking":
+        # Construct the URL for booking images.
+        return f"{base_url}bookings/{file_name}"
+    
+    # --- Fallback to Supabase for any other image types ---
+    # This part of the code will now only run if the image_type is not
+    # 'profile', 'match', or 'booking'.
     try:
-        bucket = "profile" if image_type == "profile" else "ar"
-        if image_type == "match":
-            file_path = f"2ep_1/{file_name}"
-        elif image_type == "booking":
-            file_path = f"bookings/{file_name}"
-        else:
-            file_path = file_name
+        bucket = "ar"  # Default bucket
+        # A generic path for other image types.
+        file_path = f"others/{file_name}"
+            
+        # Upload the file to Supabase.
         response = supabase.storage.from_(bucket).upload(file_path, file.read(), {"content-type": file.type})
-        if response is None or (isinstance(response, dict) and "error" in response):
-            error_message = response.get("error", "Unknown error") if isinstance(response, dict) else "Upload failed"
+        
+        # Check for any upload errors.
+        if response is None or (hasattr(response, 'error') and response.error is not None):
+            error_message = response.error.message if hasattr(response, 'error') and response.error else "Unknown upload error"
+            st.error(f"Error uploading to Supabase: {error_message}")
             return ""
+
+        # Get the public URL from Supabase.
         public_url = supabase.storage.from_(bucket).get_public_url(file_path)
-        if not public_url.startswith(f"https://vnolrqfkpptpljizzdvw.supabase.co/storage/v1/object/public/{bucket}/"):
-            st.warning(f"Uploaded image URL does not match expected prefix. Got: {public_url}")
-        return public_url
+        
+        if public_url:
+            return public_url
+        else:
+            st.error("Failed to retrieve public URL from Supabase.")
+            return ""
+
     except Exception as e:
-        st.error(f"Error uploading image to bucket '{bucket}/{file_path}': {str(e)}")
+        st.error(f"An error occurred during the Supabase upload: {str(e)}")
         return ""
         
 def tennis_scores():
