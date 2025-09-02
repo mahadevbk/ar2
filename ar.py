@@ -2767,14 +2767,32 @@ with tabs[1]:
                                 "winner": winner_edit,
                                 "match_image_url": match_row["match_image_url"]  # Retain existing image unless updated
                             }
+                            
                             if match_image_edit:
-                                updated_match["match_image_url"] = upload_image_to_supabase(match_image_edit, match_id, image_type="match")
-                            st.session_state.matches_df.loc[match_idx] = updated_match
-                            save_matches(st.session_state.matches_df)
-                            load_matches()
-                            st.success("Match updated successfully.")
-                            st.session_state.edit_key += 1
-                            st.rerun()
+                              # Generate the new URL. We use the match_id as the file name for uniqueness.
+                              new_image_url = upload_image_to_supabase(match_image_edit, match_id, image_type="match")
+                              
+                              # Create a dictionary with only the data we want to update.
+                              update_data = {"match_image_url": new_image_url}
+                              
+                              try:
+                                  # **This is the critical step:**
+                                  # Directly update the single record in the 'matches' table in Supabase.
+                                  supabase.table("matches").update(update_data).eq("match_id", match_id).execute()
+                                  
+                                  # Now, update the local DataFrame to match what's in the database.
+                                  st.session_state.matches_df.loc[match_idx, "match_image_url"] = new_image_url
+                                  
+                                  st.success("Match image updated successfully.")
+                                  st.rerun() # Rerun the app to show the changes immediately.
+                          
+                              except Exception as e:
+                                  st.error(f"Failed to update match image in the database: {e}")
+
+
+
+
+                            
                     with col_delete:
                         if st.button("🗑️ Delete This Match", key=f"delete_match_{match_id}"):
                             delete_match_from_db(match_id)
