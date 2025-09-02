@@ -1998,7 +1998,9 @@ with tabs[0]:
 
             seven_days_ago = datetime.now() - timedelta(days=7)
 
-            # Filter doubles matches from the last 7 days
+            # Convert the 'date' column to datetime and remove timezone information
+            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce').dt.tz_localize(None)
+
             recent_doubles = st.session_state.matches_df[
                 (st.session_state.matches_df['match_type'] == 'Doubles') &
                 (st.session_state.matches_df['date'] >= seven_days_ago)
