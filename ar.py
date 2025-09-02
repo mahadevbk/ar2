@@ -523,7 +523,8 @@ def upload_image_to_supabase(file, file_name, image_type="match"):
     if image_type == "profile":
         return f"{base_url}players/{file_name}"
     elif image_type == "match":
-        return f"{base_url}matches/{file_name}"
+        # We'll use the file_name directly, which should be the match_id
+        return f"{base_url}matches/{file_name}.jpg" # Added .jpg extension for consistency
     elif image_type == "booking":
         return f"{base_url}bookings/{file_name}"
     else:
