@@ -512,71 +512,42 @@ def delete_match_from_db(match_id):
         st.error(f"Error deleting match from database: {str(e)}")
 
 #changed storage from supabase to github pages for images. egress issues in supabase!
+
 def upload_image_to_supabase(file, file_name, image_type="match"):
-    # Base URL for your GitHub Pages assets.
+    """
+    Generates a URL for an image hosted on GitHub Pages based on the image type.
+    Note: This function no longer uploads to Supabase.
+    """
     base_url = "https://mahadevbk.github.io/ar2/assets/"
 
-    # Determine the correct folder based on the image type.
     if image_type == "profile":
-        # Construct the URL for player profile images.
         return f"{base_url}players/{file_name}"
-    
     elif image_type == "match":
-        # Construct the URL for match images.
         return f"{base_url}matches/{file_name}"
-
     elif image_type == "booking":
-        # Construct the URL for booking images.
         return f"{base_url}bookings/{file_name}"
-    
-    # --- Fallback to Supabase for any other image types ---
-    # This part of the code will now only run if the image_type is not
-    # 'profile', 'match', or 'booking'.
-    try:
-        bucket = "ar"  # Default bucket
-        # A generic path for other image types.
-        file_path = f"others/{file_name}"
-            
-        # Upload the file to Supabase.
-        response = supabase.storage.from_(bucket).upload(file_path, file.read(), {"content-type": file.type})
-        
-        # Check for any upload errors.
-        if response is None or (hasattr(response, 'error') and response.error is not None):
-            error_message = response.error.message if hasattr(response, 'error') and response.error else "Unknown upload error"
-            st.error(f"Error uploading to Supabase: {error_message}")
-            return ""
-
-        # Get the public URL from Supabase.
-        public_url = supabase.storage.from_(bucket).get_public_url(file_path)
-        
-        if public_url:
-            return public_url
-        else:
-            st.error("Failed to retrieve public URL from Supabase.")
-            return ""
-
-    except Exception as e:
-        st.error(f"An error occurred during the Supabase upload: {str(e)}")
-        return ""
+    else:
+        # Fallback for any other unexpected image types
+        return f"{base_url}others/{file_name}"
         
 def tennis_scores():
     scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"]
     
     # Add winning super tie-break scores (e.g., 10-0 to 10-9)
     for i in range(10):
-        scores.append(f"Tie Break 10-{i}")
+        scores.append(f"Tie Break 7-{i}")
         
     # Add losing super tie-break scores (e.g., 0-10 to 9-10)
     for i in range(10):
-        scores.append(f"Tie Break {i}-10")
+        scores.append(f"Tie Break {i}-7")
         
     # Add winning standard tie-break scores (e.g., 7-0 to 7-5)
     for i in range(6): # Scores from 0 to 5
-        scores.append(f"Tie Break 7-{i}")
+        scores.append(f"Tie Break 10-{i}")
         
     # Add losing standard tie-break scores (e.g., 0-7 to 5-7)
     for i in range(6): # Scores from 0 to 5
-        scores.append(f"Tie Break {i}-7")
+        scores.append(f"Tie Break {i}-10")
         
     return scores
 
