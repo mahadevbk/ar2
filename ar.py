@@ -863,12 +863,21 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         return
 
     # Filter matches for the last 7 days
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    
+    seven_days_days_ago = datetime.now() - timedelta(days=7)
+    
+    # Ensure the date column is in the correct format and handle invalid dates
     matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce')
+    
+    # Filter out rows with invalid dates (NaT) before performing the comparison
     recent_doubles = matches_df[
+        matches_df['date'].notna() &
         (matches_df['match_type'] == 'Doubles') &
         (matches_df['date'] >= seven_days_ago)
     ]
+    
+  
+
     
     # Calculate partner stats for recent doubles matches
     _, recent_partner_stats = calculate_rankings(recent_doubles)
