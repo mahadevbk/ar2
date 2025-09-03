@@ -1993,7 +1993,7 @@ with tabs[0]:
             st.info("No match data available to generate interesting stats.")
         else:
             rank_df, partner_stats = calculate_rankings(matches)
-            st.markdown("Stats Season Q3 2025 (Jul - Aug )")
+            st.markdown("Stats for Season Q3 2025 (Jul - Aug )")
 
             # Combined Table view in nerd view
             rank_df_combined, _ = calculate_rankings(matches)
