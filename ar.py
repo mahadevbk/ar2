@@ -478,15 +478,22 @@ def load_matches():
         for col in expected_columns:
             if col not in df.columns:
                 df[col] = ""
+        
+        # NEW: Normalize dates to tz-naive
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date'], utc=True, errors='coerce').dt.tz_localize(None)
+        
         st.session_state.matches_df = df
     except Exception as e:
         st.error(f"Error loading matches: {str(e)}")
+
 
 def save_matches(df):
     try:
         df_to_save = df.copy()
         if 'date' in df_to_save.columns:
             df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce')
+            df_to_save['date'] = df_to_save['date'].dt.tz_localize(None)
             df_to_save = df_to_save.dropna(subset=['date'])
             df_to_save['date'] = df_to_save['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -1010,7 +1017,8 @@ def display_community_stats(matches_df):
     Calculates and displays interesting community stats for the last 7 days.
     """
     # Ensure the 'date' column is in datetime format and remove timezone
-    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce').dt.tz_localize(None)
+    #matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce').dt.tz_localize(None)
+    matches_df['date'] = pd.to_datetime(matches_df['date'], utc=True, errors='coerce').dt.tz_localize(None)
 
     # Get the date 7 days ago from today
     seven_days_ago = datetime.now() - pd.Timedelta(days=7)
