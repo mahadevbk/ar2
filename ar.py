@@ -1976,75 +1976,42 @@ with tabs[0]:
             for index, row in rank_df.iterrows():
                 display_ranking_card(row, players_df, singles_matches_df, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"singles_{index}")
 
+    #-----OLED NERD STUFF RESTORED -------------------------
     elif ranking_type == "Nerd Stuff":
         if matches.empty or players_df.empty:
             st.info("No match data available to generate interesting stats.")
         else:
             rank_df, partner_stats = calculate_rankings(matches)
 
-            # Insert combined table here
-            # Calculate combined rankings
-            st.markdown("---")
-            #st.markdown("### 🏆 Rankings ; Combined")
-            rank_df_combined, _ = calculate_rankings(matches)
-            display_rankings_table(rank_df_combined, "Combined")
-            st.markdown("---")
-            # Most Effective Partnership (Last 7 Days)
-            
-            st.markdown("### 🤝 Most Effective Partnership (Last 7 Days)")
+            # Most Effective Partnership
+            st.markdown("### 🤝 Most Effective Partnership")
+            best_partner = None
+            max_value = -1
+            for player, partners in partner_stats.items():
+                if player == "Visitor":
+                    continue
+                for partner, stats in partners.items():
+                    if partner == "Visitor" or player < partner:  # Avoid double counting
+                        win_rate = stats['wins'] / stats['matches'] if stats['matches'] > 0 else 0
+                        avg_game_diff = stats['game_diff_sum'] / stats['matches'] if stats['matches'] > 0 else 0
+                        score = win_rate + (avg_game_diff / 10)  # Adjust weight of game diff
+                        if score > max_value:
+                            max_value = score
+                            best_partner = (player, partner, stats)
 
-            # Ensure matches_df['date'] is in datetime format (this should already be handled in load_matches, but confirm)
-            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce')
-
-            seven_days_ago = datetime.now() - timedelta(days=7)
-
-            # Convert the 'date' column to datetime and remove timezone information
-            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce').dt.tz_localize(None)
-
-            recent_doubles = st.session_state.matches_df[
-                (st.session_state.matches_df['match_type'] == 'Doubles') &
-                (st.session_state.matches_df['date'] >= seven_days_ago)
-            ]
-
-            if recent_doubles.empty:
-                st.info("No doubles matches have been played in the last 7 days to determine the most effective partnership.")
+            if best_partner:
+                p1, p2, stats = best_partner
+                p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{p1}</span>"
+                p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{p2}</span>"
+                win_rate = (stats['wins'] / stats['matches'] * 100) if stats['matches'] > 0 else 0
+                st.markdown(f"The most effective partnership is {p1_styled} and {p2_styled} with **{stats['wins']}** wins, **{stats['losses']}** losses, and a total game difference of **{stats['game_diff_sum']:.2f}** (win rate: {win_rate:.1f}%).", unsafe_allow_html=True)
             else:
-                # Calculate partner stats on recent matches
-                _, filtered_partner_stats = calculate_rankings(recent_doubles)
+                st.info("No doubles matches have been played to determine the most effective partnership.")
 
-                # Find the most effective partnership
-                best_partner = None
-                max_value = -1
-                for player, partners in filtered_partner_stats.items():
-                    if player == "Visitor":
-                        continue
-                    for partner, stats in partners.items():
-                        if partner == "Visitor" or player < partner:  # Avoid double counting
-                            win_rate = stats['wins'] / stats['matches'] if stats['matches'] > 0 else 0
-                            avg_game_diff = stats['game_diff_sum'] / stats['matches'] if stats['matches'] > 0 else 0
-                            score = win_rate + (avg_game_diff / 10)  # Adjust weight of game diff
-                            if score > max_value:
-                                max_value = score
-                                best_partner = (player, partner, stats)
-
-                if best_partner:
-                    p1, p2, stats = best_partner
-                    p1_styled = f"<span style='font-weight:bold; color:#fff500;'>{p1}</span>"
-                    p2_styled = f"<span style='font-weight:bold; color:#fff500;'>{p2}</span>"
-                    win_rate = (stats['wins'] / stats['matches'] * 100) if stats['matches'] > 0 else 0
-                    st.markdown(
-                        f"The most effective partnership in the last 7 days is {p1_styled} and {p2_styled} "
-                        f"with **{stats['wins']}** wins, **{stats['losses']}** losses, "
-                        f"and a total game difference of **{stats['game_diff_sum']:.2f}** "
-                        f"(win rate: {win_rate:.1f}%).",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.info("No doubles matches have been played in the last 7 days to determine the most effective partnership.")
             st.markdown("---")
 
             # Best Player to Partner With
-            st.markdown("### 🥇 Best Player to Partner With ( Last 7 days )")
+            st.markdown("### 🥇 Best Player to Partner With")
             player_stats = defaultdict(lambda: {'wins': 0, 'gd_sum': 0, 'partners': set()})
             for _, row in matches.iterrows():
                 if row['match_type'] == 'Doubles':
@@ -2119,90 +2086,54 @@ with tabs[0]:
             st.markdown("---")
 
             # Most Frequent Player
-            # Most Frequent Player (Last 7 Days)
-            from datetime import datetime, timedelta
-            st.markdown("### 🏟️ Most Frequent Player (Last 7 Days)")
-            
-            # Ensure matches_df['date'] is in datetime format
-            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce')
-            
-            # Filter matches from the last 7 days
-            seven_days_ago = datetime.now() - timedelta(days=7)
-            recent_matches = st.session_state.matches_df[st.session_state.matches_df['date'] >= seven_days_ago]
-            
-            if recent_matches.empty:
-                st.info("No matches played in the last 7 days to determine the most frequent player.")
+            st.markdown("### 🏟️ Most Frequent Player")
+            if not rank_df.empty:
+                most_frequent_player = rank_df.sort_values(by="Matches", ascending=False).iloc[0]
+                player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_frequent_player['Player']}</span>"
+                st.markdown(f"{player_styled} has played the most matches, with a total of **{int(most_frequent_player['Matches'])}** matches played.", unsafe_allow_html=True)
             else:
-                # Calculate rankings for recent matches
-                recent_rank_df, _ = calculate_rankings(recent_matches)
-                
-                if not recent_rank_df.empty:
-                    most_frequent_player = recent_rank_df.sort_values(by="Matches", ascending=False).iloc[0]
-                    player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_frequent_player['Player']}</span>"
-                    st.markdown(f"{player_styled} has played the most matches, with a total of **{int(most_frequent_player['Matches'])}** matches played in the last 7 days.", unsafe_allow_html=True)
-                else:
-                    st.info("No match data available to determine the most frequent player in the last 7 days.")
-            
+                st.info("No match data available to determine the most frequent player.")
+
             st.markdown("---")
 
             # Player with highest Game Difference
-            # Player with Highest Game Difference (Last 7 Days)
-            st.markdown("### 📈 Player with Highest Game Difference (Last 7 Days)")
-            
-            # Ensure matches_df['date'] is in datetime format
-            st.session_state.matches_df['date'] = pd.to_datetime(st.session_state.matches_df['date'], errors='coerce')
-            
-            # Filter matches from the last 7 days
-            seven_days_ago = datetime.now() - timedelta(days=7)
-            recent_matches = st.session_state.matches_df[st.session_state.matches_df['date'] >= seven_days_ago]
-            
-            if recent_matches.empty:
-                st.info("No matches played in the last 7 days to calculate game difference.")
+            st.markdown("### 📈 Player with highest Game Difference")
+            cumulative_game_diff = defaultdict(int)
+            for _, row in matches.iterrows():
+                t1 = [row['team1_player1'], row['team1_player2']] if row['match_type'] == 'Doubles' else [row['team1_player1']]
+                t2 = [row['team2_player1'], row['team2_player2']] if row['match_type'] == 'Doubles' else [row['team2_player1']]
+                for set_score in [row['set1'], row['set2'], row['set3']]:
+                    if set_score and '-' in set_score:
+                        try:
+                            team1_games, team2_games = map(int, set_score.split('-'))
+                            set_gd = team1_games - team2_games
+                            for p in t1:
+                                if p != "Visitor":
+                                    cumulative_game_diff[p] += set_gd
+                            for p in t2:
+                                if p != "Visitor":
+                                    cumulative_game_diff[p] -= set_gd
+                        except ValueError:
+                            continue
+
+            if cumulative_game_diff:
+                highest_gd_player, highest_gd_value = max(cumulative_game_diff.items(), key=lambda item: item[1])
+                player_styled = f"<span style='font-weight:bold; color:#fff500;'>{highest_gd_player}</span>"
+                st.markdown(f"{player_styled} has the highest cumulative game difference: <span style='font-weight:bold; color:#fff500;'>{highest_gd_value}</span>.", unsafe_allow_html=True)
             else:
-                cumulative_game_diff = defaultdict(int)
-                for _, row in recent_matches.iterrows():
-                    t1 = [row['team1_player1'], row['team1_player2']] if row['match_type'] == 'Doubles' else [row['team1_player1']]
-                    t2 = [row['team2_player1'], row['team2_player2']] if row['match_type'] == 'Doubles' else [row['team2_player1']]
-                    for set_score in [row['set1'], row['set2'], row['set3']]:
-                        if set_score and '-' in set_score:
-                            try:
-                                team1_games, team2_games = map(int, set_score.split('-'))
-                                set_gd = team1_games - team2_games
-                                for p in t1:
-                                    if p != "Visitor":
-                                        cumulative_game_diff[p] += set_gd
-                                for p in t2:
-                                    if p != "Visitor":
-                                        cumulative_game_diff[p] -= set_gd
-                            except ValueError:
-                                continue
-            
-                if cumulative_game_diff:
-                    highest_gd_player, highest_gd_value = max(cumulative_game_diff.items(), key=lambda item: item[1])
-                    player_styled = f"<span style='font-weight:bold; color:#fff500;'>{highest_gd_player}</span>"
-                    st.markdown(f"{player_styled} has the highest cumulative game difference: <span style='font-weight:bold; color:#fff500;'>{highest_gd_value}</span> in the last 7 days.", unsafe_allow_html=True)
-                else:
-                    st.info("No valid match data available to calculate game difference in the last 7 days.")
-            
+                st.info("No match data available to calculate game difference.")
+
             st.markdown("---")
-            
-            # Player with the Most Wins (Last 7 Days)
-            st.markdown("### 👑 Player with the Most Wins (Last 7 Days)")
-            
-            if recent_matches.empty:
-                st.info("No matches played in the last 7 days to determine the player with the most wins.")
-            else:
-                # Calculate rankings for recent matches
-                recent_rank_df, _ = calculate_rankings(recent_matches)
-                
-                if not recent_rank_df.empty:
-                    most_wins_player = recent_rank_df.sort_values(by="Wins", ascending=False).iloc[0]
-                    player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_wins_player['Player']}</span>"
-                    st.markdown(f"{player_styled} holds the record for most wins with **{int(most_wins_player['Wins'])}** wins in the last 7 days.", unsafe_allow_html=True)
-                else:
-                    st.info("No match data available to determine the player with the most wins in the last 7 days.")
-            
+
+            # Player with the most wins
+            st.markdown(f"### 👑 Player with the Most Wins")
+            most_wins_player = rank_df.sort_values(by="Wins", ascending=False).iloc[0]
+            player_styled = f"<span style='font-weight:bold; color:#fff500;'>{most_wins_player['Player']}</span>"
+            st.markdown(f"{player_styled} holds the record for most wins with **{int(most_wins_player['Wins'])}** wins.", unsafe_allow_html=True)
+
             st.markdown("---")
+
+            # Player with the highest win percentage (minimum 5 matches)
             st.markdown(f"### 🔥 Highest Win Percentage (Min. 5 Matches)")
             eligible_players = rank_df[rank_df['Matches'] >= 5].sort_values(by="Win %", ascending=False)
             if not eligible_players.empty:
@@ -2247,6 +2178,7 @@ with tabs[0]:
                         st.plotly_chart(partnership_chart, width='stretch')
                     else:
                         st.info(f"{selected_player_for_partners} has no partnership data to display.")
+    
 
             st.markdown("---")
             with st.expander("Process being used for Rankings" , expanded=False, icon="➡️"):
