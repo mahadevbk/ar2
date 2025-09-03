@@ -814,9 +814,8 @@ def create_trend_chart(trend):
 
 
 
-
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
-    from datetime import datetime, timedelta
+    from datetime import datetime
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
     selected_players = [p for p in selected_players if p != "Visitor"]
@@ -824,25 +823,28 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         st.info("No players selected or available for insights.")
         return
 
-    # --- Birthday View (No Changes) ---
+    # --- Birthday View ---
     view_option = st.radio("Select View", ["Player Insights", "Birthdays"], horizontal=True, key=f"{key_prefix}view_selector")
     if view_option == "Birthdays":
         birthday_data = []
         for player in selected_players:
             player_info = players_df[players_df["name"] == player].iloc[0] if player in players_df["name"].values else None
-            if player_info is None: continue
+            if player_info is None:
+                continue
             birthday = player_info.get("birthday", "")
             profile_image = player_info.get("profile_image_url", "")
             if birthday and re.match(r'^\d{2}-\d{2}$', birthday):
                 try:
-                    day, month = map( int, birthday.split("-"))
-                    #birthday_dt = parser.parse(f"{day:02d}-{month:02d}-2000", dayfirst=True)
+                    day, month = map(int, birthday.split("-"))
                     birthday_dt = datetime.strptime(f"{day:02d}-{month:02d}-2000", "%d-%m-%Y")
                     birthday_data.append({
-                        "Player": player, "Birthday": birthday_dt.strftime("%b %d"),
-                        "SortDate": birthday_dt, "Profile": profile_image
+                        "Player": player,
+                        "Birthday": birthday_dt.strftime("%b %d"),
+                        "SortDate": birthday_dt,
+                        "Profile": profile_image
                     })
-                except ValueError: continue
+                except ValueError:
+                    continue
         if not birthday_data:
             st.info("No valid birthday data available for selected players.")
             return
@@ -894,7 +896,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
             try:
-                bday_obj = parser.parse(f"{raw_birthday}-2000", dayfirst=True)
+                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
                 birthday_str = ""
@@ -979,8 +981,10 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             </div>
             """, unsafe_allow_html=True)
 
-            with st.expander("View  Partner Stats", expanded=False, icon="➡️"):
+            with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
+
+
 
 
 
