@@ -836,7 +836,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             if birthday and re.match(r'^\d{2}-\d{2}$', birthday):
                 try:
                     day, month = map( int, birthday.split("-"))
-                    birthday_dt = parser.parse(f"{day:02d}-{month:02d}-2000", dayfirst=True)
+                    #birthday_dt = parser.parse(f"{day:02d}-{month:02d}-2000", dayfirst=True)
+                    birthday_dt = datetime.strptime(f"{day:02d}-{month:02d}-2000", "%d-%m-%Y")
                     birthday_data.append({
                         "Player": player, "Birthday": birthday_dt.strftime("%b %d"),
                         "SortDate": birthday_dt, "Profile": profile_image
