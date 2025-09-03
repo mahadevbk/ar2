@@ -2644,6 +2644,9 @@ with tabs[1]:
                 load_matches()
                 st.rerun()
         else:
+
+            matches_df = matches_df.sort_values(by='date', ascending=False)
+            
             match_options = []
             for _, row in matches_df.iterrows():
                 date_str = pd.to_datetime(row['date'], errors='coerce').strftime('%Y-%m-%d') if pd.notna(row['date']) else "Unknown Date"
