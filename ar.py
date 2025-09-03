@@ -978,7 +978,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             </div>
             """, unsafe_allow_html=True)
 
-            with st.expander("View Full Partner Stats (All Time)", expanded=False, icon="➡️"):
+            with st.expander("View  Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
