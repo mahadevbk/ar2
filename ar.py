@@ -902,16 +902,18 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
     
     # Calculate partner stats for recent doubles matches
+    # Calculate partner stats for the selected date range
     _, recent_partner_stats = calculate_rankings(recent_doubles)
 
-    doubles_matches_df = matches_df[matches_df['match_type'] == 'Doubles']
-    singles_matches_df = matches_df[matches_df['match_type'] == 'Singles']
+    doubles_matches_df = matches_to_analyze[matches_to_analyze['match_type'] == 'Doubles']
+    singles_matches_df = matches_to_analyze[matches_to_analyze['match_type'] == 'Singles']
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
     singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
     for player in sorted(active_players):
         player_info = players_df[players_df["name"] == player].iloc[0]
         player_data = rank_df[rank_df["Player"] == player].iloc[0]
+
 
         # --- Data Calculation & Formatting ---
         profile_image = player_info.get("profile_image_url", "")
