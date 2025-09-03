@@ -3029,13 +3029,18 @@ with tabs[4]:
 
 
     # --- EXISTING BOOKING MANAGEMENT 
+    
     load_bookings()
     with st.expander("Add New Booking", expanded=False, icon="➡️"):
         st.subheader("Add New Booking")
         match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
         
         with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
-            # ...
+            # Date and Time Inputs
+            date = st.date_input("Booking Date *", key=f"new_booking_date_{st.session_state.form_key_suffix}")
+            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]  # 6 AM to 9 PM
+            time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
+            
             if match_type == "Doubles":
                 col1, col2 = st.columns(2)
                 with col1:
@@ -3068,7 +3073,11 @@ with tabs[4]:
                     else:
                         booking_id = str(uuid.uuid4())
                         screenshot_url = upload_image_to_supabase(screenshot, booking_id, image_type="booking") if screenshot else None
-                        time_24hr = datetime.strptime(time, "%I:%M %p").strftime("%H:%M:%S")
+                        try:
+                            time_24hr = datetime.strptime(time, "%I:%M %p").strftime("%H:%M:%S")
+                        except ValueError:
+                            st.error("Invalid time format. Please select a valid time.")
+                            st.rerun()
                         new_booking = {
                             "booking_id": booking_id,
                             "date": date.isoformat(),
@@ -3096,9 +3105,8 @@ with tabs[4]:
                         except Exception as e:
                             st.error(f"Failed to save booking: {str(e)}")
                             st.rerun()
-    
-    st.markdown("---")
-    
+        
+    st.markdown("---")    
     st.subheader("📅 Upcoming Bookings")
     bookings_df = st.session_state.bookings_df.copy()
     court_url_mapping = {court["name"]: court["url"] for court in ar_courts + mira_courts}
