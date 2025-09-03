@@ -2626,81 +2626,89 @@ with tabs[1]:
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.subheader("✏️ Manage Existing Match")
-    if 'edit_key' not in st.session_state:
-        st.session_state.edit_key = 0
-    unique_key = f"select_match_to_edit_{st.session_state.edit_key}"
-
-    if st.session_state.matches_df.empty:
+    
+    st.subheader("✏️ Manage Existing Matches")
+    if 'edit_match_key' not in st.session_state:
+        st.session_state.edit_match_key = 0
+    unique_key = f"select_match_to_edit_{st.session_state.edit_match_key}"
+    
+    matches_df = st.session_state.matches_df
+    if matches_df.empty:
         st.info("No matches available to manage.")
     else:
-        duplicate_ids = st.session_state.matches_df[st.session_state.matches_df.duplicated(subset=['match_id'], keep=False)]['match_id'].unique()
+        duplicate_ids = matches_df[matches_df.duplicated(subset=['match_id'], keep=False)]['match_id'].unique()
         if len(duplicate_ids) > 0:
-            st.warning(f"Found duplicate match_id values: {duplicate_ids.tolist()}. Please remove duplicates in Supabase before editing.")
+            st.warning(f"Duplicate match IDs detected in the database. Please remove duplicates in Supabase to enable editing.\n\nDuplicate match IDs: {duplicate_ids.tolist()}")
+            if st.button("Attempt Automatic Cleanup"):
+                clean_duplicate_matches()
+                load_matches()
+                st.rerun()
         else:
-            # Sort matches by date (newest first)
-            matches_df_sorted = st.session_state.matches_df.copy()
-            matches_df_sorted['date'] = pd.to_datetime(matches_df_sorted['date'], errors='coerce')
-            # Replace NaT with a very old date to push invalid dates to the end
-            matches_df_sorted['date'] = matches_df_sorted['date'].fillna(pd.Timestamp('1900-01-01'))
-            matches_df_sorted = matches_df_sorted.sort_values(by='date', ascending=False)
-            
             match_options = []
-            for _, row in matches_df_sorted.iterrows():
-                date_str = pd.to_datetime(row['date']).strftime('%A, %d %b') if pd.notna(row['date']) else "Unknown Date"
-                match_type = row['match_type'] if 'match_type' in row else "Unknown Type"
-                if match_type == "Doubles":
-                    t1 = f"{row['team1_player1']}/{row['team1_player2']}" if 'team1_player1' in row and 'team1_player2' in row else "Unknown Team 1"
-                    t2 = f"{row['team2_player1']}/{row['team2_player2']}" if 'team2_player1' in row and 'team2_player2' in row else "Unknown Team 2"
-                else:
-                    t1 = row['team1_player1'] if 'team1_player1' in row else "Unknown Player 1"
-                    t2 = row['team2_player1'] if 'team2_player1' in row else "Unknown Player 2"
-                desc = f"{match_type}: {t1} vs {t2} on {date_str}"
-                match_options.append(f"{desc} | Match ID: {row['match_id']}")
+            for _, row in matches_df.iterrows():
+                date_str = pd.to_datetime(row['date'], errors='coerce').strftime('%Y-%m-%d') if pd.notna(row['date']) else "Unknown Date"
+                players = [p for p in [row['team1_player1'], row['team1_player2'], row['team2_player1'], row['team2_player2']] if pd.notna(p) and p]
+                players_str = ", ".join(players) if players else "No players"
+                desc = f"Match ID: {row['match_id']} | Date: {date_str} | Type: {row['match_type']} | Players: {players_str}"
+                match_options.append(desc)
             
             selected_match = st.selectbox("Select a match to edit or delete", [""] + match_options, key=unique_key)
-            
             if selected_match:
-                # Robust parsing with regex
-                import re
-                id_match = re.search(r'\|\s*Match ID:\s*(.+)$', selected_match)
-                if id_match:
-                    match_id = id_match.group(1).strip()
-                else:
-                    st.error(f"Unable to parse match ID from selected option: '{selected_match}'. Check option formatting.")
-                    st.stop()
+                match_id = selected_match.split(" | ")[0].replace("Match ID: ", "")
+                match_row = matches_df[matches_df["match_id"] == match_id].iloc[0]
+                match_idx = matches_df[matches_df["match_id"] == match_id].index[0]
                 
-                try:
-                    match_row = st.session_state.matches_df[st.session_state.matches_df["match_id"] == match_id].iloc[0]
-                    match_idx = st.session_state.matches_df[st.session_state.matches_df["match_id"] == match_id].index[0]
-                except IndexError:
-                    st.error(f"No match found for ID '{match_id}'. It may have been deleted or the data is inconsistent.")
-                    st.stop()
-                except Exception as e:
-                    st.error(f"Error retrieving match row: {str(e)}")
-                    st.stop()
-                
-                with st.expander("Edit Match Details", expanded=False, icon="➡️"):
-                    date_edit = st.date_input(
-                        "Match Date",
-                        value=parser.parse(match_row["date"]).date() if pd.notna(match_row["date"]) else datetime.now().date(),
-                        key=f"edit_date_{match_id}"
-                    )
-                    match_type_edit = st.radio("Match Type", ["Doubles", "Singles"], index=0 if match_row["match_type"] == "Doubles" else 1, key=f"edit_match_type_{match_id}")
+                with st.expander("Edit Match Details", expanded=True):
+                    # Handle date input safely
+                    date_value = None
+                    if pd.notna(match_row["date"]):
+                        if isinstance(match_row["date"], (pd.Timestamp, datetime)):
+                            date_value = match_row["date"].date()
+                        elif isinstance(match_row["date"], str):
+                            try:
+                                date_value = parser.parse(match_row["date"]).date()
+                            except (ValueError, TypeError):
+                                date_value = datetime.now().date()
+                    else:
+                        date_value = datetime.now().date()
                     
+                    date_edit = st.date_input("Match Date *", value=date_value, key=f"edit_match_date_{match_id}")
+                    match_type_edit = st.radio("Match Type", ["Doubles", "Singles"], 
+                                             index=0 if match_row["match_type"] == "Doubles" else 1, 
+                                             key=f"edit_match_type_{match_id}")
+                    
+                    # ... (rest of the match editing form remains unchanged)
+                    # Example continuation for player selection
+                    available_players = sorted([p for p in st.session_state.players_df["name"].values if p != "Visitor"])
                     if match_type_edit == "Doubles":
                         col1, col2 = st.columns(2)
                         with col1:
-                            t1p1_edit = st.selectbox("Team 1 - Player 1", available_players, index=available_players.index(match_row["team1_player1"]) if match_row["team1_player1"] in available_players else 0, key=f"edit_t1p1_{match_id}")
-                            t1p2_edit = st.selectbox("Team 1 - Player 2", available_players, index=available_players.index(match_row["team1_player2"]) if match_row["team1_player2"] in available_players else 0, key=f"edit_t1p2_{match_id}")
+                            t1p1_edit = st.selectbox("Team 1 - Player 1 (optional)", [""] + available_players,
+                                                    index=available_players.index(match_row["team1_player1"]) + 1 if match_row["team1_player1"] in available_players else 0,
+                                                    key=f"edit_t1p1_{match_id}")
+                            t1p2_edit = st.selectbox("Team 1 - Player 2 (optional)", [""] + available_players,
+                                                    index=available_players.index(match_row["team1_player2"]) + 1 if match_row["team1_player2"] in available_players else 0,
+                                                    key=f"edit_t1p2_{match_id}")
                         with col2:
-                            t2p1_edit = st.selectbox("Team 2 - Player 1", available_players, index=available_players.index(match_row["team2_player1"]) if match_row["team2_player1"] in available_players else 0, key=f"edit_t2p1_{match_id}")
-                            t2p2_edit = st.selectbox("Team 2 - Player 2", available_players, index=available_players.index(match_row["team2_player2"]) if match_row["team2_player2"] in available_players else 0, key=f"edit_t2p2_{match_id}")
+                            t2p1_edit = st.selectbox("Team 2 - Player 1 (optional)", [""] + available_players,
+                                                    index=available_players.index(match_row["team2_player1"]) + 1 if match_row["team2_player1"] in available_players else 0,
+                                                    key=f"edit_t2p1_{match_id}")
+                            t2p2_edit = st.selectbox("Team 2 - Player 2 (optional)", [""] + available_players,
+                                                    index=available_players.index(match_row["team2_player2"]) + 1 if match_row["team2_player2"] in available_players else 0,
+                                                    key=f"edit_t2p2_{match_id}")
                     else:
-                        t1p1_edit = st.selectbox("Player 1", available_players, index=available_players.index(match_row["team1_player1"]) if match_row["team1_player1"] in available_players else 0, key=f"edit_s1p1_{match_id}")
-                        t2p1_edit = st.selectbox("Player 2", available_players, index=available_players.index(match_row["team2_player1"]) if match_row["team2_player1"] in available_players else 0, key=f"edit_s1p2_{match_id}")
+                        t1p1_edit = st.selectbox("Player 1 (optional)", [""] + available_players,
+                                                index=available_players.index(match_row["team1_player1"]) + 1 if match_row["team1_player1"] in available_players else 0,
+                                                key=f"edit_s1p1_{match_id}")
+                        t2p1_edit = st.selectbox("Player 2 (optional)", [""] + available_players,
+                                                index=available_players.index(match_row["team2_player1"]) + 1 if match_row["team2_player1"] in available_players else 0,
+                                                key=f"edit_s1p2_{match_id}")
                         t1p2_edit = ""
                         t2p2_edit = ""
+                    
+                    # ... (rest of the form for scores, winner, etc.)
+
+
                     
                     set1_edit = st.selectbox("Set 1 Score", [""] + tennis_scores(), index=tennis_scores().index(match_row["set1"]) + 1 if match_row["set1"] in tennis_scores() else 0, key=f"edit_set1_{match_id}")
                     set2_edit = st.selectbox("Set 2 Score", [""] + tennis_scores(), index=tennis_scores().index(match_row["set2"]) + 1 if match_row["set2"] in tennis_scores() else 0, key=f"edit_set2_{match_id}")
