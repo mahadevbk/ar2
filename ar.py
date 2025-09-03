@@ -824,7 +824,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         st.info("No players selected or available for insights.")
         return
 
-    # --- Birthday View (No Changes Here) ---
+    # --- Birthday View (No Changes) ---
     view_option = st.radio("Select View", ["Player Insights", "Birthdays"], horizontal=True, key=f"{key_prefix}view_selector")
     if view_option == "Birthdays":
         birthday_data = []
@@ -835,8 +835,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             profile_image = player_info.get("profile_image_url", "")
             if birthday and re.match(r'^\d{2}-\d{2}$', birthday):
                 try:
-                    day, month = map(int, birthday.split("-"))
-                    #birthday_dt = datetime.strptime(f"{day:02d}-{month:02d}-2000", "%d-%m-%Y")
+                    day, month = map( int, birthday.split("-"))
                     birthday_dt = parser.parse(f"{day:02d}-{month:02d}-2000", dayfirst=True)
                     birthday_data.append({
                         "Player": player, "Birthday": birthday_dt.strftime("%b %d"),
@@ -859,7 +858,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <div class="birthday-col"><span style='font-weight:bold; color:#fff500;'>{row['Birthday']}</span></div>
             </div>""", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-        return # End of Birthday View
+        return
 
     # --- Player Insights View ---
     active_players = [
@@ -869,28 +868,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     if not active_players:
         st.info("No players with matches played are available for insights.")
         return
-
-    # Filter matches for the last 7 days
-    # Filter matches for the last 7 days
-    seven_days_ago = datetime.now() - timedelta(days=7)
-    
-    # Ensure the date column is in the correct format and remove timezone information
-    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce').dt.tz_localize(None)
-
-    # Filter out rows with invalid dates (NaT) before performing the comparison
-    recent_doubles = matches_df[
-        matches_df['date'].notna() &
-        (matches_df['match_type'] == 'Doubles') &
-        (matches_df['date'] >= seven_days_ago)
-    ]
-    
-   
-
-  
-
-    
-    # Calculate partner stats for recent doubles matches
-    _, recent_partner_stats = calculate_rankings(recent_doubles)
 
     doubles_matches_df = matches_df[matches_df['match_type'] == 'Doubles']
     singles_matches_df = matches_df[matches_df['match_type'] == 'Singles']
@@ -916,24 +893,23 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
             try:
-                #bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
                 bday_obj = parser.parse(f"{raw_birthday}-2000", dayfirst=True)
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
                 birthday_str = ""
 
-        # --- Partner Calculation Logic (Last 7 Days) ---
-        partners_list_str = "No doubles matches played in the last 7 days."
+        # --- Partner Calculation Logic (Full History) ---
+        partners_list_str = "No doubles matches played."
         best_partner_str = "N/A"
-        if player in recent_partner_stats and recent_partner_stats[player]:
+        if player in partner_stats and partner_stats[player]:
             partners_list_items = [
                 f'<li><b>{p}</b>: {item["wins"]}W - {item["losses"]}L ({item["matches"]} played)</li>'
-                for p, item in recent_partner_stats[player].items() if p != "Visitor"
+                for p, item in partner_stats[player].items() if p != "Visitor"
             ]
             partners_list_str = f"<ul>{''.join(partners_list_items)}</ul>"
 
             sorted_partners = sorted(
-                [(p, item) for p, item in recent_partner_stats[player].items() if p != "Visitor"],
+                [(p, item) for p, item in partner_stats[player].items() if p != "Visitor"],
                 key=lambda item: (
                     item[1]['wins'] / item[1]['matches'] if item[1]['matches'] > 0 else 0,
                     item[1]['game_diff_sum'] / item[1]['matches'] if item[1]['matches'] > 0 else 0,
@@ -997,12 +973,12 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                     <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
                 </span>
                 <span class="best-partner-col" style="display: block;">
-                    <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner (Last 7 Days): </span>{best_partner_str}
+                    <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner (All Time): </span>{best_partner_str}
                 </span>
             </div>
             """, unsafe_allow_html=True)
 
-            with st.expander("View Full Partner Stats (Last 7 Days)", expanded=False, icon="➡️"):
+            with st.expander("View Full Partner Stats (All Time)", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
 
 
