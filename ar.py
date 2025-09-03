@@ -819,30 +819,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
     # --- Birthday View (No Changes Here) ---
     view_option = st.radio("Select View", ["Player Insights", "Birthdays"], horizontal=True, key=f"{key_prefix}view_selector")
-    
-    # Add a date range selector
-    date_range_option = st.selectbox(
-        "Select Date Range",
-        ("Full Date Range", "Last 30 Days", "Last 7 Days"),
-        index=0  # Set 'Full Date Range' as the default
-    )
-    
-    # Filter matches based on the selected date range
-    matches_to_analyze = matches_df.copy()
-    if date_range_option == "Last 30 Days":
-        thirty_days_ago = datetime.now() - timedelta(days=30)
-        matches_to_analyze = matches_to_analyze[
-            pd.to_datetime(matches_to_analyze['date'], errors='coerce').dt.tz_localize(None) >= thirty_days_ago
-        ]
-    elif date_range_option == "Last 7 Days":
-        seven_days_ago = datetime.now() - timedelta(days=7)
-        matches_to_analyze = matches_to_analyze[
-            pd.to_datetime(matches_to_analyze['date'], errors='coerce').dt.tz_localize(None) >= seven_days_ago
-        ]
-
-    # Recalculate rankings based on the filtered data
-    rank_df, partner_stats = calculate_rankings(matches_to_analyze)
-    
     if view_option == "Birthdays":
         birthday_data = []
         for player in selected_players:
@@ -886,14 +862,18 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         st.info("No players with matches played are available for insights.")
         return
 
+    # Filter matches for the last 7 days
+    # Filter matches for the last 7 days
+    seven_days_ago = datetime.now() - timedelta(days=7)
     
     # Ensure the date column is in the correct format and remove timezone information
-    matches_to_analyze['date'] = pd.to_datetime(matches_to_analyze['date'], errors='coerce').dt.tz_localize(None)
+    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce').dt.tz_localize(None)
 
-    # Filter for doubles matches from the selected date range
-    recent_doubles = matches_to_analyze[
-        matches_to_analyze['date'].notna() &
-        (matches_to_analyze['match_type'] == 'Doubles')
+    # Filter out rows with invalid dates (NaT) before performing the comparison
+    recent_doubles = matches_df[
+        matches_df['date'].notna() &
+        (matches_df['match_type'] == 'Doubles') &
+        (matches_df['date'] >= seven_days_ago)
     ]
     
    
@@ -902,18 +882,16 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
     
     # Calculate partner stats for recent doubles matches
-    # Calculate partner stats for the selected date range
     _, recent_partner_stats = calculate_rankings(recent_doubles)
 
-    doubles_matches_df = matches_to_analyze[matches_to_analyze['match_type'] == 'Doubles']
-    singles_matches_df = matches_to_analyze[matches_to_analyze['match_type'] == 'Singles']
+    doubles_matches_df = matches_df[matches_df['match_type'] == 'Doubles']
+    singles_matches_df = matches_df[matches_df['match_type'] == 'Singles']
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
     singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
     for player in sorted(active_players):
         player_info = players_df[players_df["name"] == player].iloc[0]
         player_data = rank_df[rank_df["Player"] == player].iloc[0]
-
 
         # --- Data Calculation & Formatting ---
         profile_image = player_info.get("profile_image_url", "")
