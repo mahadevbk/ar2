@@ -1985,6 +1985,8 @@ with tabs[0]:
             rank_df, partner_stats = calculate_rankings(matches)
 
             # Most Effective Partnership
+            rank_df_combined, _ = calculate_rankings(matches)
+            display_rankings_table(rank_df_combined, "Combined")
             st.markdown("### 🤝 Most Effective Partnership")
             best_partner = None
             max_value = -1
