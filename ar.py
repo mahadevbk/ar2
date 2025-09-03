@@ -1009,10 +1009,8 @@ def display_community_stats(matches_df):
     """
     Calculates and displays interesting community stats for the last 7 days.
     """
-    #st.subheader("AR Tennis Community Interesting Facts (Last 7 Days)")
-
-    # Ensure the 'date' column is in datetime format
-    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce')
+    # Ensure the 'date' column is in datetime format and remove timezone
+    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce').dt.tz_localize(None)
 
     # Get the date 7 days ago from today
     seven_days_ago = datetime.now() - pd.Timedelta(days=7)
@@ -1051,6 +1049,9 @@ def display_community_stats(matches_df):
         st.table(win_counts)
     else:
         st.info("No wins recorded in the last 7 days.")
+
+
+
 
 # Chart --------------
 
