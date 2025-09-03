@@ -886,18 +886,14 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         st.info("No players with matches played are available for insights.")
         return
 
-    # Filter matches for the last 7 days
-    # Filter matches for the last 7 days
-    seven_days_ago = datetime.now() - timedelta(days=7)
     
     # Ensure the date column is in the correct format and remove timezone information
-    matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce').dt.tz_localize(None)
+    matches_to_analyze['date'] = pd.to_datetime(matches_to_analyze['date'], errors='coerce').dt.tz_localize(None)
 
-    # Filter out rows with invalid dates (NaT) before performing the comparison
-    recent_doubles = matches_df[
-        matches_df['date'].notna() &
-        (matches_df['match_type'] == 'Doubles') &
-        (matches_df['date'] >= seven_days_ago)
+    # Filter for doubles matches from the selected date range
+    recent_doubles = matches_to_analyze[
+        matches_to_analyze['date'].notna() &
+        (matches_to_analyze['match_type'] == 'Doubles')
     ]
     
    
