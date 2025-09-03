@@ -819,6 +819,30 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
     # --- Birthday View (No Changes Here) ---
     view_option = st.radio("Select View", ["Player Insights", "Birthdays"], horizontal=True, key=f"{key_prefix}view_selector")
+    
+    # Add a date range selector
+    date_range_option = st.selectbox(
+        "Select Date Range",
+        ("Full Date Range", "Last 30 Days", "Last 7 Days"),
+        index=0  # Set 'Full Date Range' as the default
+    )
+    
+    # Filter matches based on the selected date range
+    matches_to_analyze = matches_df.copy()
+    if date_range_option == "Last 30 Days":
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        matches_to_analyze = matches_to_analyze[
+            pd.to_datetime(matches_to_analyze['date'], errors='coerce').dt.tz_localize(None) >= thirty_days_ago
+        ]
+    elif date_range_option == "Last 7 Days":
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        matches_to_analyze = matches_to_analyze[
+            pd.to_datetime(matches_to_analyze['date'], errors='coerce').dt.tz_localize(None) >= seven_days_ago
+        ]
+
+    # Recalculate rankings based on the filtered data
+    rank_df, partner_stats = calculate_rankings(matches_to_analyze)
+    
     if view_option == "Birthdays":
         birthday_data = []
         for player in selected_players:
