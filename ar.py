@@ -2060,6 +2060,7 @@ with tabs[0]:
             
             #------End of Animated chart------------------
             # Most Effective Partnership
+            st.markdown("---")
             st.markdown("### 🤝 Most Effective Partnership")
             best_partner = None
             max_value = -1
