@@ -1771,52 +1771,69 @@ def get_match_verb_and_gda(row):
 
 def create_animated_rank_trend(matches_df):
     """
-    Animated rank trend over time for all players.
+    Animated rank trend over time for all active players.
+    Shows how rank evolves after each match.
     """
     if matches_df.empty or "date" not in matches_df:
         return None
 
-    # Ensure datetime and sorted
+    # Clean and sort by date
     matches_df = matches_df.copy()
     matches_df["date"] = pd.to_datetime(matches_df["date"], errors="coerce")
     matches_df = matches_df.dropna(subset=["date"]).sort_values("date")
 
+    # Get all unique players
+    all_players = pd.unique(
+        matches_df[
+            ["team1_player1", "team1_player2", "team2_player1", "team2_player2"]
+        ].values.ravel("K")
+    )
+    all_players = [p for p in all_players if pd.notna(p) and p != "" and p != "Visitor"]
+
     rank_history = []
 
-    for d in matches_df["date"].unique():
+    # Step through matches one by one (not just by date)
+    for i, d in enumerate(matches_df["date"].unique(), start=1):
         subset = matches_df[matches_df["date"] <= d]
         if subset.empty:
             continue
 
         rank_df, _ = calculate_rankings(subset)
-        if rank_df.empty:
-            continue
 
         # Extract numeric rank
         rank_df = rank_df.copy()
         rank_df["RankNum"] = (
             rank_df["Rank"].astype(str).str.extract(r"(\d+)").astype(float)
         )
-        rank_df["Date"] = pd.to_datetime(d)
-        rank_history.append(rank_df[["Date", "Player", "RankNum"]])
+
+        # Ensure every player appears
+        for player in all_players:
+            if player in rank_df["Player"].values:
+                rank_val = rank_df.loc[rank_df["Player"] == player, "RankNum"].values[0]
+            else:
+                rank_val = None  # no matches yet
+            rank_history.append(
+                {"MatchStep": i, "Date": pd.to_datetime(d), "Player": player, "RankNum": rank_val}
+            )
 
     if not rank_history:
         return None
 
-    history_df = pd.concat(rank_history, ignore_index=True)
+    history_df = pd.DataFrame(rank_history)
 
-    # Build animated line chart
+    # Animated line chart
     fig = px.line(
         history_df,
         x="Date",
         y="RankNum",
         color="Player",
-        animation_frame="Date",
+        animation_frame="MatchStep",
         animation_group="Player",
         title="Animated Rank Trend Over Time",
         markers=True,
     )
 
+    # Put rank #1 at the top
     fig.update_yaxes(autorange="reversed", title="Rank (1 = Top)")
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
@@ -2056,12 +2073,14 @@ with tabs[0]:
             st.markdown("---")
             #-----adding Animated Chart
 
+            
             if st.checkbox("Show Animated Rank Trend"):
-              fig = create_animated_rank_trend(st.session_state.matches_df)
-              if fig:
-                  st.plotly_chart(fig, use_container_width=True)
-              else:
-                  st.info("Not enough data to display rank trends.")
+                fig = create_animated_rank_trend(st.session_state.matches_df)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("Not enough data to display rank trends.")
+
 
             
             #------End of Animated chart------------------
