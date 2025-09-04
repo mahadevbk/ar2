@@ -28,6 +28,7 @@ import io  # Added to fix 'name io is not defined' error
 from itertools import combinations
 from dateutil import parser
 import plotly.graph_objects as go # Added for the new chart
+import plotly.express as px # added for animated chart
 import random
 from fpdf import FPDF
 import zipfile
@@ -1762,6 +1763,73 @@ def get_match_verb_and_gda(row):
     return verb, gda
 
 
+#------------Ranking Animated chart ! ------------------------------
+
+
+
+def create_animated_rank_trend(matches_df, rank_history_df=None):
+    """
+    Creates an animated trend line of rank over time for all players.
+    
+    Parameters:
+    - matches_df: DataFrame of matches (must include 'date').
+    - rank_history_df: Optional precomputed ranking history DataFrame.
+                       If not provided, it will be computed.
+    
+    rank_history_df format:
+        ['Date', 'Player', 'Rank']
+    """
+    # --- Build ranking history if not provided ---
+    if rank_history_df is None:
+        all_dates = sorted(matches_df['date'].dropna().unique())
+        rank_history = []
+
+        for d in all_dates:
+            subset = matches_df[matches_df['date'] <= d]
+            if subset.empty:
+                continue
+            rank_df, _ = calculate_rankings(subset)
+            rank_df['Date'] = d
+            rank_history.append(rank_df[['Date', 'Player', 'Rank']])
+
+        if not rank_history:
+            return None
+        rank_history_df = pd.concat(rank_history, ignore_index=True)
+
+    # Clean rank (remove emoji trophy, keep number)
+    rank_history_df['Rank'] = rank_history_df['Rank'].astype(str).str.extract(r'(\d+)').astype(float)
+
+    # --- Create animated chart ---
+    fig = px.line(
+        rank_history_df,
+        x="Date",
+        y="Rank",
+        color="Player",
+        line_group="Player",
+        animation_frame=rank_history_df["Date"].dt.strftime("%Y-%m-%d"),
+        title="Animated Rank Trend Over Time",
+        markers=True
+    )
+
+    fig.update_yaxes(autorange="reversed", title="Rank (1 = Top)")  # 1 at top
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#fff500"),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+
+    return fig
+
+
+
+
 
 
     
@@ -1980,6 +2048,17 @@ with tabs[0]:
             rank_df_combined, _ = calculate_rankings(matches)
             display_rankings_table(rank_df_combined, "Combined")
             st.markdown("---")
+            #-----adding Animated Chart
+
+            if st.checkbox("Show Animated Rank Trend"):
+              fig = create_animated_rank_trend(st.session_state.matches_df)
+              if fig:
+                  st.plotly_chart(fig, use_container_width=True)
+              else:
+                  st.info("Not enough data to display rank trends.")
+
+            
+            #------End of Animated chart------------------
             # Most Effective Partnership
             st.markdown("### 🤝 Most Effective Partnership")
             best_partner = None
