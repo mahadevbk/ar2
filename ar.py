@@ -3125,7 +3125,8 @@ with tabs[2]:
         st.markdown(badges_list_html, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.header("Detailed explanation of Player insights uploaded at https://github.com/mahadevbk/ar2/blob/main/Player%20insights.pdf")
+    st.header("Detailed explanation of Player insights")
+    st.markdown("https://github.com/mahadevbk/ar2/blob/main/Player%20insights.pdf")
 
 
 
