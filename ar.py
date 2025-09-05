@@ -1007,6 +1007,17 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 best_win_percent = (best_stats['wins'] / best_stats['matches'] * 100) if best_stats['matches'] > 0 else 0
                 best_partner_str = f"{best_partner_name} ({best_win_percent:.1f}% Win Rate)"
 
+        # --- Badges HTML ---
+        badges = player_data["Badges"]
+        badges_html = ""
+        if badges:
+            badges_html = (
+                "<span class='badges-col' style='display: block; margin-top: 6px;'>"
+                "<span style='font-weight:bold; color:#bbbbbb;'>Badges: </span>"
+                + " ".join([f"<span style='background:#fff500; color:#031827; padding:2px 6px; border-radius:6px; margin-right:4px;'>{b}</span>" for b in badges])
+                + "</span>"
+            )
+
         # --- Unique key to avoid StreamlitDuplicateElementKey ---
         unique_id = f"{key_prefix}_{idx}"
 
@@ -1052,9 +1063,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             clutch_factor = player_data["Clutch Factor"]
             consistency_index = player_data["Consistency Index"]
-            badges = player_data["Badges"]
 
-            # --- Detailed Stats Display ---
             st.markdown(f"""
             <div style="line-height: 2;">
                 <span class="games-won-col" style="display: block;">Games Won: {int(player_data['Games Won'])}</span>
@@ -1075,16 +1084,16 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <span class="best-partner-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Most Effective Partner (All Time): </span>{best_partner_str}
                 </span>
-                <span class="badges-col" style="display: block; margin-top: 6px;">
-                    <span style='font-weight:bold; color:#bbbbbb;'>Badges: </span>
-                    {" ".join([f"<span style='background:#fff500; color:#031827; padding:2px 6px; border-radius:6px; margin-right:4px;'>{b}</span>" for b in badges])}
-                </span>
+                {badges_html}
             </div>
             """, unsafe_allow_html=True)
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-      
+
+
+
+
 
 
 
