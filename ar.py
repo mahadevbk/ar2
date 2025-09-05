@@ -896,6 +896,11 @@ def create_trend_chart(trend):
 
 
 
+import streamlit as st
+import pandas as pd
+import re
+from datetime import datetime
+
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -958,7 +963,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
     singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
-    # CSS for tooltips
+    # CSS for tooltips and badges list
     tooltip_css = """
     <style>
     .badge-container {
@@ -988,10 +993,37 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         visibility: visible;
         opacity: 1;
     }
+    .badges-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .badge-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .badge-item span.badge {
+        background: #fff500;
+        color: #031827;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    .badge-item span.description {
+        color: #bbbbbb;
+        font-size: 14px;
+    }
     @media (max-width: 600px) {
         .badge-tooltip {
             width: 150px;
             font-size: 10px;
+        }
+        .badge-item span.badge {
+            font-size: 12px;
+        }
+        .badge-item span.description {
+            font-size: 12px;
         }
     }
     </style>
@@ -1146,6 +1178,18 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
 
+    # --- All Badges Expander ---
+    with st.expander("View All Badges", expanded=False, icon="➡️"):
+        badges_list_html = "<div class='badges-list-container'>"
+        for badge, description in badge_explanations.items():
+            badges_list_html += (
+                f"<div class='badge-item'>"
+                f"<span class='badge'>{badge}</span>"
+                f"<span class='description'>{description}</span>"
+                f"</div>"
+            )
+        badges_list_html += "</div>"
+        st.markdown(badges_list_html, unsafe_allow_html=True)
 
 
 
