@@ -1907,19 +1907,23 @@ def plot_player_rank_timeline(timeline_df, player_name):
     )
 
     # Add annotations for result (W/L/T) next to markers
+    
     for i, r in plot_df.iterrows():
-        if pd.notna(r['RankNum']):
-            fig.add_annotation(
-                x=r['DisplayX'],
-                y=r['RankNum'],
-                text=str(r['Result']),
-                showarrow=True,
-                arrowhead=1,
-                ax=0,
-                ay=-20,
-                font=dict(color='#ffffff'),
-                bgcolor='#11111188'
-            )
+    if pd.notna(r['RankNum']):
+        fig.add_annotation(
+            x=r['DisplayX'],
+            y=r['RankNum'],
+            text=str(r['Result']),
+            showarrow=True,
+            arrowhead=1,
+            ax=0,
+            ay=-20,
+            font=dict(color='#ffffff'),
+            bgcolor='rgba(17,17,17,0.5)'  # fixed color format
+        )
+
+    
+       
 
     # Visuals: put #1 at top
     max_rank = int(np.nanmax(plot_df['RankNum'].values)) if plot_df['RankNum'].notna().any() else 10
