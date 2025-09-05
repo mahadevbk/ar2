@@ -38,6 +38,7 @@ import urllib.parse
 import requests
 import random
 import numpy as np
+import uuid
 
 
 
@@ -2943,6 +2944,8 @@ with tabs[1]:
 
 # Player Profile tab
 
+
+
 with tabs[2]:
     st.header("Player Profile")
     with st.expander("Add, Edit or Remove Player", expanded=False, icon="➡️"):
@@ -3048,11 +3051,6 @@ with tabs[2]:
 
     st.markdown("---")
     st.header("Player Insights")
-    rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
-    if players:
-        display_player_insights(players, st.session_state.players_df, st.session_state.matches_df, rank_df_combined, partner_stats_combined, key_prefix="profile_")
-    else:
-        st.info("No players available for insights. Please add players above.")
 
     # --- CSS for Badges List ---
     badges_css = """
@@ -3090,7 +3088,7 @@ with tabs[2]:
     """
     st.markdown(badges_css, unsafe_allow_html=True)
 
-    # --- All Badges Expander ---
+    # --- Badge Explanations ---
     badge_explanations = {
         "🎯 Tie-Break Monster": "Dominates tie-breaks with the most wins",
         "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
@@ -3100,6 +3098,18 @@ with tabs[2]:
         "🏃 IronMan": "Played the most matches without missing a session",
         "🐷 Game Hog": "Played the highest number of games in a single match"
     }
+
+    # --- Player Insights ---
+    rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
+    if players:
+        display_player_insights(players, st.session_state.players_df, st.session_state.matches_df, rank_df_combined, partner_stats_combined, key_prefix="profile_")
+    else:
+        st.info("No players available for insights. Please add players above.")
+
+    # --- Debugging Output ---
+    st.write("Debug: Rendering 'View All Badges' expander")  # Debugging to confirm expander is reached
+
+    # --- All Badges Expander ---
     with st.expander("View All Badges", expanded=False, icon="➡️"):
         badges_list_html = "<div class='badges-list-container'>"
         for badge, description in badge_explanations.items():
