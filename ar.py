@@ -3109,7 +3109,7 @@ with tabs[2]:
     # --- Debugging Output ---
     #st.write("Debug: Rendering 'View All Badges' expander")  # Debugging to confirm expander is reached
     st.markdown("---")
-    st.main("Explanation of Badges : ")
+    st.header("Explanation of Badges : ")
 
     # --- All Badges Expander ---
     with st.expander("View All Badges", expanded=False, icon="➡️"):
