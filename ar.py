@@ -1772,7 +1772,7 @@ def get_match_verb_and_gda(row):
 def create_animated_rank_trend(matches_df):
     """
     Animated line chart: rank trend of all active players over time.
-    Each frame extends the line, so you see progression.
+    Each frame shows cumulative rank history up to that match step.
     """
     if matches_df.empty or "date" not in matches_df:
         return None
@@ -1782,32 +1782,18 @@ def create_animated_rank_trend(matches_df):
     matches_df["date"] = pd.to_datetime(matches_df["date"], errors="coerce")
     matches_df = matches_df.dropna(subset=["date"]).sort_values("date")
 
-    # All active players
-    all_players = pd.unique(
-        matches_df[
-            ["team1_player1", "team1_player2", "team2_player1", "team2_player2"]
-        ].values.ravel("K")
-    )
-    all_players = [p for p in all_players if pd.notna(p) and p not in ["", "Visitor"]]
-
+    # Collect rank snapshots
     rank_history = []
-
-    # Step through matches in order
     for i, d in enumerate(matches_df["date"].unique(), start=1):
         subset = matches_df[matches_df["date"] <= d]
         rank_df, _ = calculate_rankings(subset)
-
         if rank_df.empty:
             continue
 
-        # Extract numeric rank
         rank_df = rank_df.copy()
-        rank_df["RankNum"] = (
-            rank_df["Rank"].astype(str).str.extract(r"(\d+)").astype(float)
-        )
+        rank_df["RankNum"] = rank_df["Rank"].astype(str).str.extract(r"(\d+)").astype(float)
         rank_df["Date"] = pd.to_datetime(d)
         rank_df["MatchStep"] = i
-
         rank_history.append(rank_df[["Date", "MatchStep", "Player", "RankNum"]])
 
     if not rank_history:
@@ -1815,27 +1801,25 @@ def create_animated_rank_trend(matches_df):
 
     history_df = pd.concat(rank_history, ignore_index=True)
 
-    # --- Fill forward so lines extend instead of blinking ---
-    # Make a complete grid: every player × every step
-    steps = history_df["MatchStep"].unique()
-    full_index = pd.MultiIndex.from_product([steps, all_players], names=["MatchStep", "Player"])
-    history_df = history_df.set_index(["MatchStep", "Player"]).reindex(full_index).reset_index()
+    # --- Trick: duplicate rows so each frame has *all past data* ---
+    cumulative_frames = []
+    for step in sorted(history_df["MatchStep"].unique()):
+        past = history_df[history_df["MatchStep"] <= step].copy()
+        past["Frame"] = step
+        cumulative_frames.append(past)
 
-    # Forward-fill rank across steps so lines persist
-    history_df["RankNum"] = history_df.groupby("Player")["RankNum"].ffill()
-    # Carry Date from MatchStep (take max date seen for that step)
-    date_map = history_df.dropna(subset=["Date"]).drop_duplicates("MatchStep")[["MatchStep", "Date"]]
-    history_df = history_df.drop(columns="Date").merge(date_map, on="MatchStep", how="left")
+    anim_df = pd.concat(cumulative_frames, ignore_index=True)
 
     # --- Animated line chart ---
     fig = px.line(
-        history_df,
+        anim_df,
         x="Date",
         y="RankNum",
         color="Player",
-        animation_frame="MatchStep",   # now frames extend lines
+        animation_frame="Frame",
         animation_group="Player",
         title="Animated Rank Trend Over Time",
+        markers=True,
     )
 
     # Put rank 1 at top
