@@ -895,6 +895,8 @@ def create_trend_chart(trend):
 
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     from datetime import datetime
+    import re
+
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
     selected_players = [p for p in selected_players if p != "Visitor"]
@@ -956,7 +958,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
     singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
-    for player in sorted(active_players):
+    for idx, player in enumerate(sorted(active_players)):
         player_info = players_df[players_df["name"] == player].iloc[0]
         player_data = rank_df[rank_df["Player"] == player].iloc[0]
 
@@ -1005,7 +1007,9 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 best_win_percent = (best_stats['wins'] / best_stats['matches'] * 100) if best_stats['matches'] > 0 else 0
                 best_partner_str = f"{best_partner_name} ({best_win_percent:.1f}% Win Rate)"
 
-        
+        # --- Unique key to avoid StreamlitDuplicateElementKey ---
+        unique_id = f"{key_prefix}_{idx}"
+
         # --- Updated Card Layout ---
         st.markdown("---")
 
@@ -1015,7 +1019,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             <span style="font-weight: bold; color: #bbbbbb; font-size: 1.1em;">
                 Rank: <span style="color: #fff500;">#{rank_display}</span>
             </span>
-            {f' | <span style="font-weight: bold; color: #bbbbbb; font-size: 1.1em;">🎂 Birthday: <span style="color: #fff500;">{birthday_str}</span></span>' if birthday_str else ''}
+            {f' | <span style="font-weight: bold; color:#bbbbbb; font-size: 1.1em;">🎂 Birthday: <span style="color: #fff500;">{birthday_str}</span></span>' if birthday_str else ''}
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
@@ -1029,14 +1033,15 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                st.plotly_chart(win_loss_chart, width='stretch', key=f"{key_prefix}_win_loss_{player}")
+                st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{unique_id}_win_loss")
 
             st.markdown("##### Recent Trend")
             trend_chart = create_trend_chart(trend)
             if trend_chart:
-                st.plotly_chart(trend_chart, width='stretch', key=f"{key_prefix}_trend_{player}")
+                st.plotly_chart(trend_chart, use_container_width=True, key=f"{unique_id}_trend")
             else:
                 st.markdown("No recent matches")
+
             st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
 
         with col2:  # Right column for stats
@@ -1052,9 +1057,9 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             # --- Detailed Stats Display ---
             st.markdown(f"""
             <div style="line-height: 2;">
-                <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
-                <span class="game-diff-avg-col" style="display: block;">{player_data['Game Diff Avg']:.2f}</span>
-                <span class="cumulative-game-diff-col" style="display: block;">{int(player_data['Cumulative Game Diff'])}</span>
+                <span class="games-won-col" style="display: block;">Games Won: {int(player_data['Games Won'])}</span>
+                <span class="game-diff-avg-col" style="display: block;">Game Diff Avg: {player_data['Game Diff Avg']:.2f}</span>
+                <span class="cumulative-game-diff-col" style="display: block;">Cumulative Game Diff: {int(player_data['Cumulative Game Diff'])}</span>
                 <span class="performance-score-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
                     <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
@@ -1079,7 +1084,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-
       
 
 
