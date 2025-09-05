@@ -2942,9 +2942,9 @@ with tabs[1]:
 #----------------END OF TAB[1]-----------------------------------------------------------
 
 # Player Profile tab
+
 with tabs[2]:
     st.header("Player Profile")
-    #st.subheader("Add or Edit Player Profiles")
     with st.expander("Add, Edit or Remove Player", expanded=False, icon="➡️"):
         st.markdown("##### Add New Player")
         new_player = st.text_input("Player Name", key="new_player_input").strip()
@@ -3004,7 +3004,6 @@ with tabs[2]:
                         st.success(f"Profile for {selected_player_manage} updated.")
                         st.rerun()
                 with col_delete:
-                    #if st.button("Remove Player", key=f"remove_player_{selected_player_manage}"):
                     if st.button("Remove Player", key=f"remove_player_{selected_player_manage}"):
                         if selected_player_manage.lower() == "visitor":
                             st.warning("The 'Visitor' player cannot be removed.")
@@ -3019,7 +3018,6 @@ with tabs[2]:
                         with col_confirm:
                             if st.button("Confirm Deletion", key=f"confirm_delete_btn_{selected_player_manage}"):
                                 if confirm_text == selected_player_manage:
-                                    # Check for associated matches and replace with "Visitor"
                                     matches_mask = (
                                         (st.session_state.matches_df["team1_player1"] == selected_player_manage) |
                                         (st.session_state.matches_df["team1_player2"] == selected_player_manage) |
@@ -3034,8 +3032,6 @@ with tabs[2]:
                                         save_matches(st.session_state.matches_df)
                                         load_matches()
                                         st.info(f"Replaced {selected_player_manage} with 'Visitor' in associated matches.")
-
-                                    # Proceed to delete the player
                                     delete_player_from_db(selected_player_manage)
                                     st.session_state.players_df = st.session_state.players_df[st.session_state.players_df["name"] != selected_player_manage].reset_index(drop=True)
                                     save_players(st.session_state.players_df)
@@ -3058,9 +3054,52 @@ with tabs[2]:
     else:
         st.info("No players available for insights. Please add players above.")
 
-
+    # --- CSS for Badges List ---
+    badges_css = """
+    <style>
+    .badges-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .badge-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .badge-item span.badge {
+        background: #fff500;
+        color: #031827;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    .badge-item span.description {
+        color: #bbbbbb;
+        font-size: 14px;
+    }
+    @media (max-width: 600px) {
+        .badge-item span.badge {
+            font-size: 12px;
+        }
+        .badge-item span.description {
+            font-size: 12px;
+        }
+    }
+    </style>
+    """
+    st.markdown(badges_css, unsafe_allow_html=True)
 
     # --- All Badges Expander ---
+    badge_explanations = {
+        "🎯 Tie-Break Monster": "Dominates tie-breaks with the most wins",
+        "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
+        "🏅 Comeback Kid": "Won a match after being down by a set",
+        "⚡ Clutch Master": "High clutch factor in critical points",
+        "🛡️ Iron Defense": "Conceded the fewest games on average",
+        "🏃 IronMan": "Played the most matches without missing a session",
+        "🐷 Game Hog": "Played the highest number of games in a single match"
+    }
     with st.expander("View All Badges", expanded=False, icon="➡️"):
         badges_list_html = "<div class='badges-list-container'>"
         for badge, description in badge_explanations.items():
@@ -3073,16 +3112,24 @@ with tabs[2]:
         badges_list_html += "</div>"
         st.markdown(badges_list_html, unsafe_allow_html=True)
 
-
-
     st.markdown("---")
-
-
-    st.markdown("Detailed Player insights uploaded at https://github.com/mahadevbk/ar2/blob/main/Player%20insights.pdf ")
-
+    st.markdown("Detailed Player insights uploaded at https://github.com/mahadevbk/ar2/blob/main/Player%20insights.pdf")
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+#-----------------------end of TAB 2 ----------------------------------------------------------------
 
 with tabs[3]:
     st.header("Court Locations")
