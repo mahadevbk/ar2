@@ -963,7 +963,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
     singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
-    # CSS for tooltips and badges list
+    # CSS for tooltips
     tooltip_css = """
     <style>
     .badge-container {
@@ -993,37 +993,10 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         visibility: visible;
         opacity: 1;
     }
-    .badges-list-container {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    .badge-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .badge-item span.badge {
-        background: #fff500;
-        color: #031827;
-        padding: 2px 6px;
-        border-radius: 6px;
-        font-size: 14px;
-    }
-    .badge-item span.description {
-        color: #bbbbbb;
-        font-size: 14px;
-    }
     @media (max-width: 600px) {
         .badge-tooltip {
             width: 150px;
             font-size: 10px;
-        }
-        .badge-item span.badge {
-            font-size: 12px;
-        }
-        .badge-item span.description {
-            font-size: 12px;
         }
     }
     </style>
@@ -1177,7 +1150,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-
 
 
 
