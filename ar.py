@@ -374,7 +374,10 @@ def save_players(players_df):
         
         # Replace NaN with None for JSON compliance before saving
         players_df_to_save = players_df_to_save.where(pd.notna(players_df_to_save), None)
-
+        
+        # Remove duplicates based on 'name', keeping the last entry
+        players_df_to_save = players_df_to_save.drop_duplicates(subset=['name'], keep='last')
+        
         supabase.table(players_table_name).upsert(players_df_to_save.to_dict("records")).execute()
     except Exception as e:
         st.error(f"Error saving players: {str(e)}")
