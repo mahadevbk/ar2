@@ -893,10 +893,12 @@ def create_trend_chart(trend):
 
 
 
-def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
-    from datetime import datetime
-    import re
+import streamlit as st
+import pandas as pd
+import re
+from datetime import datetime
 
+def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
     selected_players = [p for p in selected_players if p != "Visitor"]
@@ -958,6 +960,46 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
     doubles_rank_df, _ = calculate_rankings(doubles_matches_df)
     singles_rank_df, _ = calculate_rankings(singles_matches_df)
 
+    # CSS for tooltips
+    tooltip_css = """
+    <style>
+    .badge-container {
+        position: relative;
+        display: inline-block;
+        margin-right: 4px;
+    }
+    .badge-tooltip {
+        visibility: hidden;
+        width: 200px;
+        background-color: rgba(255, 255, 255, 0.9);
+        color: #031827;
+        text-align: center;
+        border-radius: 6px;
+        padding: 8px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .badge-container:hover .badge-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+    @media (max-width: 600px) {
+        .badge-tooltip {
+            width: 150px;
+            font-size: 10px;
+        }
+    }
+    </style>
+    """
+    st.markdown(tooltip_css, unsafe_allow_html=True)
+
     for idx, player in enumerate(sorted(active_players)):
         player_info = players_df[players_df["name"] == player].iloc[0]
         player_data = rank_df[rank_df["Player"] == player].iloc[0]
@@ -1007,14 +1049,27 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 best_win_percent = (best_stats['wins'] / best_stats['matches'] * 100) if best_stats['matches'] > 0 else 0
                 best_partner_str = f"{best_partner_name} ({best_win_percent:.1f}% Win Rate)"
 
-        # --- Badges HTML ---
+        # --- Badges HTML with Hover Tooltips ---
+        badge_explanations = {
+            "🎯 Tie-break Monster": "Won the most tie-breaks in matches",
+            "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
+            "🏅 Comeback Kid": "Won a match after being down by a set",
+            "⚡ Clutch Master": "High clutch factor in critical points",
+            "🛡️ Iron Defense": "Conceded the fewest games on average"
+        }
         badges = player_data["Badges"]
         badges_html = ""
         if badges:
             badges_html = (
                 "<span class='badges-col' style='display: block; margin-top: 6px;'>"
                 "<span style='font-weight:bold; color:#bbbbbb;'>Badges: </span>"
-                + " ".join([f"<span style='background:#fff500; color:#031827; padding:2px 6px; border-radius:6px; margin-right:4px;'>{b}</span>" for b in badges])
+                + " ".join([
+                    f"<span class='badge-container'>"
+                    f"<span style='background:#fff500; color:#031827; padding:2px 6px; border-radius:6px;'>{b}</span>"
+                    f"<span class='badge-tooltip'>{badge_explanations.get(b, 'No description available')}</span>"
+                    f"</span>"
+                    for b in badges
+                ])
                 + "</span>"
             )
 
@@ -1030,7 +1085,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             <span style="font-weight: bold; color: #bbbbbb; font-size: 1.1em;">
                 Rank: <span style="color: #fff500;">#{rank_display}</span>
             </span>
-            {f' | <span style="font-weight: bold; color:#bbbbbb; font-size: 1.1em;">🎂 Birthday: <span style="color: #fff500;">{birthday_str}</span></span>' if birthday_str else ''}
+            {f' | <span style="font-weight:bold; color:#bbbbbb; font-size: 1.1em;">🎂 Birthday: <span style="color: #fff500;">{birthday_str}</span></span>' if birthday_str else ''}
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
@@ -1090,7 +1145,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-
 
 
 
