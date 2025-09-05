@@ -758,7 +758,7 @@ def calculate_rankings(matches_to_rank):
         # --- BADGES ---
         badges = []
         if clutch_factor > 70 and clutch_matches[player] >= 3:
-            badges.append("🎯 Tie-break King/Queen")
+            badges.append("🎯 Tie-break Monster")
         if wins[player] >= 5 and player_trend.startswith("W W W W W"):
             badges.append("🔥 Hot Streak")
         if consistency_index < 2 and matches_played[player] >= 5:
