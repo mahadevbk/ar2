@@ -3107,7 +3107,9 @@ with tabs[2]:
         st.info("No players available for insights. Please add players above.")
 
     # --- Debugging Output ---
-    st.write("Debug: Rendering 'View All Badges' expander")  # Debugging to confirm expander is reached
+    #st.write("Debug: Rendering 'View All Badges' expander")  # Debugging to confirm expander is reached
+    st.markdown("---")
+    st.main("Explanation of Badges : ")
 
     # --- All Badges Expander ---
     with st.expander("View All Badges", expanded=False, icon="➡️"):
