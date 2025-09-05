@@ -3089,7 +3089,7 @@ with tabs[2]:
 
 
     # --- All Badges Expander ---
-    st.expander("View All Badges", expanded=False, icon="➡️"):
+    with st.expander("View All Badges", expanded=False, icon="➡️"):
         badges_list_html = "<div class='badges-list-container'>"
         for badge, description in badge_explanations.items():
             badges_list_html += (
