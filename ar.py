@@ -37,6 +37,7 @@ from datetime import datetime
 import urllib.parse
 import requests
 import random
+import numpy as np
 
 
 
@@ -1767,75 +1768,130 @@ def get_match_verb_and_gda(row):
 
 
 
-# import plotly.express as px
 
-def create_animated_rank_trend(matches_df):
+
+def create_animated_rank_trend(matches_df, debug=False):
     """
-    Animated line chart: rank trend of all active players over time.
-    Each frame shows cumulative rank history up to that match step.
+    Robust animated rank trend (match-by-match). Returns a Plotly figure or None.
+    - Each frame = after match step N
+    - Lines grow progressively (each frame contains full history up to that step)
+    - Ranks are computed from calculate_rankings(subset)
     """
-    if matches_df.empty or "date" not in matches_df:
+    if matches_df is None or matches_df.empty or "date" not in matches_df:
+        if debug: st.info("No matches or missing 'date' column.")
         return None
 
-    # Clean and sort by date
-    matches_df = matches_df.copy()
-    matches_df["date"] = pd.to_datetime(matches_df["date"], errors="coerce")
-    matches_df = matches_df.dropna(subset=["date"]).sort_values("date")
+    # Make a clean copy
+    df = matches_df.copy()
 
-    # Collect rank snapshots
-    rank_history = []
-    for i, d in enumerate(matches_df["date"].unique(), start=1):
-        subset = matches_df[matches_df["date"] <= d]
+    # Ensure match id exists and deterministic ordering
+    if "match_id" not in df.columns:
+        df = df.reset_index().rename(columns={"index": "match_id"})
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"]).sort_values(["date", "match_id"]).reset_index(drop=True)
+
+    if df.empty:
+        if debug: st.info("No valid dated matches after cleaning.")
+        return None
+
+    # All active players seen in the dataset (exclude Visitor / blank)
+    player_cols = ["team1_player1", "team1_player2", "team2_player1", "team2_player2"]
+    present_cols = [c for c in player_cols if c in df.columns]
+    all_players = pd.unique(df[present_cols].values.ravel("K"))
+    all_players = [p for p in all_players if pd.notna(p) and str(p).strip() and p != "Visitor"]
+    if not all_players:
+        if debug: st.info("No players found in match columns.")
+        return None
+
+    # Step through matches in order and capture rank snapshots after each match
+    step_snapshots = []  # list of DataFrames for each step
+    for step_idx in range(len(df)):
+        # subset = matches up to and including current row
+        subset = df.iloc[: step_idx + 1].copy()
+        # calculate_rankings uses session state players_df — it expects the same structure
         rank_df, _ = calculate_rankings(subset)
-        if rank_df.empty:
-            continue
 
-        rank_df = rank_df.copy()
-        rank_df["RankNum"] = rank_df["Rank"].astype(str).str.extract(r"(\d+)").astype(float)
-        rank_df["Date"] = pd.to_datetime(d)
-        rank_df["MatchStep"] = i
-        rank_history.append(rank_df[["Date", "MatchStep", "Player", "RankNum"]])
+        # Reset index and create a rank map based on ordering (1 = top)
+        rank_map = {}
+        if not rank_df.empty:
+            rank_df = rank_df.reset_index(drop=True)
+            rank_map = {row["Player"]: idx + 1 for idx, row in rank_df.iterrows()}
 
-    if not rank_history:
+        # Build snapshot rows for ALL players (so every player appears at every step)
+        step_date = pd.to_datetime(df.at[step_idx, "date"])
+        step_id = df.at[step_idx, "match_id"]
+        rows = []
+        for p in all_players:
+            rows.append({
+                "Frame": step_idx + 1,
+                "Step": step_idx + 1,
+                "MatchID": step_id,
+                "Date": step_date,
+                "Player": p,
+                "RankNum": rank_map.get(p, np.nan)
+            })
+        step_snapshots.append(pd.DataFrame(rows))
+
+    if not step_snapshots:
+        if debug: st.info("No snapshots were produced.")
         return None
 
-    history_df = pd.concat(rank_history, ignore_index=True)
+    # Concatenate snapshots so each snapshot is one "step" (only that step's ranks)
+    history = pd.concat(step_snapshots, ignore_index=True)
 
-    # --- Trick: duplicate rows so each frame has *all past data* ---
+    # Build cumulative frames: for each frame N, include all rows from steps 1..N
     cumulative_frames = []
-    for step in sorted(history_df["MatchStep"].unique()):
-        past = history_df[history_df["MatchStep"] <= step].copy()
-        past["Frame"] = step
+    unique_frames = sorted(history["Frame"].unique())
+    for f in unique_frames:
+        past = history[history["Frame"] <= f].copy()
+        past["AnimFrame"] = f   # the animation frame index
         cumulative_frames.append(past)
-
     anim_df = pd.concat(cumulative_frames, ignore_index=True)
 
-    # --- Animated line chart ---
+    # Sort and forward-fill rank values so the line persists after a player's first appearance
+    anim_df = anim_df.sort_values(["AnimFrame", "Player", "Date"]).reset_index(drop=True)
+    anim_df["RankNum"] = anim_df.groupby("Player")["RankNum"].ffill()
+
+    # Optional debug outputs to inspect the built dataset
+    if debug:
+        st.write("All players:", all_players)
+        st.write("Number of matches (steps):", len(df))
+        st.write("Sample of history (first 40 rows):")
+        st.dataframe(history.head(40))
+        st.write("Sample of anim_df (first 80 rows):")
+        st.dataframe(anim_df.head(80))
+
+    # If after forward-fill there are no numeric values, nothing to plot
+    if anim_df["RankNum"].dropna().empty:
+        if debug: st.info("No rank numbers available after forward-fill.")
+        return None
+
+    # Plotly animated line: each frame contains cumulative data up to that step
     fig = px.line(
         anim_df,
         x="Date",
         y="RankNum",
         color="Player",
-        animation_frame="Frame",
+        animation_frame="AnimFrame",
         animation_group="Player",
-        title="Animated Rank Trend Over Time",
-        markers=True,
+        hover_name="Player",
+        labels={"RankNum": "Rank (1 = top)"},
+        title="Rank Trend Over Time (match-by-match)",
+        markers=True
     )
 
-    # Put rank 1 at top
-    fig.update_yaxes(autorange="reversed", title="Rank (1 = Top)")
+    # Visual polish
+    max_rank = int(np.nanmax(anim_df["RankNum"].values)) if not np.isnan(anim_df["RankNum"].values).all() else 10
+    fig.update_yaxes(autorange="reversed", title="Rank (1 = Top)", range=[max_rank + 0.5, 0.5])
     fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#fff500"),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-        ),
+        margin=dict(t=50, b=20, l=40, r=20),
     )
+    fig.update_traces(mode="lines+markers")
 
     return fig
 
