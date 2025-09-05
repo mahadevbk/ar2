@@ -1178,18 +1178,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
 
-    # --- All Badges Expander ---
-    with st.expander("View All Badges", expanded=False, icon="➡️"):
-        badges_list_html = "<div class='badges-list-container'>"
-        for badge, description in badge_explanations.items():
-            badges_list_html += (
-                f"<div class='badge-item'>"
-                f"<span class='badge'>{badge}</span>"
-                f"<span class='description'>{description}</span>"
-                f"</div>"
-            )
-        badges_list_html += "</div>"
-        st.markdown(badges_list_html, unsafe_allow_html=True)
+
 
 
 
@@ -3096,6 +3085,22 @@ with tabs[2]:
         display_player_insights(players, st.session_state.players_df, st.session_state.matches_df, rank_df_combined, partner_stats_combined, key_prefix="profile_")
     else:
         st.info("No players available for insights. Please add players above.")
+
+
+
+    # --- All Badges Expander ---
+    st.expander("View All Badges", expanded=False, icon="➡️"):
+        badges_list_html = "<div class='badges-list-container'>"
+        for badge, description in badge_explanations.items():
+            badges_list_html += (
+                f"<div class='badge-item'>"
+                f"<span class='badge'>{badge}</span>"
+                f"<span class='description'>{description}</span>"
+                f"</div>"
+            )
+        badges_list_html += "</div>"
+        st.markdown(badges_list_html, unsafe_allow_html=True)
+
 
 
     st.markdown("---")
