@@ -1767,84 +1767,78 @@ def get_match_verb_and_gda(row):
 
 
 
-#  import plotly.express as px
+# import plotly.express as px
 
 def create_animated_rank_trend(matches_df):
     """
-    Animated rank trend over time for all active players.
-    Each frame = after match X.
+    Animated line chart: rank trend of all active players over time.
+    Each frame extends the line, so you see progression.
     """
     if matches_df.empty or "date" not in matches_df:
         return None
 
-    # Clean dates and sort
+    # Clean and sort by date
     matches_df = matches_df.copy()
     matches_df["date"] = pd.to_datetime(matches_df["date"], errors="coerce")
     matches_df = matches_df.dropna(subset=["date"]).sort_values("date")
 
-    # All active players (excluding Visitors/empty)
+    # All active players
     all_players = pd.unique(
         matches_df[
             ["team1_player1", "team1_player2", "team2_player1", "team2_player2"]
         ].values.ravel("K")
     )
-    all_players = [p for p in all_players if pd.notna(p) and p != "" and p != "Visitor"]
+    all_players = [p for p in all_players if pd.notna(p) and p not in ["", "Visitor"]]
 
     rank_history = []
 
-    # Walk match by match (not just date)
-    for i, (mid, d) in enumerate(matches_df[["match_id", "date"]].values, start=1):
+    # Step through matches in order
+    for i, d in enumerate(matches_df["date"].unique(), start=1):
         subset = matches_df[matches_df["date"] <= d]
-        if subset.empty:
-            continue
-
         rank_df, _ = calculate_rankings(subset)
+
         if rank_df.empty:
             continue
 
-        # Clean numeric rank column
+        # Extract numeric rank
         rank_df = rank_df.copy()
         rank_df["RankNum"] = (
             rank_df["Rank"].astype(str).str.extract(r"(\d+)").astype(float)
         )
+        rank_df["Date"] = pd.to_datetime(d)
+        rank_df["MatchStep"] = i
 
-        # Guarantee all players appear
-        for player in all_players:
-            row = rank_df[rank_df["Player"] == player]
-            if not row.empty:
-                rank_val = row["RankNum"].iloc[0]
-            else:
-                rank_val = None  # no matches yet
-            rank_history.append(
-                {
-                    "MatchStep": i,
-                    "MatchID": mid,
-                    "Date": pd.to_datetime(d),
-                    "Player": player,
-                    "RankNum": rank_val,
-                }
-            )
+        rank_history.append(rank_df[["Date", "MatchStep", "Player", "RankNum"]])
 
     if not rank_history:
         return None
 
-    history_df = pd.DataFrame(rank_history)
+    history_df = pd.concat(rank_history, ignore_index=True)
 
-    # --- Debug tip: print to Streamlit ---
-    # st.write("Rank history sample:", history_df.head(20))
+    # --- Fill forward so lines extend instead of blinking ---
+    # Make a complete grid: every player × every step
+    steps = history_df["MatchStep"].unique()
+    full_index = pd.MultiIndex.from_product([steps, all_players], names=["MatchStep", "Player"])
+    history_df = history_df.set_index(["MatchStep", "Player"]).reindex(full_index).reset_index()
 
-    # Animated line chart
+    # Forward-fill rank across steps so lines persist
+    history_df["RankNum"] = history_df.groupby("Player")["RankNum"].ffill()
+    # Carry Date from MatchStep (take max date seen for that step)
+    date_map = history_df.dropna(subset=["Date"]).drop_duplicates("MatchStep")[["MatchStep", "Date"]]
+    history_df = history_df.drop(columns="Date").merge(date_map, on="MatchStep", how="left")
+
+    # --- Animated line chart ---
     fig = px.line(
         history_df,
         x="Date",
         y="RankNum",
         color="Player",
-        animation_frame="MatchStep",   # must be column, not index
+        animation_frame="MatchStep",   # now frames extend lines
         animation_group="Player",
         title="Animated Rank Trend Over Time",
-        markers=True,
     )
 
+    # Put rank 1 at top
     fig.update_yaxes(autorange="reversed", title="Rank (1 = Top)")
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
