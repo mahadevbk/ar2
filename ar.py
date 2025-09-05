@@ -41,6 +41,7 @@ import numpy as np
 
 
 
+
 # Set the page title
 st.set_page_config(page_title="AR Tennis")
 
@@ -893,10 +894,7 @@ def create_trend_chart(trend):
 
 
 
-import streamlit as st
-import pandas as pd
-import re
-from datetime import datetime
+
 
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
@@ -1051,11 +1049,13 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
         # --- Badges HTML with Hover Tooltips ---
         badge_explanations = {
-            "🎯 Tie-break Monster": "Won the most tie-breaks in matches",
+            "🎯 Tie-Break Monster": "Dominates tie-breaks with the most wins",
             "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
             "🏅 Comeback Kid": "Won a match after being down by a set",
             "⚡ Clutch Master": "High clutch factor in critical points",
-            "🛡️ Iron Defense": "Conceded the fewest games on average"
+            "🛡️ Iron Defense": "Conceded the fewest games on average",
+            "🏃 IronMan": "Played the most matches without missing a session",
+            "🐷 Game Hog": "Played the highest number of games in a single match"
         }
         badges = player_data["Badges"]
         badges_html = ""
@@ -1145,7 +1145,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-
 
 
 
