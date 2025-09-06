@@ -2804,7 +2804,7 @@ with tabs[1]:
     
     #------Updated Manage existing match to address error wile deletion
 
-    st.markdown("---")
+    #st.markdown("---")
     st.subheader("✏️ Manage Existing Matches")
     if 'edit_match_key' not in st.session_state:
         st.session_state.edit_match_key = 0
