@@ -39,7 +39,7 @@ import requests
 import random
 import numpy as np
 import uuid
-
+import base64 
 
 
 
@@ -544,6 +544,76 @@ def upload_image_to_supabase(file, file_name, image_type="match"):
     else:
         # Fallback for any other unexpected image types
         return f"{base_url}others/{file_name}"
+
+
+
+
+# NEW FUNCTION: Replace your old upload_image_to_supabase function with this one.
+def upload_image_to_github(file, file_name, image_type="match"):
+    """
+    Uploads a file to a specified folder in a GitHub repository and returns its public URL.
+    """
+    if not file:
+        return ""
+
+    # --- Load credentials from Streamlit secrets ---
+    try:
+        token = st.secrets["github"]["token"]
+        repo_full_name = st.secrets["github"]["repo"]
+        branch = st.secrets["github"]["branch"]
+    except KeyError:
+        st.error("GitHub credentials are not set in st.secrets. Please check your secrets.toml file.")
+        return ""
+
+    # --- Determine the path in the repository ---
+    if image_type == "profile":
+        # For profiles, the file_name already contains the unique part
+        path_in_repo = f"assets/players/{file_name}.jpg"
+    elif image_type == "match":
+        # For matches, file_name is the match_id
+        path_in_repo = f"assets/matches/{file_name}.jpg"
+    elif image_type == "booking":
+        # For bookings, file_name is the booking_id
+        path_in_repo = f"assets/bookings/{file_name}.jpg"
+    else:
+        path_in_repo = f"assets/others/{file_name}.jpg"
+
+    # --- Prepare the file and API request ---
+    api_url = f"https://api.github.com/repos/{repo_full_name}/contents/{path_in_repo}"
+
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+
+    # Read file content and encode it in base64
+    content_bytes = file.getvalue()
+    content_base64 = base64.b64encode(content_bytes).decode("utf-8")
+
+    payload = {
+        "message": f"feat: Upload {image_type} image {file_name}",
+        "branch": branch,
+        "content": content_base64,
+    }
+
+    # --- Make the API call to upload the file ---
+    try:
+        response = requests.put(api_url, headers=headers, json=payload)
+        response.raise_for_status() # Raises an exception for bad status codes (4xx or 5xx)
+
+        # If successful, construct the public raw URL
+        st.success(f"Image '{file_name}.jpg' uploaded to GitHub successfully!")
+        return f"https://raw.githubusercontent.com/{repo_full_name}/{branch}/{path_in_repo}"
+
+    except requests.exceptions.HTTPError as e:
+        st.error(f"GitHub API Error: Failed to upload image. Status Code: {e.response.status_code}")
+        st.error(f"Response: {e.response.text}")
+        return "" # Return empty string on failure
+    except Exception as e:
+        st.error(f"An unexpected error occurred during image upload: {str(e)}")
+        return ""
+
+
         
 def tennis_scores():
     scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"]
