@@ -678,8 +678,13 @@ def calculate_rankings(matches_to_rank):
 
                 if is_tie_break:
                     is_clutch_match = True
-                    tie_break_scores = [int(s) for s in str(set_score).replace("Tie Break", "").strip().split('-')]
-                    team1_games, team2_games = (7, 6) if tie_break_scores[0] > tie_break_scores[1] else (6, 7)
+                    tie_break_scores = [int(s) for s in re.findall(r'\d+', str(set_score))]
+                    if len(tie_break_scores) != 2:
+                        continue
+                    team1_games, team2_games = tie_break_scores
+                    # Normalize tie-break games for consistency
+                    team1_games = 7 if team1_games > team2_games else 6
+                    team2_games = 6 if team1_games > team2_games else 7
                 else:
                     team1_games, team2_games = map(int, str(set_score).split('-'))
 
@@ -690,11 +695,14 @@ def calculate_rankings(matches_to_rank):
                 for p in t1:
                     games_won[p] += team1_games
                     cumulative_game_diff[p] += team1_set_diff
+                    game_diffs[p].append(team1_set_diff)
                 for p in t2:
                     games_won[p] += team2_games
                     cumulative_game_diff[p] += team2_set_diff
+                    game_diffs[p].append(team2_set_diff)
 
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
+                st.warning(f"Skipping invalid set score {set_score} in match {row.get('match_id', 'unknown')}: {str(e)}")
                 continue
 
         if row['set3'] and str(row['set3']).strip():
@@ -703,55 +711,90 @@ def calculate_rankings(matches_to_rank):
         # --- results ---
         if row["winner"] == "Team 1":
             for p in t1:
-                scores[p] += 3; wins[p] += 1; matches_played[p] += 1
-                if is_clutch_match: clutch_wins[p] += 1; clutch_matches[p] += 1
-                if match_type == 'Doubles': doubles_matches[p] += 1
-                else: singles_matches[p] += 1
-                game_diffs[p].append(match_gd_sum)
+                scores[p] += 3
+                wins[p] += 1
+                matches_played[p] += 1
+                if is_clutch_match:
+                    clutch_wins[p] += 1
+                    clutch_matches[p] += 1
+                if match_type == 'Doubles':
+                    doubles_matches[p] += 1
+                else:
+                    singles_matches[p] += 1
             for p in t2:
-                scores[p] += 1; losses[p] += 1; matches_played[p] += 1
-                if is_clutch_match: clutch_matches[p] += 1
-                if match_type == 'Doubles': doubles_matches[p] += 1
-                else: singles_matches[p] += 1
-                game_diffs[p].append(-match_gd_sum)
+                scores[p] += 1
+                losses[p] += 1
+                matches_played[p] += 1
+                if is_clutch_match:
+                    clutch_matches[p] += 1
+                if match_type == 'Doubles':
+                    doubles_matches[p] += 1
+                else:
+                    singles_matches[p] += 1
         elif row["winner"] == "Team 2":
             for p in t2:
-                scores[p] += 3; wins[p] += 1; matches_played[p] += 1
-                if is_clutch_match: clutch_wins[p] += 1; clutch_matches[p] += 1
-                if match_type == 'Doubles': doubles_matches[p] += 1
-                else: singles_matches[p] += 1
-                game_diffs[p].append(match_gd_sum)
+                scores[p] += 3
+                wins[p] += 1
+                matches_played[p] += 1
+                if is_clutch_match:
+                    clutch_wins[p] += 1
+                    clutch_matches[p] += 1
+                if match_type == 'Doubles':
+                    doubles_matches[p] += 1
+                else:
+                    singles_matches[p] += 1
             for p in t1:
-                scores[p] += 1; losses[p] += 1; matches_played[p] += 1
-                if is_clutch_match: clutch_matches[p] += 1
-                if match_type == 'Doubles': doubles_matches[p] += 1
-                else: singles_matches[p] += 1
-                game_diffs[p].append(-match_gd_sum)
+                scores[p] += 1
+                losses[p] += 1
+                matches_played[p] += 1
+                if is_clutch_match:
+                    clutch_matches[p] += 1
+                if match_type == 'Doubles':
+                    doubles_matches[p] += 1
+                else:
+                    singles_matches[p] += 1
+        elif row["winner"] == "Tie":
+            for p in t1 + t2:
+                scores[p] += 1
+                matches_played[p] += 1
+                if is_clutch_match:
+                    clutch_matches[p] += 1
+                if match_type == 'Doubles':
+                    doubles_matches[p] += 1
+                else:
+                    singles_matches[p] += 1
 
-        # partner stats (unchanged)
+        # partner stats
         if match_type == 'Doubles':
             for p1 in t1:
                 for p2 in t1:
                     if p1 != p2:
                         partner_stats[p1][p2]['matches'] += 1
                         partner_stats[p1][p2]['game_diff_sum'] += match_gd_sum
-                        if row["winner"] == "Team 1": partner_stats[p1][p2]['wins'] += 1
-                        elif row["winner"] == "Team 2": partner_stats[p1][p2]['losses'] += 1
-                        else: partner_stats[p1][p2]['ties'] += 1
+                        if row["winner"] == "Team 1":
+                            partner_stats[p1][p2]['wins'] += 1
+                        elif row["winner"] == "Team 2":
+                            partner_stats[p1][p2]['losses'] += 1
+                        else:
+                            partner_stats[p1][p2]['ties'] += 1
             for p1 in t2:
                 for p2 in t2:
                     if p1 != p2:
                         partner_stats[p1][p2]['matches'] += 1
-                        partner_stats[p1][p2]['game_diff_sum'] -= match_gd_sum
-                        if row["winner"] == "Team 2": partner_stats[p1][p2]['wins'] += 1
-                        elif row["winner"] == "Team 1": partner_stats[p1][p2]['losses'] += 1
-                        else: partner_stats[p1][p2]['ties'] += 1
+                        partner_stats[p1][p2]['game_diff_sum'] += match_gd_sum if row["winner"] == "Team 2" else -match_gd_sum
+                        if row["winner"] == "Team 2":
+                            partner_stats[p1][p2]['wins'] += 1
+                        elif row["winner"] == "Team 1":
+                            partner_stats[p1][p2]['losses'] += 1
+                        else:
+                            partner_stats[p1][p2]['ties'] += 1
 
     # --- build rank dataframe ---
     rank_data = []
     players_df = st.session_state.players_df
     for player in scores:
-        if player == "Visitor": continue
+        if player == "Visitor":
+            continue
         win_percentage = (wins[player] / matches_played[player] * 100) if matches_played[player] > 0 else 0
         game_diff_avg = cumulative_game_diff[player] / matches_played[player] if matches_played[player] > 0 else 0
         profile_image = players_df.loc[players_df["name"] == player, "profile_image_url"].iloc[0] if player in players_df["name"].values else ""
@@ -830,7 +873,6 @@ def calculate_rankings(matches_to_rank):
         rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
 
     return rank_df, partner_stats
-
 
 
 
