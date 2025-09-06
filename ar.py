@@ -525,7 +525,7 @@ def delete_match_from_db(match_id):
     except Exception as e:
         st.error(f"Error deleting match from database: {str(e)}")
 
-#changed storage from supabase to github pages for images. egress issues in supabase!
+#obselete if upload github works 
 
 def upload_image_to_supabase(file, file_name, image_type="match"):
     """
@@ -548,7 +548,7 @@ def upload_image_to_supabase(file, file_name, image_type="match"):
 
 
 
-# NEW FUNCTION: Replace your old upload_image_to_supabase function with this one.
+# NEW FUNCTION: Replacing old upload_image_to_supabase function with this one.
 def upload_image_to_github(file, file_name, image_type="match"):
     """
     Uploads a file to a specified folder in a GitHub repository and returns its public URL.
@@ -2719,7 +2719,7 @@ with tabs[1]:
                         try:
                             match_datetime = pd.to_datetime(date_str)
                             match_id = generate_match_id(st.session_state.matches_df, match_datetime)
-                            image_url = upload_image_to_supabase(uploaded_image, match_id, image_type="match") if uploaded_image else ""
+                            image_url = upload_image_to_github(uploaded_image, match_id, image_type="match") if uploaded_image else ""
                             new_match = {
                                 "match_id": match_id,
                                 "date": match_datetime.isoformat(),
@@ -3051,7 +3051,7 @@ with tabs[1]:
                             try:
                                 image_url_edit = match_row["match_image_url"]
                                 if uploaded_image_edit:
-                                    image_url_edit = upload_image_to_supabase(uploaded_image_edit, match_id, image_type="match")
+                                    image_url_edit = upload_image_to_github(uploaded_image_edit, match_id, image_type="match")
                                 updated_match = {
                                     "match_id": match_id,
                                     "date": pd.to_datetime(date_edit).isoformat(),
@@ -3163,7 +3163,7 @@ with tabs[2]:
                     if st.button("Save Profile Changes", key=f"save_profile_changes_{selected_player_manage}"):
                         image_url = current_image
                         if profile_image:
-                            image_url = upload_image_to_supabase(profile_image, f"profile_{selected_player_manage}_{uuid.uuid4().hex[:6]}", image_type="profile")
+                            image_url = upload_image_to_github(profile_image, f"profile_{selected_player_manage}_{uuid.uuid4().hex[:6]}", image_type="profile")
                         st.session_state.players_df.loc[st.session_state.players_df["name"] == selected_player_manage, "profile_image_url"] = image_url
                         st.session_state.players_df.loc[st.session_state.players_df["name"] == selected_player_manage, "birthday"] = f"{birthday_day:02d}-{birthday_month:02d}"
                         save_players(st.session_state.players_df)
@@ -3487,7 +3487,7 @@ with tabs[4]:
                         st.error("Please select different players for each position.")
                     else:
                         booking_id = str(uuid.uuid4())
-                        screenshot_url = upload_image_to_supabase(screenshot, booking_id, image_type="booking") if screenshot else None
+                        screenshot_url = upload_image_to_github(screenshot, booking_id, image_type="booking") if screenshot else None
                         try:
                             time_24hr = datetime.strptime(time, "%I:%M %p").strftime("%H:%M:%S")
                         except ValueError:
@@ -3859,7 +3859,7 @@ with tabs[4]:
                                 else:
                                     screenshot_url_edit = booking_row["screenshot_url"]
                                     if screenshot_edit:
-                                        screenshot_url_edit = upload_image_to_supabase(screenshot_edit, booking_id, image_type="booking")
+                                        screenshot_url_edit = upload_image_to_github(screenshot_edit, booking_id, image_type="booking")
     
                                     time_24hr_edit = datetime.strptime(time_edit, "%I:%M %p").strftime("%H:%M:%S")
                                     updated_booking = {
