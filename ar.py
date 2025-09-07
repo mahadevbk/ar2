@@ -994,11 +994,6 @@ def create_trend_chart(trend):
 
 
 
-import streamlit as st
-import pandas as pd
-import re
-from datetime import datetime
-
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -1020,7 +1015,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             if birthday and re.match(r'^\d{2}-\d{2}$', birthday):
                 try:
                     day, month = map(int, birthday.split("-"))
-                    birthday_dt = datetime.strptime(f"{day:02d}-{month:02d}-2000", "%d-%m-%Y")
+                    # Use non-leap year (2001) to avoid Feb 29 ambiguity
+                    birthday_dt = datetime(year=2001, month=month, day=day)
                     birthday_data.append({
                         "Player": player,
                         "Birthday": birthday_dt.strftime("%b %d"),
@@ -1028,7 +1024,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                         "Profile": profile_image
                     })
                 except ValueError:
-                    continue
+                    continue  # Skip invalid dates like Feb 29
         if not birthday_data:
             st.info("No valid birthday data available for selected players.")
             return
@@ -1120,7 +1116,9 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
             try:
-                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
+                day, month = map(int, raw_birthday.split("-"))
+                # Use non-leap year (2001) to avoid Feb 29 ambiguity
+                bday_obj = datetime(year=2001, month=month, day=day)
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
                 birthday_str = ""
@@ -1152,7 +1150,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
         # --- Badges HTML with Hover Tooltips ---
         badge_explanations = {
-            "🎯 Tie-Break Monster": "Dominates tie-breaks with the most wins",
+            "🎯 Tie-break Monster": "Dominates tie-breaks with the most wins",
             "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
             "🏅 Comeback Kid": "Won a match after being down by a set",
             "⚡ Clutch Master": "High clutch factor in critical points",
