@@ -2045,20 +2045,20 @@ def get_match_verb_and_gda(row):
 
 def generate_ics_for_booking(row, plain_suggestion):
     """
-    Generates ICS content for a booking to add to calendar, using local Asia/Dubai time.
+    Generates ICS content for a booking to add to calendar, using UTC time for DTSTART/DTEND.
     """
     try:
         if pd.isna(row['datetime']) or row['datetime'] is None:
             return None, "Invalid date/time for this booking."
         
-        # Use local Asia/Dubai time directly (already in Asia/Dubai from bookings_df)
-        dt_start = row['datetime']
-        dt_end = row['datetime'] + pd.Timedelta(hours=1.5)
-        dt_stamp = pd.Timestamp.now(tz='UTC')  # DTSTAMP always in UTC
+        # Convert Asia/Dubai time to UTC for ICS
+        dt_start = row['datetime'].tz_convert('UTC')
+        dt_end = (row['datetime'] + pd.Timedelta(hours=2)).tz_convert('UTC')
+        dt_stamp = pd.Timestamp.now(tz='UTC')
         
-        # Format datetimes for ICS (YYYYMMDDTHHMMSS without Z, as we'll use VTIMEZONE)
-        dtstart_str = dt_start.strftime('%Y%m%dT%H%M%S')
-        dtend_str = dt_end.strftime('%Y%m%dT%H%M%S')
+        # Format datetimes for ICS (YYYYMMDDTHHMMSSZ for UTC)
+        dtstart_str = dt_start.strftime('%Y%m%dT%H%M%SZ')
+        dtend_str = dt_end.strftime('%Y%m%dT%H%M%SZ')
         dtstamp_str = dt_stamp.strftime('%Y%m%dT%H%M%SZ')
         
         uid = f"{row['booking_id']}@ar-tennis.com"
@@ -2067,7 +2067,7 @@ def generate_ics_for_booking(row, plain_suggestion):
         players_str = ', '.join([p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p])
         standby_str = row.get('standby_player', 'None')
         date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
-        time_ampm = row['datetime'].strftime('%-I:%M %p')
+        time_ampm = row['datetime'].strftime('%-I:%M %p')  # Local Asia/Dubai time for description
         court_url = court_url_mapping.get(row['court_name'], "#")
         
         description = f"""Date: {date_str}
@@ -2079,25 +2079,13 @@ Court Map: {court_url}""".replace('\n', '\\n')
         
         location = row['court_name']
         
-        # Define Asia/Dubai VTIMEZONE (simplified, standard UTC+4 with no DST)
-        vtimezone = """BEGIN:VTIMEZONE
-TZID:Asia/Dubai
-BEGIN:STANDARD
-TZOFFSETFROM:+0400
-TZOFFSETTO:+0400
-TZNAME:GST
-DTSTART:19700101T000000
-END:STANDARD
-END:VTIMEZONE"""
-        
         ics_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
-{vtimezone}
 BEGIN:VEVENT
 UID:{uid}
 DTSTAMP:{dtstamp_str}
-DTSTART;TZID=Asia/Dubai:{dtstart_str}
-DTEND;TZID=Asia/Dubai:{dtend_str}
+DTSTART:{dtstart_str}
+DTEND:{dtend_str}
 SUMMARY:{summary}
 DESCRIPTION:{description}
 LOCATION:{location}
@@ -2106,8 +2094,7 @@ END:VCALENDAR"""
         
         return ics_content, None
     except Exception as e:
-        return None, f"Error generating ICS: {str(e)}"
-    
+        return None, f"Error generating ICS: {str(e)}"    
 
 
 
