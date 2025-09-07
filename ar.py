@@ -2679,6 +2679,17 @@ with tabs[1]:
     
     with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
     #with st.expander("Add New Match", expanded=False):
+        # Define available_players
+        if "players_df" not in st.session_state or st.session_state.players_df.empty:
+            st.warning("No players available. Please add players in the Player Profile tab.")
+            available_players = []
+        else:
+            available_players = sorted([p for p in st.session_state.players_df["name"].tolist() if p != "Visitor"] + ["Visitor"])
+        
+        # Stop if no players are available
+        if not available_players:
+            st.stop()
+        
         match_type = st.radio("Match Type", ["Doubles", "Singles"])
         
         # Players selection based on type
@@ -2831,7 +2842,6 @@ with tabs[1]:
                         st.rerun()
     
         st.markdown("*Required fields", unsafe_allow_html=True)
-
     st.markdown("---")
     st.subheader("Match History")
 
