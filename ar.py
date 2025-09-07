@@ -326,7 +326,22 @@ div.st-emotion-cache-1jm692n h3 {
     max-width: 700px;          /* Keep nice size */
     margin: 10px;
 }
-
+.calendar-share {
+    background-color: #4285F4; /* Blue for calendar */
+    color: white !important;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 15px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.8em;
+    border: none;
+}
+.calendar-share:hover {
+    opacity: 0.9;
+}
 </style>
 
 
