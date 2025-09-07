@@ -3495,7 +3495,7 @@ with tabs[4]:
         
         with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
             date = st.date_input("Booking Date *", key=f"new_booking_date_{st.session_state.form_key_suffix}")
-            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]
+            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%I:%M %p").lstrip('0') for h in range(6, 22)]
             time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
             
             if match_type == "Doubles":
@@ -3577,11 +3577,15 @@ with tabs[4]:
         if 'players' in bookings_df.columns:
             bookings_df = bookings_df.drop(columns=['players'])
         
+        # Create datetime column with explicit timezone handling
         bookings_df['datetime'] = pd.to_datetime(
             bookings_df['date'].astype(str) + ' ' + bookings_df['time'],
             errors='coerce',
-            utc=True
-        ).dt.tz_convert('Asia/Dubai')
+            format='%Y-%m-%d %H:%M:%S'
+        ).dt.tz_localize('Asia/Dubai')
+        
+        # Debug: Display datetime values
+        st.write("Debug - Bookings datetime:", bookings_df[['booking_id', 'date', 'time', 'datetime']])
         
         upcoming_bookings = bookings_df[
             (bookings_df['datetime'].notna()) & 
@@ -3611,14 +3615,14 @@ with tabs[4]:
                 time_ampm = ""
                 if time_value and time_value not in ["NaT", "nan", "None"]:
                     try:
-                        dt_obj = datetime.strptime(time_value, "%H:%M")
+                        dt_obj = datetime.strptime(time_value, "%H:%M:%S")
+                        time_ampm = dt_obj.strftime("%I:%M %p").lstrip('0')
                     except ValueError:
                         try:
-                            dt_obj = datetime.strptime(time_value, "%H:%M:%S")
+                            dt_obj = datetime.strptime(time_value, "%H:%M")
+                            time_ampm = dt_obj.strftime("%I:%M %p").lstrip('0')
                         except ValueError:
-                            dt_obj = None
-                    if dt_obj:
-                        time_ampm = dt_obj.strftime("%-I:%M %p")
+                            time_ampm = "Invalid Time"
                 
                 court_url = court_url_mapping.get(row['court_name'], "#")
                 court_name_html = f"<a href='{court_url}' target='_blank' style='font-weight:bold; color:#fff500; text-decoration:none;'>{row['court_name']}</a>"
@@ -3830,7 +3834,7 @@ with tabs[4]:
                 t = str(time_str).strip()
                 for fmt in ["%H:%M", "%H:%M:%S"]:
                     try:
-                        return datetime.strptime(t, fmt).strftime("%-I:%M %p")
+                        return datetime.strptime(t, fmt).strftime("%I:%M %p").lstrip('0')
                     except ValueError:
                         continue
                 return "Unknown Time"
@@ -3858,7 +3862,7 @@ with tabs[4]:
                     )
     
                     current_time_ampm = format_time_safe(booking_row["time"])
-                    hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]
+                    hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%I:%M %p").lstrip('0') for h in range(6, 22)]
                     time_index = hours.index(current_time_ampm) if current_time_ampm in hours else 0
                     time_edit = st.selectbox("Booking Time *", hours, index=time_index, key=f"edit_booking_time_{booking_id}")
                     match_type_edit = st.radio("Match Type", ["Doubles", "Singles"],
@@ -3967,7 +3971,6 @@ with tabs[4]:
 
     st.markdown("---")
     st.markdown("Odds Calculation Logic process uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
-
 
 
 
