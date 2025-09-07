@@ -2045,18 +2045,20 @@ def get_match_verb_and_gda(row):
 
 def generate_ics_for_booking(row, plain_suggestion):
     """
-    Generates ICS content for a booking to add to calendar.
+    Generates ICS content for a booking to add to calendar, using local Asia/Dubai time.
     """
     try:
         if pd.isna(row['datetime']) or row['datetime'] is None:
             return None, "Invalid date/time for this booking."
         
-        dt_start = row['datetime'].tz_convert('UTC')
-        dt_end = (row['datetime'] + pd.Timedelta(hours=1.5)).tz_convert('UTC')
-        dt_stamp = pd.Timestamp.now(tz='UTC')
+        # Use local Asia/Dubai time directly (already in Asia/Dubai from bookings_df)
+        dt_start = row['datetime']
+        dt_end = row['datetime'] + pd.Timedelta(hours=1.5)
+        dt_stamp = pd.Timestamp.now(tz='UTC')  # DTSTAMP always in UTC
         
-        dtstart_str = dt_start.strftime('%Y%m%dT%H%M%SZ')
-        dtend_str = dt_end.strftime('%Y%m%dT%H%M%SZ')
+        # Format datetimes for ICS (YYYYMMDDTHHMMSS without Z, as we'll use VTIMEZONE)
+        dtstart_str = dt_start.strftime('%Y%m%dT%H%M%S')
+        dtend_str = dt_end.strftime('%Y%m%dT%H%M%S')
         dtstamp_str = dt_stamp.strftime('%Y%m%dT%H%M%SZ')
         
         uid = f"{row['booking_id']}@ar-tennis.com"
@@ -2077,13 +2079,25 @@ Court Map: {court_url}""".replace('\n', '\\n')
         
         location = row['court_name']
         
+        # Define Asia/Dubai VTIMEZONE (simplified, standard UTC+4 with no DST)
+        vtimezone = """BEGIN:VTIMEZONE
+TZID:Asia/Dubai
+BEGIN:STANDARD
+TZOFFSETFROM:+0400
+TZOFFSETTO:+0400
+TZNAME:GST
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE"""
+        
         ics_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
+{vtimezone}
 BEGIN:VEVENT
 UID:{uid}
 DTSTAMP:{dtstamp_str}
-DTSTART:{dtstart_str}
-DTEND:{dtend_str}
+DTSTART;TZID=Asia/Dubai:{dtstart_str}
+DTEND;TZID=Asia/Dubai:{dtend_str}
 SUMMARY:{summary}
 DESCRIPTION:{description}
 LOCATION:{location}
@@ -2093,7 +2107,6 @@ END:VCALENDAR"""
         return ics_content, None
     except Exception as e:
         return None, f"Error generating ICS: {str(e)}"
-
     
 
 
