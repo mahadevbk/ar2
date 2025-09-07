@@ -3589,7 +3589,7 @@ with tabs[4]:
         ).dt.tz_localize('Asia/Dubai')
         
         # Debug: Display datetime values
-        st.write("Debug - Bookings datetime:", bookings_df[['booking_id', 'date', 'time', 'datetime']])
+        # st.write("Debug - Bookings datetime:", bookings_df[['booking_id', 'date', 'time', 'datetime']])
         
         upcoming_bookings = bookings_df[
             (bookings_df['datetime'].notna()) & 
