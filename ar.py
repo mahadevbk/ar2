@@ -3631,6 +3631,7 @@ with tabs[4]:
                 court_name_html = f"<a href='{court_url}' target='_blank' style='font-weight:bold; color:#fff500; text-decoration:none;'>{row['court_name']}</a>"
             
                 pairing_suggestion = ""
+                plain_suggestion = ""
                 try:
                     if row['match_type'] == "Doubles" and len(players) == 4:
                         rank_df = doubles_rank_df
@@ -3639,6 +3640,7 @@ with tabs[4]:
                             styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
                             message = f"Players {styled_unranked} are unranked, therefore no pairing odds available."
                             pairing_suggestion = f"<div><strong style='color:white;'>Pairing Odds:</strong> {message}</div>"
+                            plain_suggestion = f"Players {', '.join(unranked)} are unranked, therefore no pairing odds available."
                         else:
                             all_pairings = []
                             player_list = list(players)
@@ -3659,22 +3661,29 @@ with tabs[4]:
                                 team1_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in team1])
                                 team2_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in team2])
                                 pairing_str = f"{team1_str} vs {team2_str}"
+                                plain_pairing_str = f"{', '.join(team1)} vs {', '.join(team2)}"
                                 all_pairings.append({
                                     'pairing': pairing_str,
+                                    'plain_pairing': plain_pairing_str,
                                     'team1_odds': odds_team1,
                                     'team2_odds': odds_team2,
                                     'diff': diff
                                 })
                             all_pairings.sort(key=lambda x: x['diff'])
                             pairing_suggestion = "<div><strong style='color:white;'>Pairing Combos and Odds:</strong></div>"
+                            plain_suggestion = "\n*Pairing Combos and Odds:*\n"
                             for idx, pairing in enumerate(all_pairings[:3], 1):
                                 pairing_suggestion += (
                                     f"<div>Option {idx}: {pairing['pairing']} "
                                     f"(<span style='font-weight:bold; color:#fff500;'>{pairing['team1_odds']:.1f}%</span> vs "
                                     f"<span style='font-weight:bold; color:#fff500;'>{pairing['team2_odds']:.1f}%</span>)</div>"
                                 )
+                                plain_suggestion += (
+                                    f"Option {idx}: {pairing['plain_pairing']} ({pairing['team1_odds']:.1f}% vs {pairing['team2_odds']:.1f}%)\n"
+                                )
                     elif row['match_type'] == "Doubles" and len(players) < 4:
                         pairing_suggestion = "<div><strong style='color:white;'>Pairing Odds:</strong> Not enough players for pairing odds</div>"
+                        plain_suggestion = "Not enough players for pairing odds"
                     elif row['match_type'] == "Singles" and len(players) == 2:
                         rank_df = singles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
@@ -3682,6 +3691,7 @@ with tabs[4]:
                             styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
                             message = f"Players {styled_unranked} are unranked, therefore no odds available."
                             pairing_suggestion = f"<div><strong style='color:white;'>Odds:</strong> {message}</div>"
+                            plain_suggestion = f"Players {', '.join(unranked)} are unranked, therefore no odds available."
                         else:
                             p1_odds, p2_odds = suggest_singles_odds(players, singles_rank_df)
                             if p1_odds is not None:
@@ -3691,11 +3701,13 @@ with tabs[4]:
                                     f"<div><strong style='color:white;'>Odds:</strong> "
                                     f"{p1_styled} ({p1_odds:.1f}%) vs {p2_styled} ({p2_odds:.1f}%)</div>"
                                 )
+                                plain_suggestion = f"Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)"
                 except Exception as e:
                     pairing_suggestion = f"<div><strong style='color:white;'>Pairing Odds:</strong> Error calculating: {e}</div>"
+                    plain_suggestion = f"Error calculating odds: {str(e)}"
                 
                 # Generate ICS for calendar
-                ics_content, ics_error = generate_ics_for_booking(row)
+                ics_content, ics_error = generate_ics_for_booking(row, plain_suggestion)
                 calendar_link = ""
                 if ics_content:
                     encoded_ics = urllib.parse.quote(ics_content)
@@ -3961,9 +3973,11 @@ with tabs[4]:
                                 st.rerun()
 
     st.markdown("---")
-
-
     st.markdown("Odds Calculation Logic process uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
+    st.markdown("---")
+
+
+    #st.markdown("Odds Calculation Logic process uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
 
 
 
