@@ -2051,14 +2051,18 @@ def generate_ics_for_booking(row, plain_suggestion):
         if pd.isna(row['datetime']) or row['datetime'] is None:
             return None, "Invalid date/time for this booking."
         
-        # Convert Asia/Dubai time to UTC for ICS
-        dt_start = row['datetime'].tz_convert('UTC')
-        dt_end = (row['datetime'] + pd.Timedelta(hours=2)).tz_convert('UTC')
+        # Use Asia/Dubai time directly from row['datetime']
+        dt_start = row['datetime']
+        dt_end = row['datetime'] + pd.Timedelta(hours=2)
         dt_stamp = pd.Timestamp.now(tz='UTC')
         
+        # Convert to UTC for ICS
+        dt_start_utc = dt_start.tz_convert('UTC')
+        dt_end_utc = dt_end.tz_convert('UTC')
+        
         # Format datetimes for ICS (YYYYMMDDTHHMMSSZ for UTC)
-        dtstart_str = dt_start.strftime('%Y%m%dT%H%M%SZ')
-        dtend_str = dt_end.strftime('%Y%m%dT%H%M%SZ')
+        dtstart_str = dt_start_utc.strftime('%Y%m%dT%H%M%SZ')
+        dtend_str = dt_end_utc.strftime('%Y%m%dT%H%M%SZ')
         dtstamp_str = dt_stamp.strftime('%Y%m%dT%H%M%SZ')
         
         uid = f"{row['booking_id']}@ar-tennis.com"
@@ -2067,7 +2071,7 @@ def generate_ics_for_booking(row, plain_suggestion):
         players_str = ', '.join([p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p])
         standby_str = row.get('standby_player', 'None')
         date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
-        time_ampm = row['datetime'].strftime('%-I:%M %p')  # Local Asia/Dubai time for description
+        time_ampm = dt_start.strftime('%I:%M %p').lstrip('0')  # Local Asia/Dubai time, e.g., 6:00 PM
         court_url = court_url_mapping.get(row['court_name'], "#")
         
         description = f"""Date: {date_str}
@@ -2094,7 +2098,7 @@ END:VCALENDAR"""
         
         return ics_content, None
     except Exception as e:
-        return None, f"Error generating ICS: {str(e)}"    
+        return None, f"Error generating ICS: {str(e)}"
 
 
 
