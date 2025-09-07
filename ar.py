@@ -2041,43 +2041,39 @@ def get_match_verb_and_gda(row):
     return verb, gda
 
 #------------------  ADD BOOKINGS TO CALENDAR -----------------------------
-def generate_ics_for_booking(row):
+
+
+def generate_ics_for_booking(row, plain_suggestion):
     """
     Generates ICS content for a booking to add to calendar.
     """
     try:
-        # Ensure datetime is valid and in Asia/Dubai
         if pd.isna(row['datetime']) or row['datetime'] is None:
             return None, "Invalid date/time for this booking."
         
         dt_start = row['datetime'].tz_convert('UTC')
-        dt_end = (row['datetime'] + pd.Timedelta(hours=1.5)).tz_convert('UTC')  # 1.5 hours for tennis match
+        dt_end = (row['datetime'] + pd.Timedelta(hours=1.5)).tz_convert('UTC')
         dt_stamp = pd.Timestamp.now(tz='UTC')
         
-        # Format datetimes for ICS (YYYYMMDDTHHMMSSZ)
         dtstart_str = dt_start.strftime('%Y%m%dT%H%M%SZ')
         dtend_str = dt_end.strftime('%Y%m%dT%H%M%SZ')
         dtstamp_str = dt_stamp.strftime('%Y%m%dT%H%M%SZ')
         
         uid = f"{row['booking_id']}@ar-tennis.com"
-        
-        # Summary
         summary = f"Tennis {row['match_type']} Booking at {row['court_name']}"
         
-        # Description with details
         players_str = ', '.join([p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p])
         standby_str = row.get('standby_player', 'None')
         date_str = pd.to_datetime(row['date']).strftime('%A, %d %b')
-        time_ampm = row['datetime'].strftime('%-I:%M %p')  # Assuming datetime has time
+        time_ampm = row['datetime'].strftime('%-I:%M %p')
         court_url = court_url_mapping.get(row['court_name'], "#")
-        plain_suggestion = ""  # Reuse from existing code (you'll compute it below)
-        # Note: plain_suggestion is computed later in the loop; for now, placeholder. Move computation before this if needed.
+        
         description = f"""Date: {date_str}
 Time: {time_ampm}
 Players: {players_str}
 Standby: {standby_str}
 Pairing Odds: {plain_suggestion}
-Court Map: {court_url}""".replace('\n', '\\n')  # Escape newlines for ICS
+Court Map: {court_url}""".replace('\n', '\\n')
         
         location = row['court_name']
         
@@ -2097,9 +2093,6 @@ END:VCALENDAR"""
         return ics_content, None
     except Exception as e:
         return None, f"Error generating ICS: {str(e)}"
-
-
-
 
     
 
