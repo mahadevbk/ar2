@@ -4166,61 +4166,78 @@ with tabs[5]:
 #st.markdown("---")
 
 # Backup Download Button
-
 st.markdown("---")
 st.subheader("Data Backup")
 
+# Reset ZIP buffer on each run to avoid stale data
 zip_buffer = io.BytesIO()
-with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-    # --- Matches CSV ---
-    matches_csv = st.session_state.matches_df.to_csv(index=False)
-    zip_file.writestr("matches.csv", matches_csv)
+try:
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        # --- Matches CSV ---
+        if not st.session_state.matches_df.empty:
+            matches_csv = st.session_state.matches_df.to_csv(index=False)
+            zip_file.writestr("matches.csv", matches_csv)
+        else:
+            zip_file.writestr("matches.csv", "No data")
 
-    # --- Players CSV ---
-    players_csv = st.session_state.players_df.to_csv(index=False)
-    zip_file.writestr("players.csv", players_csv)
+        # --- Players CSV ---
+        if not st.session_state.players_df.empty:
+            players_csv = st.session_state.players_df.to_csv(index=False)
+            zip_file.writestr("players.csv", players_csv)
+        else:
+            zip_file.writestr("players.csv", "No data")
 
-    # --- Bookings CSV ---
-    bookings_csv = st.session_state.bookings_df.to_csv(index=False)
-    zip_file.writestr("bookings.csv", bookings_csv)
+        # --- Bookings CSV ---
+        if not st.session_state.bookings_df.empty:
+            bookings_csv = st.session_state.bookings_df.to_csv(index=False)
+            zip_file.writestr("bookings.csv", bookings_csv)
+        else:
+            zip_file.writestr("bookings.csv", "No data")
 
-    # --- Profile Images ---
-    for _, row in st.session_state.players_df.iterrows():
-        url = row.get("profile_image_url")
-        if url:
-            try:
-                r = requests.get(url, timeout=10)
-                if r.status_code == 200:
-                    # sanitize name for safe filename
-                    safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', str(row["name"]))
-                    zip_file.writestr(f"profile_images/{safe_name}.jpg", r.content)
-            except Exception as e:
-                st.warning(f"Could not download profile image for {row.get('name')}: {e}")
+        # Create directories in ZIP if needed (for images)
+        # --- Profile Images ---
+        zip_file.writestr("profile_images/.keep", "")  # Placeholder dir
+        for _, row in st.session_state.players_df.iterrows():
+            url = row.get("profile_image_url")
+            if url and url.strip():
+                try:
+                    r = requests.get(url, timeout=10)
+                    if r.status_code == 200:
+                        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', str(row["name"]))
+                        zip_file.writestr(f"profile_images/{safe_name}.jpg", r.content)
+                except Exception as e:
+                    st.warning(f"Could not include profile image for {row.get('name')}: {e}")
 
-    # --- Match Images ---
-    for _, row in st.session_state.matches_df.iterrows():
-        url = row.get("match_image_url")
-        if url:
-            try:
-                r = requests.get(url, timeout=10)
-                if r.status_code == 200:
-                    match_id = row.get("match_id", str(uuid.uuid4()))
-                    zip_file.writestr(f"match_images/{match_id}.jpg", r.content)
-            except Exception as e:
-                st.warning(f"Could not download match image for {row.get('match_id')}: {e}")
+        # --- Match Images ---
+        zip_file.writestr("match_images/.keep", "")  # Placeholder dir
+        for _, row in st.session_state.matches_df.iterrows():
+            url = row.get("match_image_url")
+            if url and url.strip():
+                try:
+                    r = requests.get(url, timeout=10)
+                    if r.status_code == 200:
+                        match_id = row.get("match_id", str(uuid.uuid4()))
+                        zip_file.writestr(f"match_images/{match_id}.jpg", r.content)
+                except Exception as e:
+                    st.warning(f"Could not include match image for {row.get('match_id')}: {e}")
 
-zip_buffer.seek(0)
-
-# Format current date and time for filename
-current_time = datetime.now().strftime("%Y%m%d-%H%M")
-st.download_button(
-    label="Backup",
-    data=zip_buffer,
-    file_name=f"ar-tennis-data-{current_time}.zip",
-    mime="application/zip",
-    key=f"backup_download_{st.session_state.get('form_key_suffix', 0)}"
-)
-
+    zip_buffer.seek(0)
+    current_time = datetime.now().strftime("%Y%m%d-%H%M")
+    
+    # Use a unique key to prevent caching issues
+    backup_key = f"backup_download_{current_time}_{random.randint(1, 1000)}"
+    st.download_button(
+        label="Download Backup ZIP",
+        data=zip_buffer.getvalue(),  # Use getvalue() to avoid buffer issues
+        file_name=f"ar-tennis-data-{current_time}.zip",
+        mime="application/zip",
+        key=backup_key
+    )
+    st.success("Backup ready for download!")
+    
+except Exception as e:
+    st.error(f"Backup generation failed: {str(e)}. Check dataframes for issues.")
+    st.info("Try adding some data or refreshing the app.")
 
 st.markdown("""
 <div style='background-color: #0d5384; padding: 1rem; border-left: 5px solid #fff500; border-radius: 0.5rem; color: white;'>
