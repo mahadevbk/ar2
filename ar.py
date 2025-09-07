@@ -3450,13 +3450,12 @@ with tabs[3]:
 
 
 with tabs[4]:
-        # --- MATCH UP EXPANDER ---
+    # --- MATCH UP EXPANDER ---
     with st.expander("Match up", expanded=False, icon="➡️"):
         
         match_type = st.radio("Select Match Type", ["Doubles", "Singles"], horizontal=True)
 
         if match_type == "Doubles":
-        #else:  # Doubles
             t1p1 = st.selectbox("Team 1 - Player 1", [""] + available_players, key="matchup_doubles_t1p1")
             t1p2 = st.selectbox("Team 1 - Player 2", [""] + available_players, key="matchup_doubles_t1p2")
             t2p1 = st.selectbox("Team 2 - Player 1", [""] + available_players, key="matchup_doubles_t2p1")
@@ -3468,7 +3467,6 @@ with tabs[4]:
                 doubles_rank_df, _ = calculate_rankings(
                     st.session_state.matches_df[st.session_state.matches_df['match_type']=="Doubles"]
                 )
-                # check if all players exist in doubles rankings
                 if all(p in doubles_rank_df["Player"].values for p in players if p):
                     pairing_text, team1_odds, team2_odds = suggest_balanced_pairing(players, doubles_rank_df)
                     if pairing_text:
@@ -3478,8 +3476,6 @@ with tabs[4]:
                         st.info("No odds available for this combination.")
                 else:
                     st.info("No odds available (one or more players have no doubles match history).")
-
-        #if match_type == "Singles":
         else:  # Singles
             p1 = st.selectbox("Player 1", [""] + available_players, key="matchup_singles_p1")
             p2 = st.selectbox("Player 2", [""] + available_players, key="matchup_singles_p2")
@@ -3497,23 +3493,16 @@ with tabs[4]:
                         st.info("No odds available (one or both players have no singles match history).")
                 else:
                     st.warning("Please select both players.")
-        
-        
 
-        
-
-
-    # --- EXISTING BOOKING MANAGEMENT 
-    
+    # --- EXISTING BOOKING MANAGEMENT ---
     load_bookings()
     with st.expander("Add New Booking", expanded=False, icon="➡️"):
         st.subheader("Add New Booking")
         match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
         
         with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
-            # Date and Time Inputs
             date = st.date_input("Booking Date *", key=f"new_booking_date_{st.session_state.form_key_suffix}")
-            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]  # 6 AM to 9 PM
+            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%-I:%M %p") for h in range(6, 22)]
             time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
             
             if match_type == "Doubles":
@@ -3581,7 +3570,7 @@ with tabs[4]:
                             st.error(f"Failed to save booking: {str(e)}")
                             st.rerun()
         
-    st.markdown("---")    
+    st.markdown("---")
     st.subheader("📅 Upcoming Bookings")
     bookings_df = st.session_state.bookings_df.copy()
     court_url_mapping = {court["name"]: court["url"] for court in ar_courts + mira_courts}
@@ -3642,7 +3631,6 @@ with tabs[4]:
                 court_name_html = f"<a href='{court_url}' target='_blank' style='font-weight:bold; color:#fff500; text-decoration:none;'>{row['court_name']}</a>"
             
                 pairing_suggestion = ""
-                plain_suggestion = ""
                 try:
                     if row['match_type'] == "Doubles" and len(players) == 4:
                         rank_df = doubles_rank_df
@@ -3651,7 +3639,6 @@ with tabs[4]:
                             styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
                             message = f"Players {styled_unranked} are unranked, therefore no pairing odds available."
                             pairing_suggestion = f"<div><strong style='color:white;'>Pairing Odds:</strong> {message}</div>"
-                            plain_suggestion = f"\n*Pairing Odds: Players {', '.join(unranked)} are unranked, therefore no pairing odds available.*"
                         else:
                             all_pairings = []
                             player_list = list(players)
@@ -3672,29 +3659,22 @@ with tabs[4]:
                                 team1_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in team1])
                                 team2_str = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in team2])
                                 pairing_str = f"{team1_str} vs {team2_str}"
-                                plain_pairing_str = f"{', '.join(team1)} vs {', '.join(team2)}"
                                 all_pairings.append({
                                     'pairing': pairing_str,
-                                    'plain_pairing': plain_pairing_str,
                                     'team1_odds': odds_team1,
                                     'team2_odds': odds_team2,
                                     'diff': diff
                                 })
                             all_pairings.sort(key=lambda x: x['diff'])
                             pairing_suggestion = "<div><strong style='color:white;'>Pairing Combos and Odds:</strong></div>"
-                            plain_suggestion = "\n*Pairing Combos and Odds:*\n"
-                            for idx, pairing in enumerate(all_pairings[:3], 1):  # Limit to three pairings
+                            for idx, pairing in enumerate(all_pairings[:3], 1):
                                 pairing_suggestion += (
                                     f"<div>Option {idx}: {pairing['pairing']} "
                                     f"(<span style='font-weight:bold; color:#fff500;'>{pairing['team1_odds']:.1f}%</span> vs "
                                     f"<span style='font-weight:bold; color:#fff500;'>{pairing['team2_odds']:.1f}%</span>)</div>"
                                 )
-                                plain_suggestion += (
-                                    f"Option {idx}: {pairing['plain_pairing']} ({pairing['team1_odds']:.1f}% vs {pairing['team2_odds']:.1f}%)\n"
-                                )
                     elif row['match_type'] == "Doubles" and len(players) < 4:
                         pairing_suggestion = "<div><strong style='color:white;'>Pairing Odds:</strong> Not enough players for pairing odds</div>"
-                        plain_suggestion = "\n*Pairing Odds: Not enough players for pairing odds*"
                     elif row['match_type'] == "Singles" and len(players) == 2:
                         rank_df = singles_rank_df
                         unranked = [p for p in players if p not in rank_df["Player"].values]
@@ -3702,7 +3682,6 @@ with tabs[4]:
                             styled_unranked = ", ".join([f"<span style='font-weight:bold; color:#fff500;'>{p}</span>" for p in unranked])
                             message = f"Players {styled_unranked} are unranked, therefore no odds available."
                             pairing_suggestion = f"<div><strong style='color:white;'>Odds:</strong> {message}</div>"
-                            plain_suggestion = f"\n*Odds: Players {', '.join(unranked)} are unranked, therefore no odds available.*"
                         else:
                             p1_odds, p2_odds = suggest_singles_odds(players, singles_rank_df)
                             if p1_odds is not None:
@@ -3712,10 +3691,18 @@ with tabs[4]:
                                     f"<div><strong style='color:white;'>Odds:</strong> "
                                     f"{p1_styled} ({p1_odds:.1f}%) vs {p2_styled} ({p2_odds:.1f}%)</div>"
                                 )
-                                plain_suggestion = f"\n*Odds: {players[0]} ({p1_odds:.1f}%) vs {players[1]} ({p2_odds:.1f}%)*"
                 except Exception as e:
                     pairing_suggestion = f"<div><strong style='color:white;'>Pairing Odds:</strong> Error calculating: {e}</div>"
-                    plain_suggestion = f"\n*Pairing Odds: Error calculating: {str(e)}*"
+                
+                # Generate ICS for calendar
+                ics_content, ics_error = generate_ics_for_booking(row)
+                calendar_link = ""
+                if ics_content:
+                    encoded_ics = urllib.parse.quote(ics_content)
+                    calendar_link = f'data:text/calendar;charset=utf8,{encoded_ics}'
+                else:
+                    calendar_link = "#"
+                    st.warning(f"Calendar add failed for booking {row['booking_id']}: {ics_error}")
                 
                 weekday = pd.to_datetime(row['date']).strftime('%a')
                 date_part = pd.to_datetime(row['date']).strftime('%d %b')
@@ -3724,9 +3711,9 @@ with tabs[4]:
                 players_list = "\n".join([f"{i+1}. *{p}*" for i, p in enumerate(players)]) if players else "No players"
                 standby_text = f"\nSTD. BY: *{row['standby_player']}*" if row['standby_player'] else ""
                 
-                share_text = f"*Game Booking:*\nDate: *{full_date}*\nCourt: *{court_name}*\nPlayers:\n{players_list}{standby_text}{plain_suggestion}\nCourt location: {court_url}"
+                share_text = f"*Game Booking:*\nDate: *{full_date}*\nCourt: *{court_name}*\nPlayers:\n{players_list}{standby_text}\n*Pairing Odds:* {plain_suggestion}\nCourt location: {court_url}"
                 encoded_text = urllib.parse.quote(share_text)
-                whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0&app_absent=0"
+                whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0"
                 
                 booking_text = f"""
                 <div class="booking-row" style='background-color: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
@@ -3737,9 +3724,12 @@ with tabs[4]:
                     <div><strong>Players:</strong> {players_str}</div>
                     <div><strong>Standby Player:</strong> {standby_str}</div>
                     {pairing_suggestion}
-                    <div style="margin-top: 10px;">
+                    <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
                         <a href="{whatsapp_link}" class="whatsapp-share" target="_blank">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="width: 30px; height: 30px;">
+                        </a>
+                        <a href="{calendar_link}" class="calendar-share" download="tennis-booking-{row['booking_id']}.ics" target="_blank">
+                            <img src="https://img.icons8.com/color/48/000000/calendar.png" alt="Add to Calendar" style="width: 30px; height: 30px;">
                         </a>
                     </div>
                 """
@@ -3783,9 +3773,14 @@ with tabs[4]:
                     {pairing_suggestion.replace('<div><strong style="color:white;">', '**').replace('</strong>', '**').replace('</div>', '').replace('<span style="font-weight:bold; color:#fff500;">', '').replace('</span>', '')}
                     """, unsafe_allow_html=True)
                     st.markdown(f"""
-                    <a href="{whatsapp_link}" target="_blank">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="width:30px; height:30px; vertical-align:middle; margin-top:10px;">
-                    </a>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <a href="{whatsapp_link}" class="whatsapp-share" target="_blank">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="width:30px; height:30px;">
+                        </a>
+                        <a href="{calendar_link}" class="calendar-share" download="tennis-booking-{row['booking_id']}.ics" target="_blank">
+                            <img src="https://img.icons8.com/color/48/000000/calendar.png" alt="Add to Calendar" style="width:30px; height:30px;">
+                        </a>
+                    </div>
                     """, unsafe_allow_html=True)
                     if screenshot_url:
                         st.markdown(f"""
