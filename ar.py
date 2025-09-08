@@ -3441,7 +3441,7 @@ with tabs[3]:
 
     # Mudon, Arabian Ranches 2, Dubai Hills and other courts
     other_courts = [
-        {"name": "Mudon Main courts - Rahat", "url": "https://maps.app.goo.gl/AZ8WJ1mnnwMgNxhz7?g_st=aw"},
+        {"name": "Mudon Main courts", "url": "https://maps.app.goo.gl/AZ8WJ1mnnwMgNxhz7?g_st=aw"},
         {"name": "Mudon Arabella", "url": "https://maps.app.goo.gl/iudbB5YqrGKyHNqM6?g_st=aw"},
         {"name": "Mudon Arabella 3", "url": "https://maps.app.goo.gl/o46ERJCq8LKg1Cz59?g_st=aw"},
         {"name": "AR2 Rosa", "url": "https://maps.app.goo.gl/at1EKgatfMmvAg7g8?g_st=aw"},
