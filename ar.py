@@ -1480,14 +1480,10 @@ def load_bookings():
     try:
         response = supabase.table(bookings_table_name).select("*").execute()
         df = pd.DataFrame(response.data)
-        expected_columns = ["booking_id", "date", "time", "match_type", "court_name", "player1", "player2", "player3", "player4", "screenshot_url"]
+        expected_columns = ["booking_id", "date", "time", "match_type", "court_name", "player1", "player2", "player3", "player4", "screenshot_url", "standby_player"]
         for col in expected_columns:
             if col not in df.columns:
-                df[col] = ""
-        
-        # Handle 'standby_player' column if it exists or add it
-        if 'standby_player' not in df.columns:
-            df['standby_player'] = ""
+                df[col] = None
         
         # Create datetime column for expiry check (with Asia/Dubai timezone)
         df['datetime'] = pd.to_datetime(
@@ -1495,6 +1491,11 @@ def load_bookings():
             errors='coerce',
             format='%Y-%m-%d %H:%M:%S'
         ).dt.tz_localize('Asia/Dubai')
+        
+        # Debug: Log datetime parsing issues
+        invalid_datetimes = df[df['datetime'].isna()]
+        if not invalid_datetimes.empty:
+            st.warning(f"Found {len(invalid_datetimes)} bookings with invalid datetime formats: {invalid_datetimes['booking_id'].tolist()}")
         
         # Get current time in Asia/Dubai
         now = pd.Timestamp.now(tz='Asia/Dubai')
@@ -1523,18 +1524,18 @@ def load_bookings():
             df = pd.DataFrame(response.data)
             for col in expected_columns:
                 if col not in df.columns:
-                    df[col] = ""
-            if 'standby_player' not in df.columns:
-                df['standby_player'] = ""
+                    df[col] = None
         
-        # Drop the temporary 'datetime' column before storing in session state
-        if 'datetime' in df.columns:
-            df = df.drop(columns=['datetime'])
+        # Recreate datetime column for session state
+        df['datetime'] = pd.to_datetime(
+            df['date'].astype(str) + ' ' + df['time'].astype(str),
+            errors='coerce',
+            format='%Y-%m-%d %H:%M:%S'
+        ).dt.tz_localize('Asia/Dubai')
         
         st.session_state.bookings_df = df
     except Exception as e:
         st.error(f"Error loading bookings: {str(e)}")
-
 
 
 
