@@ -1478,92 +1478,62 @@ def create_partnership_chart(player_name, partner_stats, players_df):
 
 def load_bookings():
     try:
-        response = supabase.table("bookings").select("*").execute()
+        response = supabase.table(bookings_table_name).select("*").execute()
         df = pd.DataFrame(response.data)
-        
-        expected_columns = ['booking_id', 'date', 'time', 'match_type', 'court_name',
-                            'player1', 'player2', 'player3', 'player4',
-                            'standby_player', 'screenshot_url']
+        expected_columns = ["booking_id", "date", "time", "match_type", "court_name", "player1", "player2", "player3", "player4", "screenshot_url"]
         for col in expected_columns:
-            if col not in df:
-                df[col] = None
-
-        if not df.empty:
-            # FIX: Create a timezone-aware datetime column directly from the source strings.
-            # This avoids the combine() error and the timezone comparison error.
-            #datetime_str = df['date'].astype(str) + ' ' + df['time'].astype(str)
-            #df['booking_datetime'] = pd.to_datetime(datetime_str, errors='coerce')
-            datetime_str = df['date'].astype(str) + ' ' + df['time'].astype(str)
-            df['booking_datetime'] = pd.to_datetime(
-                datetime_str,
-                format="%Y-%m-%d %H:%M:%S",   # match your data format
-                errors='coerce'
-            )
-
-          
-            # Localize the naive datetime to the correct timezone ('Asia/Dubai')
-            # This is the crucial step to fix the "Invalid comparison" error
-            df['booking_datetime'] = df['booking_datetime'].dt.tz_localize('Asia/Dubai', ambiguous='infer')
-            
-            # Now, the cutoff and the booking_datetime column are both timezone-aware
-            cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)
-
-            # Filter for expired bookings
-            expired = df[df['booking_datetime'].notnull() & (df['booking_datetime'] < cutoff)]
-
-            # Delete expired bookings from Supabase
-            for _, row in expired.iterrows():
+            if col not in df.columns:
+                df[col] = ""
+        
+        # Handle 'standby_player' column if it exists or add it
+        if 'standby_player' not in df.columns:
+            df['standby_player'] = ""
+        
+        # Create datetime column for expiry check (with Asia/Dubai timezone)
+        df['datetime'] = pd.to_datetime(
+            df['date'].astype(str) + ' ' + df['time'].astype(str),
+            errors='coerce',
+            format='%Y-%m-%d %H:%M:%S'
+        ).dt.tz_localize('Asia/Dubai')
+        
+        # Get current time in Asia/Dubai
+        now = pd.Timestamp.now(tz='Asia/Dubai')
+        expiry_threshold = now - pd.Timedelta(hours=4)
+        
+        # Filter expired bookings (older than 4 hours from now)
+        expired_df = df[
+            (df['datetime'].notna()) & 
+            (df['datetime'] < expiry_threshold)
+        ].copy()
+        
+        if not expired_df.empty:
+            deleted_count = 0
+            for _, row in expired_df.iterrows():
                 try:
-                    supabase.table("bookings").delete().eq("booking_id", row['booking_id']).execute()
+                    supabase.table(bookings_table_name).delete().eq("booking_id", row['booking_id']).execute()
+                    deleted_count += 1
                 except Exception as e:
-                    st.error(f"Failed to delete expired booking {row['booking_id']}: {e}")
-
-            # Keep only valid, non-expired bookings
-            df = df[df['booking_datetime'].isnull() | (df['booking_datetime'] >= cutoff)]
-
-        # Final cleaning for display and session state
-        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.strftime('%Y-%m-%d').fillna("")
-        df['time'] = df['time'].fillna("")
-        
-        for col in ['player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url']:
-            df[col] = df[col].fillna("")
-
-        st.session_state.bookings_df = df.reindex(columns=expected_columns)
-
-    except Exception as e:
-        st.error(f"Failed to load bookings: {str(e)}")
-        # Initialize with an empty DataFrame on failure
-        st.session_state.bookings_df = pd.DataFrame(columns=expected_columns)
-
-
-
-def save_bookings(df):
-    try:
-        df_to_save = df.copy()
-        
-        if 'date' in df_to_save.columns:
-            # Convert to datetime (no timezone conversion)
-            df_to_save['date'] = pd.to_datetime(df_to_save['date'], errors='coerce')
-            df_to_save = df_to_save.dropna(subset=['date'])
+                    st.error(f"Failed to auto-delete expired booking {row['booking_id']}: {str(e)}")
             
-            # Format datetime as "YYYY-MM-DD HH:MM:SS" to include seconds
-            df_to_save['date'] = df_to_save['date'].dt.strftime("%Y-%m-%d %H:%M:%S")
-
-        # Remove duplicates
-        duplicates = df_to_save[df_to_save.duplicated(subset=['booking_id'], keep=False)]
-        if not duplicates.empty:
-            st.warning(f"Found duplicate booking_id values: {duplicates['booking_id'].tolist()}")
-            df_to_save = df_to_save.drop_duplicates(subset=['booking_id'], keep='last')
-
-        # Replace NaN with None for JSON compliance
-        df_to_save = df_to_save.where(pd.notna(df_to_save), None)
-
-        # Upsert to Supabase
-        supabase.table(bookings_table_name).upsert(df_to_save.to_dict("records")).execute()
-
+            if deleted_count > 0:
+                st.info(f"Auto-deleted {deleted_count} expired booking(s) from the database.")
+            
+            # Reload the DataFrame after deletions to ensure it's up-to-date
+            response = supabase.table(bookings_table_name).select("*").execute()
+            df = pd.DataFrame(response.data)
+            for col in expected_columns:
+                if col not in df.columns:
+                    df[col] = ""
+            if 'standby_player' not in df.columns:
+                df['standby_player'] = ""
+        
+        # Drop the temporary 'datetime' column before storing in session state
+        if 'datetime' in df.columns:
+            df = df.drop(columns=['datetime'])
+        
+        st.session_state.bookings_df = df
     except Exception as e:
-        st.error(f"Error saving bookings: {str(e)}")
-
+        st.error(f"Error loading bookings: {str(e)}")
 
 
 
