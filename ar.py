@@ -3541,6 +3541,7 @@ with tabs[4]:
             hours = []
             hours.append(datetime.strptime("6:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:00 AM
             hours.append(datetime.strptime("6:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:30 AM
+            hours.append(datetime.strptime("7:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 7:30 AM
             for h in range(7, 22):  # From 7 AM to 9 PM
                 hours.append(datetime.strptime(f"{h:02d}:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))
             time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
@@ -3915,6 +3916,7 @@ with tabs[4]:
                     hours = []
                     hours.append(datetime.strptime("6:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:00 AM
                     hours.append(datetime.strptime("6:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:30 AM
+                    hours.append(datetime.strptime("7:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 7:30 AM
                     for h in range(7, 22):  # From 7 AM to 9 PM
                         hours.append(datetime.strptime(f"{h:02d}:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))
                     time_index = hours.index(current_time_ampm) if current_time_ampm in hours else 0
