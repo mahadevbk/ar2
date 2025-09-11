@@ -3532,12 +3532,17 @@ with tabs[4]:
     # --- EXISTING BOOKING MANAGEMENT ---
     load_bookings()
     with st.expander("Add New Booking", expanded=False, icon="➡️"):
+    
         st.subheader("Add New Booking")
         match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
         
         with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
             date = st.date_input("Booking Date *", key=f"new_booking_date_{st.session_state.form_key_suffix}")
-            hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%I:%M %p").lstrip('0') for h in range(6, 22)]
+            hours = []
+            for h in range(6, 22):  # From 6 AM to 9 PM
+                hours.append(datetime.strptime(f"{h:02d}:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))
+                hours.append(datetime.strptime(f"{h:02d}:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))
+            hours.append(datetime.strptime("22:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # Add 10:00 PM
             time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
             
             if match_type == "Doubles":
@@ -3856,11 +3861,12 @@ with tabs[4]:
     
     st.markdown("---")
     
+    
     st.subheader("✏️ Manage Existing Booking")
     if 'edit_booking_key' not in st.session_state:
         st.session_state.edit_booking_key = 0
     unique_key = f"select_booking_to_edit_{st.session_state.edit_booking_key}"
-    
+
     if bookings_df.empty:
         st.info("No bookings available to manage.")
     else:
@@ -3869,7 +3875,7 @@ with tabs[4]:
             st.warning(f"Found duplicate booking_id values: {duplicate_ids.tolist()}. Please remove duplicates in Supabase before editing.")
         else:
             booking_options = []
-    
+
             def format_time_safe(time_str):
                 if not time_str or str(time_str).lower() in ["nat", "nan", "none"]:
                     return "Unknown Time"
@@ -3880,7 +3886,7 @@ with tabs[4]:
                     except ValueError:
                         continue
                 return "Unknown Time"
-    
+
             for _, row in bookings_df.iterrows():
                 date_str = pd.to_datetime(row['date'], errors="coerce").strftime('%A, %d %b') if row['date'] else "Unknown Date"
                 time_ampm = format_time_safe(row['time'])
@@ -3889,28 +3895,32 @@ with tabs[4]:
                 standby_str = row.get('standby_player', "None")
                 desc = f"Court: {row['court_name']} | Date: {date_str} | Time: {time_ampm} | Match Type: {row['match_type']} | Players: {players_str} | Standby: {standby_str}"
                 booking_options.append(f"{desc} | Booking ID: {row['booking_id']}")
-    
+
             selected_booking = st.selectbox("Select a booking to edit or delete", [""] + booking_options, key=unique_key)
             if selected_booking:
                 booking_id = selected_booking.split(" | Booking ID: ")[-1]
                 booking_row = bookings_df[bookings_df["booking_id"] == booking_id].iloc[0]
                 booking_idx = bookings_df[bookings_df["booking_id"] == booking_id].index[0]
-    
+
                 with st.expander("Edit Booking Details", expanded=True):
                     date_edit = st.date_input(
                         "Booking Date *",
                         value=pd.to_datetime(booking_row["date"], errors="coerce").date(),
                         key=f"edit_booking_date_{booking_id}"
                     )
-    
+
                     current_time_ampm = format_time_safe(booking_row["time"])
-                    hours = [datetime.strptime(f"{h}:00", "%H:%M").strftime("%I:%M %p").lstrip('0') for h in range(6, 22)]
+                    hours = []
+                    for h in range(6, 22):  # From 6 AM to 9 PM
+                        hours.append(datetime.strptime(f"{h:02d}:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))
+                        hours.append(datetime.strptime(f"{h:02d}:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))
+                    hours.append(datetime.strptime("22:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # Add 10:00 PM
                     time_index = hours.index(current_time_ampm) if current_time_ampm in hours else 0
                     time_edit = st.selectbox("Booking Time *", hours, index=time_index, key=f"edit_booking_time_{booking_id}")
                     match_type_edit = st.radio("Match Type", ["Doubles", "Singles"],
                                                index=0 if booking_row["match_type"] == "Doubles" else 1,
                                                key=f"edit_booking_match_type_{booking_id}")
-    
+
                     if match_type_edit == "Doubles":
                         col1, col2 = st.columns(2)
                         with col1:
@@ -3936,11 +3946,11 @@ with tabs[4]:
                                                key=f"edit_s1p2_{booking_id}")
                         p2_edit = ""
                         p4_edit = ""
-    
+
                     standby_initial_index = 0
                     if "standby_player" in booking_row and booking_row["standby_player"] and booking_row["standby_player"] in available_players:
                         standby_initial_index = available_players.index(booking_row["standby_player"]) + 1
-    
+
                     standby_edit = st.selectbox("Standby Player (optional)", [""] + available_players,
                                                 index=standby_initial_index, key=f"edit_standby_{booking_id}")
                     court_edit = st.selectbox("Court Name *", [""] + court_names,
@@ -3950,7 +3960,7 @@ with tabs[4]:
                                                        type=["jpg", "jpeg", "png", "gif", "bmp", "webp"],
                                                        key=f"edit_screenshot_{booking_id}")
                     st.markdown("*Required fields", unsafe_allow_html=True)
-    
+
                     col_save, col_delete = st.columns(2)
                     with col_save:
                         if st.button("Save Changes", key=f"save_booking_changes_{booking_id}"):
@@ -3966,7 +3976,7 @@ with tabs[4]:
                                     screenshot_url_edit = booking_row["screenshot_url"]
                                     if screenshot_edit:
                                         screenshot_url_edit = upload_image_to_github(screenshot_edit, booking_id, image_type="booking")
-    
+
                                     time_24hr_edit = datetime.strptime(time_edit, "%I:%M %p").strftime("%H:%M:%S")
                                     updated_booking = {
                                         "booking_id": booking_id,
