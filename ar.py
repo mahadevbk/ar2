@@ -3531,18 +3531,18 @@ with tabs[4]:
 
     # --- EXISTING BOOKING MANAGEMENT ---
     load_bookings()
+
     with st.expander("Add New Booking", expanded=False, icon="➡️"):
-    
         st.subheader("Add New Booking")
         match_type = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
         
         with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
             date = st.date_input("Booking Date *", key=f"new_booking_date_{st.session_state.form_key_suffix}")
             hours = []
-            for h in range(6, 22):  # From 6 AM to 9 PM
+            hours.append(datetime.strptime("6:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:00 AM
+            hours.append(datetime.strptime("6:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:30 AM
+            for h in range(7, 22):  # From 7 AM to 9 PM
                 hours.append(datetime.strptime(f"{h:02d}:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))
-                hours.append(datetime.strptime(f"{h:02d}:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))
-            hours.append(datetime.strptime("22:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # Add 10:00 PM
             time = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
             
             if match_type == "Doubles":
@@ -3608,8 +3608,9 @@ with tabs[4]:
                             st.rerun()
                         except Exception as e:
                             st.error(f"Failed to save booking: {str(e)}")
-                            st.rerun()
-        
+                            st.rerun()  
+
+
     st.markdown("---")
     st.subheader("📅 Upcoming Bookings")
     bookings_df = st.session_state.bookings_df.copy()
@@ -3862,6 +3863,7 @@ with tabs[4]:
     st.markdown("---")
     
     
+    
     st.subheader("✏️ Manage Existing Booking")
     if 'edit_booking_key' not in st.session_state:
         st.session_state.edit_booking_key = 0
@@ -3911,10 +3913,10 @@ with tabs[4]:
 
                     current_time_ampm = format_time_safe(booking_row["time"])
                     hours = []
-                    for h in range(6, 22):  # From 6 AM to 9 PM
+                    hours.append(datetime.strptime("6:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:00 AM
+                    hours.append(datetime.strptime("6:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # 6:30 AM
+                    for h in range(7, 22):  # From 7 AM to 9 PM
                         hours.append(datetime.strptime(f"{h:02d}:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))
-                        hours.append(datetime.strptime(f"{h:02d}:30", "%H:%M").strftime("%I:%M %p").lstrip('0'))
-                    hours.append(datetime.strptime("22:00", "%H:%M").strftime("%I:%M %p").lstrip('0'))  # Add 10:00 PM
                     time_index = hours.index(current_time_ampm) if current_time_ampm in hours else 0
                     time_edit = st.selectbox("Booking Time *", hours, index=time_index, key=f"edit_booking_time_{booking_id}")
                     match_type_edit = st.radio("Match Type", ["Doubles", "Singles"],
@@ -4020,7 +4022,6 @@ with tabs[4]:
                                 st.error(f"Failed to delete booking: {str(e)}")
                                 st.session_state.edit_booking_key += 1
                                 st.rerun()
-
     st.markdown("---")
     st.markdown("Odds Calculation Logic process uploaded at https://github.com/mahadevbk/ar2/blob/main/ar%20odds%20prediction%20system.pdf")
 
