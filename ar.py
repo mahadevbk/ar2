@@ -3769,7 +3769,7 @@ with tabs[4]:
                 players_list = "\n".join([f"{i+1}. *{p}*" for i, p in enumerate(players)]) if players else "No players"
                 standby_text = f"\nSTD. BY: *{row['standby_player']}*" if row['standby_player'] else ""
                 
-                share_text = f"*Game Booking:*\nDate: *{full_date}*\nCourt: *{court_name}*\nPlayers:\n{players_list}{standby_text}\n*Pairing Odds:* {plain_suggestion}\nCourt location: {court_url}"
+                share_text = f"*Game Booking:*\nDate: *{full_date}*\nCourt: *{court_name}*\nPlayers:\n{players_list}{standby_text}\n{plain_suggestion}\nCourt location: {court_url}"
                 encoded_text = urllib.parse.quote(share_text)
                 whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_text}&type=custom_url&app_absent=0"
                 
