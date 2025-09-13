@@ -1182,7 +1182,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
         if badges:
             badges_html = (
                 "<span class='badges-col' style='display: block; margin-top: 6px;'>"
-                "<span style='font-weight:bold; color:#bbbbbb;'>Badges: </span>"
+                "<span style='font-weight:bold; color:#bbbbbb;'>Badges: </span><br>"
                 + " ".join([
                     f"<span class='badge-container'>"
                     f"<span style='background:#fff500; color:#031827; padding:2px 6px; border-radius:6px;'>{b}</span>"
