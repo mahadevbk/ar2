@@ -2973,25 +2973,31 @@ with tabs[1]:
     st.subheader("✏️ Manage Existing Matches")
     if 'edit_match_key' not in st.session_state:
         st.session_state.edit_match_key = 0
-    
+
     if st.session_state.matches_df.empty:
         st.info("No matches available to manage.")
     else:
+        # Ensure date is in datetime format and sort by date descending (latest first)
+        matches_df = st.session_state.matches_df.copy()
+        if 'date' in matches_df.columns:
+            matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce')
+            matches_df = matches_df.sort_values(by='date', ascending=False).reset_index(drop=True)
+        
         match_options = []
-        for _, row in st.session_state.matches_df.iterrows():
-            date_str = pd.to_datetime(row['date'], errors="coerce").strftime('%A, %d %b %Y') if row['date'] else "Unknown Date"
+        for _, row in matches_df.iterrows():
+            date_str = row['date'].strftime('%A, %d %b %Y') if pd.notnull(row['date']) else "Unknown Date"
             players = [p for p in [row['team1_player1'], row['team1_player2'], row['team2_player1'], row['team2_player2']] if p and p != ""]
             players_str = ", ".join(players) if players else "No players"
             winner = row['winner'] if row['winner'] else "Unknown"
             desc = f"Date: {date_str} | Match Type: {row['match_type']} | Players: {players_str} | Winner: {winner} | Match ID: {row['match_id']}"
             match_options.append(desc)
-    
+
         selected_match = st.selectbox("Select a match to edit or delete", [""] + match_options, key=f"select_match_to_edit_{st.session_state.edit_match_key}")
         if selected_match:
             match_id = selected_match.split(" | Match ID: ")[-1]
             match_row = st.session_state.matches_df[st.session_state.matches_df["match_id"] == match_id].iloc[0]
             match_idx = st.session_state.matches_df[st.session_state.matches_df["match_id"] == match_id].index[0]
-    
+
             with st.expander("Edit Match Details", expanded=True):
                 date_edit = st.date_input(
                     "Match Date *",
@@ -3047,7 +3053,7 @@ with tabs[1]:
                     )
                     t1p2_edit = ""
                     t2p2_edit = ""
-    
+
                 set1_edit = st.selectbox(
                     "Set 1 Score *",
                     [""] + tennis_scores(),
@@ -3078,7 +3084,7 @@ with tabs[1]:
                     key=f"edit_match_image_{match_id}"
                 )
                 st.markdown("*Required fields", unsafe_allow_html=True)
-    
+
                 col_save, col_delete = st.columns(2)
                 with col_save:
                     if st.button("Save Changes", key=f"save_match_changes_{match_id}"):
@@ -3101,7 +3107,7 @@ with tabs[1]:
                                 elif t1p1_edit == t2p1_edit:
                                     st.error("Please select different players for singles.")
                                     valid = False
-    
+
                         if valid:
                             team1_sets_won = 0
                             team2_sets_won = 0
@@ -3126,7 +3132,7 @@ with tabs[1]:
                                     st.error(f"Invalid score: {score}. Please use formats like '6-4' or 'Tie Break 10-7'.")
                                     valid = False
                                     break
-    
+
                             if valid:
                                 if len(valid_sets) == 1 and winner_edit != "Tie":
                                     st.error("A match with only one set should be a tie or have additional sets.")
@@ -3141,7 +3147,7 @@ with tabs[1]:
                                     elif team1_sets_won == team2_sets_won and winner_edit != "Tie":
                                         st.error("Teams won an equal number of sets. Please select 'Tie' as the winner or correct the scores.")
                                         valid = False
-    
+
                         if valid:
                             try:
                                 image_url_edit = match_row["match_image_url"]
@@ -3171,7 +3177,7 @@ with tabs[1]:
                                 st.error(f"Failed to save match: {str(e)}")
                                 st.session_state.edit_match_key += 1
                                 st.rerun()
-    
+
                 with col_delete:
                     if st.button("🗑️ Delete This Match", key=f"delete_match_{match_id}"):
                         try:
@@ -3183,7 +3189,7 @@ with tabs[1]:
                         except Exception as e:
                             st.error(f"Failed to delete match: {str(e)}")
                             st.session_state.edit_match_key += 1
-                            st.rerun()    
+                            st.rerun()
 
 
 
