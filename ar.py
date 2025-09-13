@@ -3372,15 +3372,16 @@ with tabs[2]:
     st.markdown(badges_css, unsafe_allow_html=True)
 
     # --- Badge Explanations ---
+   
     badge_explanations = {
-        "🎯 Tie-Break Monster": "Dominates tie-breaks with the most wins",
-        "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
-        "🏅 Comeback Kid": "Won a match after being down by a set",
-        "⚡ Clutch Master": "High clutch factor in critical points",
-        "🛡️ Iron Defense": "Conceded the fewest games on average",
-        "🏃 IronMan": "Played the most matches without missing a session",
-        "🐷 Game Hog": "Played the highest number of games in a single match"
-    }
+                "🎯 Tie-break Monster": "Dominates tie-breaks with the most wins (clutch factor >70% in 3+ clutch matches)",
+                "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
+                "📈 Consistent Performer": "Reliable performance with low variation in game differences (consistency index <2 over 5+ matches)",
+                "💪 Ironman": "Played the most matches without missing a session",
+                "🔄 Comeback Kid": "Won 3 or more matches after losing the first set",
+                "🚀 Most Improved": "Recent win rate (last 10 matches) is 20%+ higher than overall career win rate",
+                "🥇 Game Hog": "Won the highest total number of games across all matches"
+            }
 
     # --- Player Insights ---
     rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
