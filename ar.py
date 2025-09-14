@@ -41,7 +41,6 @@ import numpy as np
 import uuid
 import base64
 import time
-from PIL import Image, ImageDraw, ImageFont
 
 
 
@@ -2109,94 +2108,6 @@ END:VCALENDAR"""
 
 
 
-#------------------------GENERATE MATCH CARD ------------------------------------------------
-
-
-
-
-
-def generate_match_card(row, image_url):
-    # Download and resize the image
-    response = requests.get(image_url)
-    if response.status_code != 200:
-        raise ValueError("Failed to download match image")
-    img = Image.open(io.BytesIO(response.content))
-    
-    # Resize proportionally to height 1200
-    base_height = 1200
-    h_percent = base_height / float(img.size[1])
-    new_width = int(float(img.size[0]) * float(h_percent))
-    img = img.resize((new_width, base_height), Image.LANCZOS)
-    
-    # Prepare text lines
-    match_type = row['match_type']
-    if match_type == 'Doubles':
-        team1 = f"{row['team1_player1']} & {row['team1_player2']}"
-        team2 = f"{row['team2_player1']} & {row['team2_player2']}"
-    else:
-        team1 = row['team1_player1']
-        team2 = row['team2_player1']
-    players_text = f"{team1} vs {team2}"
-    
-    sets = [s for s in [row['set1'], row['set2'], row['set3']] if s]
-    set_text = ", ".join(sets)
-    
-    # Compute GDA (average game diff per set, signed from winner's perspective)
-    match_gd_sum = 0
-    num_sets = 0
-    for set_score in sets:
-        if not set_score:
-            continue
-        is_tie_break = "Tie Break" in str(set_score)
-        if is_tie_break:
-            tie_break_scores = [int(s) for s in re.findall(r'\d+', str(set_score))]
-            if len(tie_break_scores) != 2:
-                continue
-            team1_games, team2_games = tie_break_scores
-            team1_set_diff = team1_games - team2_games
-        else:
-            try:
-                team1_games, team2_games = map(int, str(set_score).split('-'))
-                team1_set_diff = team1_games - team2_games
-            except ValueError:
-                continue
-        match_gd_sum += team1_set_diff
-        num_sets += 1
-    
-    if row['winner'] == 'Team 2':
-        match_gd_sum = -match_gd_sum
-    elif row['winner'] == 'Tie':
-        match_gd_sum = 0
-    
-    gda = match_gd_sum / num_sets if num_sets > 0 else 0.0
-    date_str = pd.to_datetime(row['date']).strftime('%Y-%m-%d')
-    gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
-    
-    # Create new image with extra space at the bottom for text
-    text_height = 200  # Adjustable based on font size and lines
-    new_img = Image.new('RGB', (img.width, img.height + text_height), (255, 255, 255))  # White background for text area
-    new_img.paste(img, (0, 0))
-    
-    # Draw text
-    draw = ImageDraw.Draw(new_img)
-    try:
-        font = ImageFont.truetype("arial.ttf", 40)  # Adjust size as needed; assumes font available
-    except IOError:
-        font = ImageFont.load_default()  # Fallback to default font
-    
-    y_offset = img.height + 10
-    draw.text((10, y_offset), players_text, font=font, fill=(0, 0, 0))
-    y_offset += 50  # Line spacing
-    draw.text((10, y_offset), set_text, font=font, fill=(0, 0, 0))
-    y_offset += 50
-    draw.text((10, y_offset), gda_text, font=font, fill=(0, 0, 0))
-    
-    # Save to bytes
-    buf = io.BytesIO()
-    new_img.save(buf, format='JPEG')
-    buf.seek(0)
-    return buf.getvalue()
-
 
 
 
@@ -2949,7 +2860,6 @@ with tabs[1]:
         
         st.markdown("*Required fields", unsafe_allow_html=True)
         
-
     st.markdown("---")
     st.subheader("Match History")
 
@@ -3055,30 +2965,16 @@ with tabs[1]:
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
     else:
-        for idx, row in display_matches.iterrows():
+        for index, row in display_matches.iterrows():
             cols = st.columns([1, 1, 7, 1])
             with cols[0]:
                 st.markdown(f"<span style='font-weight:bold; color:#fff500;'>{row['serial_number']}</span>", unsafe_allow_html=True)
             with cols[1]:
-                match_image_url = row.get("match_image_url")
-                if match_image_url:
+                if row["match_image_url"]:
                     try:
-                        st.image(match_image_url, width=50, caption="")
-                        # Add the match card download button
-                        card_key = f"download_match_card_{row['match_id']}_{idx}"
-                        @st.cache_data
-                        def get_cached_card(_row_dict, _url):
-                            return generate_match_card(pd.Series(_row_dict), _url)
-                        card_bytes = get_cached_card(row.to_dict(), match_image_url)
-                        st.download_button(
-                            label="📇",
-                            data=card_bytes,
-                            file_name=f"match_card_{row['match_id']}.jpg",
-                            mime="image/jpeg",
-                            key=card_key
-                        )
+                        st.image(row["match_image_url"], width=50, caption="")
                     except Exception as e:
-                        st.error(f"Error displaying match image or generating card: {str(e)}")
+                        st.error(f"Error displaying match image: {str(e)}")
             with cols[2]:
                 st.markdown(f"{format_match_players(row)}", unsafe_allow_html=True)
                 st.markdown(format_match_scores_and_date(row), unsafe_allow_html=True)
