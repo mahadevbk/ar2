@@ -2110,6 +2110,7 @@ END:VCALENDAR"""
 # ----------------------GENERATE MATCH CARD ---------------------------------------
 
 
+
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2178,18 +2179,18 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Offside-Regular.ttf", 70)  # Use Offside, size 70
+        font = ImageFont.truetype("PermanentMarker-Regular.ttf", 70)  # Use Permanent Marker, size 70
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 70)  # Fallback to Arial
-            st.warning("Offside-Regular.ttf not found. Using arial.ttf.")
+            st.warning("PermanentMarker-Regular.ttf not found. Using arial.ttf.")
         except IOError:
             try:
                 font = ImageFont.truetype("DejaVuSans.ttf", 70)  # Fallback to DejaVuSans
-                st.warning("Offside-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
+                st.warning("PermanentMarker-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
             except IOError:
                 font = ImageFont.load_default()  # Last resort
-                st.warning("Offside-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
+                st.warning("PermanentMarker-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2202,7 +2203,7 @@ def generate_match_card(row, image_url):
         scale_factor = max_text_width / max_text_width_pixels
         font_size = int(70 * scale_factor)
         try:
-            font = ImageFont.truetype("Offside-Regular.ttf", font_size)
+            font = ImageFont.truetype("PermanentMarker-Regular.ttf", font_size)
         except IOError:
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
@@ -2222,7 +2223,7 @@ def generate_match_card(row, image_url):
     black_outline = (0, 0, 0)  # Black for outline
     for text in [players_text, set_text, gda_text]:
         # Draw thin black outline (stroke) for better contrast
-        for offset_x, offset_y in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:  # Reduced to ±1 for thinner outline
+        for offset_x, offset_y in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:  # Thin outline with ±1
             draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=black_outline, anchor="mm")
         # Draw main optic yellow text
         draw.text((x_center, y_offset), text, font=font, fill=optic_yellow, anchor="mm")  # Center-aligned
@@ -2233,7 +2234,6 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
     
