@@ -2111,6 +2111,7 @@ END:VCALENDAR"""
 
 
 
+
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2179,14 +2180,18 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Roboto-Regular.ttf", 60)  # Use Roboto, size 60
+        font = ImageFont.truetype("Roboto-Regular.ttf", 70)  # Use Roboto, size 70
     except IOError:
         try:
-            font = ImageFont.truetype("arial.ttf", 60)  # Fallback to Arial
+            font = ImageFont.truetype("arial.ttf", 70)  # Fallback to Arial
             st.warning("Roboto-Regular.ttf not found. Using arial.ttf.")
         except IOError:
-            font = ImageFont.load_default()  # Last resort
-            st.warning("Roboto-Regular.ttf and arial.ttf not found. Using default font.")
+            try:
+                font = ImageFont.truetype("DejaVuSans.ttf", 70)  # Fallback to DejaVuSans
+                st.warning("Roboto-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
+            except IOError:
+                font = ImageFont.load_default()  # Last resort
+                st.warning("Roboto-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2194,35 +2199,43 @@ def generate_match_card(row, image_url):
     gda_bbox = draw.textbbox((0, 0), gda_text, font=font)
     
     # Ensure text fits within image width
-    max_text_width = max(players_bbox[2] - players_bbox[0], set_bbox[2] - set_bbox[0], gda_bbox[2] - gda_bbox[0])
-    if max_text_width > max_text_width:
-        scale_factor = max_text_width / max_text_width
-        font_size = int(60 * scale_factor)
+    max_text_width_pixels = max(players_bbox[2] - players_bbox[0], set_bbox[2] - set_bbox[0], gda_bbox[2] - gda_bbox[0])
+    if max_text_width_pixels > max_text_width:
+        scale_factor = max_text_width / max_text_width_pixels
+        font_size = int(70 * scale_factor)
         try:
             font = ImageFont.truetype("Roboto-Regular.ttf", font_size)
         except IOError:
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
             except IOError:
-                font = ImageFont.load_default()
+                try:
+                    font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+                except IOError:
+                    font = ImageFont.load_default()
     
     # Define text area height and position
-    text_area_height = 240  # Adjusted for font size 60 and three lines with spacing
+    text_area_height = 210  # Adjusted for font size 70 and minimal spacing
     y_offset = img.height - text_area_height - 20  # Start text 20px from bottom
     
-    # Center each line of text horizontally
+    # Center each line of text horizontally with outline for readability
     x_center = img.width / 2
-    draw.text((x_center, y_offset), players_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned, white text
-    y_offset += 80  # Adjusted spacing for font size 60
-    draw.text((x_center, y_offset), set_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
-    y_offset += 80
-    draw.text((x_center, y_offset), gda_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
+    for text in [players_text, set_text, gda_text]:
+        # Draw black outline (stroke) for better contrast
+        for offset_x, offset_y in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
+            draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=(0, 0, 0), anchor="mm")
+        # Draw main white text
+        draw.text((x_center, y_offset), text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
+        y_offset += 70  # Minimal spacing for font size 70
     
     # Save to bytes
     buf = io.BytesIO()
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
+
+
     
 
 
