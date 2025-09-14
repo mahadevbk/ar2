@@ -2217,7 +2217,7 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("PermanentMarker-Regular.ttf", 70)  # Use Permanent Marker, size 70
+        font = ImageFont.truetype("RubikWetPaint-Regular.ttf", 70)  # Use Permanent Marker, size 70
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 70)  # Fallback to Arial
