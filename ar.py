@@ -2180,18 +2180,18 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Roboto-Regular.ttf", 70)  # Use Roboto, size 70
+        font = ImageFont.truetype("Offside-Regular.ttf", 70)  # Use Offside, size 70
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 70)  # Fallback to Arial
-            st.warning("Roboto-Regular.ttf not found. Using arial.ttf.")
+            st.warning("Offside-Regular.ttf not found. Using arial.ttf.")
         except IOError:
             try:
                 font = ImageFont.truetype("DejaVuSans.ttf", 70)  # Fallback to DejaVuSans
-                st.warning("Roboto-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
+                st.warning("Offside-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
             except IOError:
                 font = ImageFont.load_default()  # Last resort
-                st.warning("Roboto-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
+                st.warning("Offside-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2204,7 +2204,7 @@ def generate_match_card(row, image_url):
         scale_factor = max_text_width / max_text_width_pixels
         font_size = int(70 * scale_factor)
         try:
-            font = ImageFont.truetype("Roboto-Regular.ttf", font_size)
+            font = ImageFont.truetype("Offside-Regular.ttf", font_size)
         except IOError:
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
@@ -2220,12 +2220,13 @@ def generate_match_card(row, image_url):
     
     # Center each line of text horizontally with outline for readability
     x_center = img.width / 2
+    optic_yellow = (255, 255, 0)  # Optic yellow for fill and outline
     for text in [players_text, set_text, gda_text]:
-        # Draw black outline (stroke) for better contrast
+        # Draw optic yellow outline (stroke) for better contrast
         for offset_x, offset_y in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
-            draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=(0, 0, 0), anchor="mm")
-        # Draw main white text
-        draw.text((x_center, y_offset), text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
+            draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=optic_yellow, anchor="mm")
+        # Draw main optic yellow text
+        draw.text((x_center, y_offset), text, font=font, fill=optic_yellow, anchor="mm")  # Center-aligned
         y_offset += 70  # Minimal spacing for font size 70
     
     # Save to bytes
