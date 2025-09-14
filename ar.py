@@ -2137,6 +2137,11 @@ def generate_match_card(row, image_url):
         team2 = row['team2_player1']
     players_text = f"{team1} vs {team2}"
     
+    # Truncate players_text if too long to prevent overflow
+    max_text_width = img.width * 0.8  # Limit text to 80% of image width
+    if len(players_text) > 50:  # Arbitrary length check for long names
+        players_text = players_text[:47] + "..."  # Truncate with ellipsis
+    
     sets = [s for s in [row['set1'], row['set2'], row['set3']] if s]
     set_text = ", ".join(sets)
     
@@ -2174,26 +2179,43 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Roboto-Regular.ttf", 80)  # Use Roboto, size 80
+        font = ImageFont.truetype("Roboto-Regular.ttf", 60)  # Use Roboto, size 60
     except IOError:
-        font = ImageFont.load_default(size=80)  # Fallback with explicit size
-        st.warning("Roboto-Regular.ttf not found. Using default font. Ensure the font file is available in the project directory.")
+        try:
+            font = ImageFont.truetype("arial.ttf", 60)  # Fallback to Arial
+            st.warning("Roboto-Regular.ttf not found. Using arial.ttf.")
+        except IOError:
+            font = ImageFont.load_default()  # Last resort
+            st.warning("Roboto-Regular.ttf and arial.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
     set_bbox = draw.textbbox((0, 0), set_text, font=font)
     gda_bbox = draw.textbbox((0, 0), gda_text, font=font)
     
+    # Ensure text fits within image width
+    max_text_width = max(players_bbox[2] - players_bbox[0], set_bbox[2] - set_bbox[0], gda_bbox[2] - gda_bbox[0])
+    if max_text_width > max_text_width:
+        scale_factor = max_text_width / max_text_width
+        font_size = int(60 * scale_factor)
+        try:
+            font = ImageFont.truetype("Roboto-Regular.ttf", font_size)
+        except IOError:
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except IOError:
+                font = ImageFont.load_default()
+    
     # Define text area height and position
-    text_area_height = 300  # Increased for larger font (80px) and three lines with spacing
-    y_offset = img.height - text_area_height - 30  # Start text 30px from bottom for larger text
+    text_area_height = 240  # Adjusted for font size 60 and three lines with spacing
+    y_offset = img.height - text_area_height - 20  # Start text 20px from bottom
     
     # Center each line of text horizontally
     x_center = img.width / 2
     draw.text((x_center, y_offset), players_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned, white text
-    y_offset += 100  # Increased line spacing for larger font
+    y_offset += 80  # Adjusted spacing for font size 60
     draw.text((x_center, y_offset), set_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
-    y_offset += 100
+    y_offset += 80
     draw.text((x_center, y_offset), gda_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
     
     # Save to bytes
@@ -2201,7 +2223,6 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
     
 
 
