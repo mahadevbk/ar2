@@ -2174,7 +2174,7 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("arial.ttf", 40)  # Adjust size as needed
+        font = ImageFont.truetype("Roboto-Regular.ttf", 80)  # Use Roboto, double size (40 -> 80)
     except IOError:
         font = ImageFont.load_default()  # Fallback to default font
     
@@ -2183,26 +2183,16 @@ def generate_match_card(row, image_url):
     set_bbox = draw.textbbox((0, 0), set_text, font=font)
     gda_bbox = draw.textbbox((0, 0), gda_text, font=font)
     
-    # Determine maximum text width for background rectangle
-    max_text_width = max(players_bbox[2] - players_bbox[0], set_bbox[2] - set_bbox[0], gda_bbox[2] - gda_bbox[0])
-    
     # Define text area height and position
-    text_area_height = 150  # Space for three lines of text with padding
-    y_offset = img.height - text_area_height - 10  # Start text 10px from bottom
+    text_area_height = 240  # Increased to accommodate larger font (80px) and three lines
+    y_offset = img.height - text_area_height - 20  # Start text 20px from bottom for larger text
     
-    # Draw semi-transparent black rectangle for text background
-    rect_x0 = (img.width - max_text_width - 20) // 2  # Center with 10px padding on each side
-    rect_x1 = rect_x0 + max_text_width + 20
-    rect_y0 = y_offset - 10  # Small padding above text
-    rect_y1 = img.height - 10  # Small padding below text
-    draw.rectangle((rect_x0, rect_y0, rect_x1, rect_y1), fill=(0, 0, 0, 180))  # Semi-transparent black
-    
-    # Center each line of text horizontally within the rectangle
+    # Center each line of text horizontally without background rectangle
     x_center = img.width / 2
-    draw.text((x_center, y_offset), players_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
-    y_offset += 50
+    draw.text((x_center, y_offset), players_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned, white text
+    y_offset += 80  # Increased line spacing for larger font
     draw.text((x_center, y_offset), set_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
-    y_offset += 50
+    y_offset += 80
     draw.text((x_center, y_offset), gda_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
     
     # Save to bytes
@@ -2210,7 +2200,6 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
 # -----------------------Main App Logic ------------------------------------------------------
