@@ -41,6 +41,7 @@ import numpy as np
 import uuid
 import base64
 import time
+from PIL import Image, ImageDraw, ImageFont
 
 
 
@@ -2106,7 +2107,109 @@ END:VCALENDAR"""
         return None, f"Error generating ICS: {str(e)}"
 
 
+# ----------------------GENERATE MATCH CARD ---------------------------------------
 
+
+
+def generate_match_card(row, image_url):
+    # Download the image
+    response = requests.get(image_url)
+    if response.status_code != 200:
+        raise ValueError("Failed to download match image")
+    img = Image.open(io.BytesIO(response.content))
+    
+    # Handle EXIF orientation to prevent unintended rotation
+    img = ImageOps.exif_transpose(img)
+    
+    # Resize proportionally to height 1200
+    base_height = 1200
+    h_percent = base_height / float(img.size[1])
+    new_width = int(float(img.size[0]) * float(h_percent))
+    img = img.resize((new_width, base_height), Image.LANCZOS)
+    
+    # Prepare text lines
+    match_type = row['match_type']
+    if match_type == 'Doubles':
+        team1 = f"{row['team1_player1']} & {row['team1_player2']}"
+        team2 = f"{row['team2_player1']} & {row['team2_player2']}"
+    else:
+        team1 = row['team1_player1']
+        team2 = row['team2_player1']
+    players_text = f"{team1} vs {team2}"
+    
+    sets = [s for s in [row['set1'], row['set2'], row['set3']] if s]
+    set_text = ", ".join(sets)
+    
+    # Compute GDA (average game diff per set, signed from winner's perspective)
+    match_gd_sum = 0
+    num_sets = 0
+    for set_score in sets:
+        if not set_score:
+            continue
+        is_tie_break = "Tie Break" in str(set_score)
+        if is_tie_break:
+            tie_break_scores = [int(s) for s in re.findall(r'\d+', str(set_score))]
+            if len(tie_break_scores) != 2:
+                continue
+            team1_games, team2_games = tie_break_scores
+            team1_set_diff = team1_games - team2_games
+        else:
+            try:
+                team1_games, team2_games = map(int, str(set_score).split('-'))
+                team1_set_diff = team1_games - team2_games
+            except ValueError:
+                continue
+        match_gd_sum += team1_set_diff
+        num_sets += 1
+    
+    if row['winner'] == 'Team 2':
+        match_gd_sum = -match_gd_sum
+    elif row['winner'] == 'Tie':
+        match_gd_sum = 0
+    
+    gda = match_gd_sum / num_sets if num_sets > 0 else 0.0
+    date_str = pd.to_datetime(row['date']).strftime('%Y-%m-%d')
+    gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
+    
+    # Draw text directly onto the image
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.truetype("arial.ttf", 40)  # Adjust size as needed
+    except IOError:
+        font = ImageFont.load_default()  # Fallback to default font
+    
+    # Calculate text sizes for centering
+    players_bbox = draw.textbbox((0, 0), players_text, font=font)
+    set_bbox = draw.textbbox((0, 0), set_text, font=font)
+    gda_bbox = draw.textbbox((0, 0), gda_text, font=font)
+    
+    # Determine maximum text width for background rectangle
+    max_text_width = max(players_bbox[2] - players_bbox[0], set_bbox[2] - set_bbox[0], gda_bbox[2] - gda_bbox[0])
+    
+    # Define text area height and position
+    text_area_height = 150  # Space for three lines of text with padding
+    y_offset = img.height - text_area_height - 10  # Start text 10px from bottom
+    
+    # Draw semi-transparent black rectangle for text background
+    rect_x0 = (img.width - max_text_width - 20) // 2  # Center with 10px padding on each side
+    rect_x1 = rect_x0 + max_text_width + 20
+    rect_y0 = y_offset - 10  # Small padding above text
+    rect_y1 = img.height - 10  # Small padding below text
+    draw.rectangle((rect_x0, rect_y0, rect_x1, rect_y1), fill=(0, 0, 0, 180))  # Semi-transparent black
+    
+    # Center each line of text horizontally within the rectangle
+    x_center = img.width / 2
+    draw.text((x_center, y_offset), players_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
+    y_offset += 50
+    draw.text((x_center, y_offset), set_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
+    y_offset += 50
+    draw.text((x_center, y_offset), gda_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
+    
+    # Save to bytes
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG')
+    buf.seek(0)
+    return buf.getvalue()
 
 
 
@@ -2860,6 +2963,7 @@ with tabs[1]:
         
         st.markdown("*Required fields", unsafe_allow_html=True)
         
+
     st.markdown("---")
     st.subheader("Match History")
 
@@ -2965,16 +3069,30 @@ with tabs[1]:
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
     else:
-        for index, row in display_matches.iterrows():
+        for idx, row in display_matches.iterrows():
             cols = st.columns([1, 1, 7, 1])
             with cols[0]:
                 st.markdown(f"<span style='font-weight:bold; color:#fff500;'>{row['serial_number']}</span>", unsafe_allow_html=True)
             with cols[1]:
-                if row["match_image_url"]:
+                match_image_url = row.get("match_image_url")
+                if match_image_url:
                     try:
-                        st.image(row["match_image_url"], width=50, caption="")
+                        st.image(match_image_url, width=50, caption="")
+                        # Add the match card download button
+                        card_key = f"download_match_card_{row['match_id']}_{idx}"
+                        @st.cache_data
+                        def get_cached_card(_row_dict, _url):
+                            return generate_match_card(pd.Series(_row_dict), _url)
+                        card_bytes = get_cached_card(row.to_dict(), match_image_url)
+                        st.download_button(
+                            label="📇",
+                            data=card_bytes,
+                            file_name=f"match_card_{row['match_id']}.jpg",
+                            mime="image/jpeg",
+                            key=card_key
+                        )
                     except Exception as e:
-                        st.error(f"Error displaying match image: {str(e)}")
+                        st.error(f"Error displaying match image or generating card: {str(e)}")
             with cols[2]:
                 st.markdown(f"{format_match_players(row)}", unsafe_allow_html=True)
                 st.markdown(format_match_scores_and_date(row), unsafe_allow_html=True)
@@ -2982,7 +3100,6 @@ with tabs[1]:
                 share_link = generate_whatsapp_link(row)
                 st.markdown(f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>', unsafe_allow_html=True)
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
-
     
     
     #------Updated Manage existing match to address error wile deletion
