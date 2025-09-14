@@ -41,7 +41,7 @@ import numpy as np
 import uuid
 import base64
 import time
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps 
 
 
 
@@ -2210,7 +2210,6 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
 
