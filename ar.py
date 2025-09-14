@@ -2216,13 +2216,13 @@ def generate_match_card(row, image_url):
     text_area_height = 210  # Adjusted for font size 70 and minimal spacing
     y_offset = img.height - text_area_height - 20  # Start text 20px from bottom
     
-    # Center each line of text horizontally with black outline for readability
+    # Center each line of text horizontally with thin black outline for readability
     x_center = img.width / 2
     optic_yellow = (255, 255, 0)  # Optic yellow for fill
     black_outline = (0, 0, 0)  # Black for outline
     for text in [players_text, set_text, gda_text]:
         # Draw thin black outline (stroke) for better contrast
-        for offset_x, offset_y in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
+        for offset_x, offset_y in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:  # Reduced to ±1 for thinner outline
             draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=black_outline, anchor="mm")
         # Draw main optic yellow text
         draw.text((x_center, y_offset), text, font=font, fill=optic_yellow, anchor="mm")  # Center-aligned
@@ -2233,7 +2233,6 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
 
