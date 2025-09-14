@@ -2111,6 +2111,7 @@ END:VCALENDAR"""
 
 
 
+
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2127,7 +2128,7 @@ def generate_match_card(row, image_url):
     new_width = int(float(img.size[0]) * float(h_percent))
     img = img.resize((new_width, base_height), Image.LANCZOS)
     
-    # Prepare text lines
+    # Prepare teams
     match_type = row['match_type']
     if match_type == 'Doubles':
         team1 = f"{row['team1_player1']} & {row['team1_player2']}"
@@ -2135,17 +2136,11 @@ def generate_match_card(row, image_url):
     else:
         team1 = row['team1_player1']
         team2 = row['team2_player1']
-    players_text = f"{team1} vs {team2}"
     
-    # Truncate players_text if too long to prevent overflow
-    max_text_width = img.width * 0.8  # Limit text to 80% of image width
-    if len(players_text) > 50:  # Arbitrary length check for long names
-        players_text = players_text[:47] + "..."  # Truncate with ellipsis
-    
+    # Compute sets and GDA
     sets = [s for s in [row['set1'], row['set2'], row['set3']] if s]
     set_text = ", ".join(sets)
     
-    # Compute GDA (average game diff per set, signed from winner's perspective)
     match_gd_sum = 0
     num_sets = 0
     for set_score in sets:
@@ -2167,12 +2162,55 @@ def generate_match_card(row, image_url):
         match_gd_sum += team1_set_diff
         num_sets += 1
     
-    if row['winner'] == 'Team 2':
-        match_gd_sum = -match_gd_sum
-    elif row['winner'] == 'Tie':
-        match_gd_sum = 0
-    
     gda = match_gd_sum / num_sets if num_sets > 0 else 0.0
+    
+    # Adjust GDA sign based on winner
+    winner = row['winner']
+    if winner == 'Team 2':
+        gda = -gda
+    elif winner == 'Tie':
+        gda = 0.0
+    
+    abs_gda = abs(gda)
+    
+    # Define verb lists (matching format_match_players)
+    strong_verbs = ["obliterated", "crushed", "smashed", "annihilated", "destroyed"]
+    solid_verbs = ["dominated", "overpowered", "outplayed", "thrashed"]
+    decent_verbs = ["defeated", "beat", "conquered", "toppled"]
+    close_verbs = ["overcame", "outlasted", "surpassed", "bested"]
+    tight_verbs = ["edged out", "nipped", "pipped", "squeaked by"]
+    tie_verbs = ["tied with", "matched", "drew with"]
+    
+    # Select random verb based on GDA and winner
+    import random
+    if winner == 'Tie':
+        verb = random.choice(tie_verbs)
+    else:
+        if abs_gda > 4.0:
+            verb = random.choice(strong_verbs)
+        elif abs_gda > 3.0:
+            verb = random.choice(solid_verbs)
+        elif abs_gda > 2.0:
+            verb = random.choice(decent_verbs)
+        elif abs_gda > 1.0:
+            verb = random.choice(close_verbs)
+        else:
+            verb = random.choice(tight_verbs)
+    
+    # Construct players_text using verb
+    if winner == 'Tie':
+        players_text = f"{team1} {verb} {team2}"
+    elif winner == 'Team 1':
+        players_text = f"{team1} {verb} {team2}"
+    else:  # Team 2
+        players_text = f"{team2} {verb} {team1}"
+    
+    # Truncate players_text if too long to prevent overflow
+    max_text_width = img.width * 0.8
+    if len(players_text) > 50:
+        players_text = players_text[:47] + "..."
+    
+    # GDA text with signed GDA
     date_str = pd.to_datetime(row['date']).strftime('%Y-%m-%d')
     gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
     
