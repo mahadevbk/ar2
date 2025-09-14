@@ -2110,8 +2110,6 @@ END:VCALENDAR"""
 # ----------------------GENERATE MATCH CARD ---------------------------------------
 
 
-
-
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2218,13 +2216,14 @@ def generate_match_card(row, image_url):
     text_area_height = 210  # Adjusted for font size 70 and minimal spacing
     y_offset = img.height - text_area_height - 20  # Start text 20px from bottom
     
-    # Center each line of text horizontally with outline for readability
+    # Center each line of text horizontally with black outline for readability
     x_center = img.width / 2
-    optic_yellow = (255, 255, 0)  # Optic yellow for fill and outline
+    optic_yellow = (255, 255, 0)  # Optic yellow for fill
+    black_outline = (0, 0, 0)  # Black for outline
     for text in [players_text, set_text, gda_text]:
-        # Draw optic yellow outline (stroke) for better contrast
+        # Draw thin black outline (stroke) for better contrast
         for offset_x, offset_y in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
-            draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=optic_yellow, anchor="mm")
+            draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=black_outline, anchor="mm")
         # Draw main optic yellow text
         draw.text((x_center, y_offset), text, font=font, fill=optic_yellow, anchor="mm")  # Center-aligned
         y_offset += 70  # Minimal spacing for font size 70
@@ -2234,6 +2233,8 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
+
 
 
     
