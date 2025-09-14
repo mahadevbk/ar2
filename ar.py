@@ -2174,9 +2174,10 @@ def generate_match_card(row, image_url):
     # Draw text directly onto the image
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("Roboto-Regular.ttf", 80)  # Use Roboto, double size (40 -> 80)
+        font = ImageFont.truetype("Roboto-Regular.ttf", 80)  # Use Roboto, size 80
     except IOError:
-        font = ImageFont.load_default()  # Fallback to default font
+        font = ImageFont.load_default(size=80)  # Fallback with explicit size
+        st.warning("Roboto-Regular.ttf not found. Using default font. Ensure the font file is available in the project directory.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2184,15 +2185,15 @@ def generate_match_card(row, image_url):
     gda_bbox = draw.textbbox((0, 0), gda_text, font=font)
     
     # Define text area height and position
-    text_area_height = 240  # Increased to accommodate larger font (80px) and three lines
-    y_offset = img.height - text_area_height - 20  # Start text 20px from bottom for larger text
+    text_area_height = 300  # Increased for larger font (80px) and three lines with spacing
+    y_offset = img.height - text_area_height - 30  # Start text 30px from bottom for larger text
     
-    # Center each line of text horizontally without background rectangle
+    # Center each line of text horizontally
     x_center = img.width / 2
     draw.text((x_center, y_offset), players_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned, white text
-    y_offset += 80  # Increased line spacing for larger font
+    y_offset += 100  # Increased line spacing for larger font
     draw.text((x_center, y_offset), set_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
-    y_offset += 80
+    y_offset += 100
     draw.text((x_center, y_offset), gda_text, font=font, fill=(255, 255, 255), anchor="mm")  # Center-aligned
     
     # Save to bytes
@@ -2200,6 +2201,8 @@ def generate_match_card(row, image_url):
     img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
+    
 
 
 # -----------------------Main App Logic ------------------------------------------------------
