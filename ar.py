@@ -2236,7 +2236,6 @@ def generate_match_card(row, image_url):
     return buf.getvalue()
 
 
-
     
 
 
