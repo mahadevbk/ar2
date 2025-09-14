@@ -3091,6 +3091,8 @@ with tabs[1]:
             
         return f"<div style='font-family: monospace; white-space: pre;'>{score_html}  |  {gda_html}<br>{date_str}</div>"
 
+    
+    # Updated match history loop (replace the loop in the Match History section)
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
     else:
@@ -3103,12 +3105,12 @@ with tabs[1]:
                 if match_image_url:
                     try:
                         st.image(match_image_url, width=50, caption="")
-                        # Add the match card download button
+                        # Add the match card download button with unique cache key
                         card_key = f"download_match_card_{row['match_id']}_{idx}"
-                        @st.cache_data
-                        def get_cached_card(_row_dict, _url):
+                        @st.cache_data(hash_funcs={pd.Series: lambda x: str(x.to_dict()), str: lambda x: x})
+                        def get_cached_card(_row_dict, _url, _match_id):
                             return generate_match_card(pd.Series(_row_dict), _url)
-                        card_bytes = get_cached_card(row.to_dict(), match_image_url)
+                        card_bytes = get_cached_card(row.to_dict(), match_image_url, row['match_id'])
                         st.download_button(
                             label="📇",
                             data=card_bytes,
@@ -3125,7 +3127,11 @@ with tabs[1]:
                 share_link = generate_whatsapp_link(row)
                 st.markdown(f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>', unsafe_allow_html=True)
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
-    
+
+
+
+
+
     
     #------Updated Manage existing match to address error wile deletion
 
