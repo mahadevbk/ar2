@@ -2111,9 +2111,6 @@ END:VCALENDAR"""
 # ----------------------GENERATE MATCH CARD ---------------------------------------
 
 
-
-
-
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2131,16 +2128,18 @@ def generate_match_card(row, image_url):
     img = img.resize((new_width, base_height), Image.LANCZOS)
     
     # Apply rounded corners to the image
-    radius = 10  # Corner radius in pixels
+    radius = 20  # Increased corner radius for more rounded effect
     mask = Image.new('L', (new_width, base_height), 0)
     draw_mask = ImageDraw.Draw(mask)
     draw_mask.rounded_rectangle((0, 0, new_width, base_height), radius=radius, fill=255)
-    rounded_img = Image.new('RGBA', (new_width, base_height))
-    rounded_img.paste(img, (0, 0), mask)
+    # Ensure image is in RGBA mode for proper alpha blending
+    img_rgba = img.convert('RGBA')
+    rounded_img = Image.new('RGBA', (new_width, base_height), (0, 0, 0, 0))  # Transparent background
+    rounded_img.paste(img_rgba, (0, 0), mask)
     
     # Create new image with white borders (10px sides and top, 150px bottom)
     border_sides = 10
-    border_bottom = 150  # Increased to fit text comfortably
+    border_bottom = 150  # Space for text
     new_img_width = new_width + 2 * border_sides
     new_img_height = base_height + border_sides + border_bottom
     polaroid_img = Image.new('RGB', (new_img_width, new_img_height), color='white')
@@ -2236,18 +2235,18 @@ def generate_match_card(row, image_url):
     # Draw text onto the bottom white space
     draw = ImageDraw.Draw(polaroid_img)
     try:
-        font = ImageFont.truetype("RubikWetPaint-Regular.ttf", 50)
+        font = ImageFont.truetype("PermanentMarker-Regular.ttf", 50)
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 50)
-            st.warning("RubikWetPaint-Regular.ttf not found. Using arial.ttf.")
+            st.warning("PermanentMarker-Regular.ttf not found. Using arial.ttf.")
         except IOError:
             try:
                 font = ImageFont.truetype("DejaVuSans.ttf", 50)
-                st.warning("RubikWetPaint-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
+                st.warning("PermanentMarker-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
             except IOError:
                 font = ImageFont.load_default()
-                st.warning("RubikWetPaint-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
+                st.warning("PermanentMarker-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2260,7 +2259,7 @@ def generate_match_card(row, image_url):
         scale_factor = max_text_width / max_text_width_pixels
         font_size = int(50 * scale_factor)
         try:
-            font = ImageFont.truetype("RubikWetPaint-Regular.ttf", font_size)
+            font = ImageFont.truetype("PermanentMarker-Regular.ttf", font_size)
         except IOError:
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
@@ -2273,7 +2272,7 @@ def generate_match_card(row, image_url):
     # Define text positions in the bottom white space
     text_area_top = base_height + border_sides  # Start at bottom of original image
     x_center = new_img_width / 2
-    y_positions = [text_area_top + 30, text_area_top + 80, text_area_top + 130]  # Adjusted for larger space
+    y_positions = [text_area_top + 30, text_area_top + 80, text_area_top + 130]  # Adjusted for 150px space
     
     # Draw text in black without outline
     black_fill = (0, 0, 0)  # Black color for text
@@ -2286,6 +2285,15 @@ def generate_match_card(row, image_url):
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
+
+
+
+
+
+
+
+
 
 
     
