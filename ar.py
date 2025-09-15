@@ -41,7 +41,8 @@ import numpy as np
 import uuid
 import base64
 import time
-from PIL import Image, ImageDraw, ImageFont, ImageOps 
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+
 
 
 
@@ -2129,15 +2130,23 @@ def generate_match_card(row, image_url):
     new_width = int(float(img.size[0]) * float(h_percent))
     img = img.resize((new_width, base_height), Image.LANCZOS)
     
-    # Create new image with white borders (10px sides and top, 40px bottom)
+    # Apply rounded corners to the image
+    radius = 10  # Corner radius in pixels
+    mask = Image.new('L', (new_width, base_height), 0)
+    draw_mask = ImageDraw.Draw(mask)
+    draw_mask.rounded_rectangle((0, 0, new_width, base_height), radius=radius, fill=255)
+    rounded_img = Image.new('RGBA', (new_width, base_height))
+    rounded_img.paste(img, (0, 0), mask)
+    
+    # Create new image with white borders (10px sides and top, 150px bottom)
     border_sides = 10
-    border_bottom = 40
+    border_bottom = 150  # Increased to fit text comfortably
     new_img_width = new_width + 2 * border_sides
     new_img_height = base_height + border_sides + border_bottom
     polaroid_img = Image.new('RGB', (new_img_width, new_img_height), color='white')
     
-    # Paste the resized image onto the Polaroid canvas
-    polaroid_img.paste(img, (border_sides, border_sides))
+    # Paste the rounded image onto the Polaroid canvas
+    polaroid_img.paste(rounded_img.convert('RGB'), (border_sides, border_sides))
     
     # Prepare teams
     match_type = row['match_type']
@@ -2193,7 +2202,6 @@ def generate_match_card(row, image_url):
     tie_verbs = ["tied with", "matched", "drew with"]
     
     # Select random verb based on GDA and winner
-    import random
     if winner == 'Tie':
         verb = random.choice(tie_verbs)
     else:
@@ -2228,7 +2236,7 @@ def generate_match_card(row, image_url):
     # Draw text onto the bottom white space
     draw = ImageDraw.Draw(polaroid_img)
     try:
-        font = ImageFont.truetype("RubikWetPaint-Regular.ttf", 50)  # Reduced size for Polaroid space
+        font = ImageFont.truetype("RubikWetPaint-Regular.ttf", 50)
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 50)
@@ -2265,7 +2273,7 @@ def generate_match_card(row, image_url):
     # Define text positions in the bottom white space
     text_area_top = base_height + border_sides  # Start at bottom of original image
     x_center = new_img_width / 2
-    y_positions = [text_area_top + 15, text_area_top + 50, text_area_top + 85]  # Adjusted for spacing
+    y_positions = [text_area_top + 30, text_area_top + 80, text_area_top + 130]  # Adjusted for larger space
     
     # Draw text in black without outline
     black_fill = (0, 0, 0)  # Black color for text
