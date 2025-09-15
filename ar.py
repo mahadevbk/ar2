@@ -2112,6 +2112,7 @@ END:VCALENDAR"""
 
 
 
+
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2122,11 +2123,21 @@ def generate_match_card(row, image_url):
     # Handle EXIF orientation to prevent unintended rotation
     img = ImageOps.exif_transpose(img)
     
-    # Resize proportionally to height 1200
+    # Resize proportionally to height 1200 (excluding Polaroid borders)
     base_height = 1200
     h_percent = base_height / float(img.size[1])
     new_width = int(float(img.size[0]) * float(h_percent))
     img = img.resize((new_width, base_height), Image.LANCZOS)
+    
+    # Create new image with white borders (10px sides and top, 40px bottom)
+    border_sides = 10
+    border_bottom = 40
+    new_img_width = new_width + 2 * border_sides
+    new_img_height = base_height + border_sides + border_bottom
+    polaroid_img = Image.new('RGB', (new_img_width, new_img_height), color='white')
+    
+    # Paste the resized image onto the Polaroid canvas
+    polaroid_img.paste(img, (border_sides, border_sides))
     
     # Prepare teams
     match_type = row['match_type']
@@ -2206,7 +2217,7 @@ def generate_match_card(row, image_url):
         players_text = f"{team2} {verb} {team1}"
     
     # Truncate players_text if too long to prevent overflow
-    max_text_width = img.width * 0.8
+    max_text_width = new_width * 0.8
     if len(players_text) > 50:
         players_text = players_text[:47] + "..."
     
@@ -2214,21 +2225,21 @@ def generate_match_card(row, image_url):
     date_str = pd.to_datetime(row['date']).strftime('%Y-%m-%d')
     gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
     
-    # Draw text directly onto the image
-    draw = ImageDraw.Draw(img)
+    # Draw text onto the bottom white space
+    draw = ImageDraw.Draw(polaroid_img)
     try:
-        font = ImageFont.truetype("RubikWetPaint-Regular.ttf", 70)  # Use Permanent Marker, size 70
+        font = ImageFont.truetype("RubikWetPaint-Regular.ttf", 50)  # Reduced size for Polaroid space
     except IOError:
         try:
-            font = ImageFont.truetype("arial.ttf", 70)  # Fallback to Arial
-            st.warning("PermanentMarker-Regular.ttf not found. Using arial.ttf.")
+            font = ImageFont.truetype("arial.ttf", 50)
+            st.warning("RubikWetPaint-Regular.ttf not found. Using arial.ttf.")
         except IOError:
             try:
-                font = ImageFont.truetype("DejaVuSans.ttf", 70)  # Fallback to DejaVuSans
-                st.warning("PermanentMarker-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
+                font = ImageFont.truetype("DejaVuSans.ttf", 50)
+                st.warning("RubikWetPaint-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
             except IOError:
-                font = ImageFont.load_default()  # Last resort
-                st.warning("PermanentMarker-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
+                font = ImageFont.load_default()
+                st.warning("RubikWetPaint-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2239,9 +2250,9 @@ def generate_match_card(row, image_url):
     max_text_width_pixels = max(players_bbox[2] - players_bbox[0], set_bbox[2] - set_bbox[0], gda_bbox[2] - gda_bbox[0])
     if max_text_width_pixels > max_text_width:
         scale_factor = max_text_width / max_text_width_pixels
-        font_size = int(70 * scale_factor)
+        font_size = int(50 * scale_factor)
         try:
-            font = ImageFont.truetype("PermanentMarker-Regular.ttf", font_size)
+            font = ImageFont.truetype("RubikWetPaint-Regular.ttf", font_size)
         except IOError:
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
@@ -2251,25 +2262,20 @@ def generate_match_card(row, image_url):
                 except IOError:
                     font = ImageFont.load_default()
     
-    # Define text area height and position
-    text_area_height = 210  # Adjusted for font size 70 and minimal spacing
-    y_offset = img.height - text_area_height - 20  # Start text 20px from bottom
+    # Define text positions in the bottom white space
+    text_area_top = base_height + border_sides  # Start at bottom of original image
+    x_center = new_img_width / 2
+    y_positions = [text_area_top + 15, text_area_top + 50, text_area_top + 85]  # Adjusted for spacing
     
-    # Center each line of text horizontally with thin black outline for readability
-    x_center = img.width / 2
-    optic_yellow = (255, 255, 0)  # Optic yellow for fill
-    black_outline = (0, 0, 0)  # Black for outline
-    for text in [players_text, set_text, gda_text]:
-        # Draw thin black outline (stroke) for better contrast
-        for offset_x, offset_y in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:  # Thin outline with ±1
-            draw.text((x_center + offset_x, y_offset + offset_y), text, font=font, fill=black_outline, anchor="mm")
-        # Draw main optic yellow text
-        draw.text((x_center, y_offset), text, font=font, fill=optic_yellow, anchor="mm")  # Center-aligned
-        y_offset += 70  # Minimal spacing for font size 70
+    # Draw text in black without outline
+    black_fill = (0, 0, 0)  # Black color for text
+    draw.text((x_center, y_positions[0]), players_text, font=font, fill=black_fill, anchor="mm")
+    draw.text((x_center, y_positions[1]), set_text, font=font, fill=black_fill, anchor="mm")
+    draw.text((x_center, y_positions[2]), gda_text, font=font, fill=black_fill, anchor="mm")
     
     # Save to bytes
     buf = io.BytesIO()
-    img.save(buf, format='JPEG')
+    polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
 
