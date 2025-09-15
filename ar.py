@@ -41,7 +41,7 @@ import numpy as np
 import uuid
 import base64
 import time
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
 
 
