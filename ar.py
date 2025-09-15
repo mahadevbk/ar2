@@ -2128,24 +2128,27 @@ def generate_match_card(row, image_url):
     img = img.resize((new_width, base_height), Image.LANCZOS)
     
     # Apply rounded corners to the image
-    radius = 20  # Increased corner radius for more rounded effect
+    radius = 20  # Corner radius for rounded effect
     mask = Image.new('L', (new_width, base_height), 0)
     draw_mask = ImageDraw.Draw(mask)
     draw_mask.rounded_rectangle((0, 0, new_width, base_height), radius=radius, fill=255)
-    # Ensure image is in RGBA mode for proper alpha blending
+    
+    # Convert image to RGBA and create a transparent canvas
     img_rgba = img.convert('RGBA')
-    rounded_img = Image.new('RGBA', (new_width, base_height), (0, 0, 0, 0))  # Transparent background
+    rounded_img = Image.new('RGBA', (new_width, base_height), (0, 0, 0, 0))  # Fully transparent
     rounded_img.paste(img_rgba, (0, 0), mask)
     
-    # Create new image with white borders (10px sides and top, 150px bottom)
+    # Create Polaroid canvas with white borders (10px sides and top, 150px bottom)
     border_sides = 10
     border_bottom = 150  # Space for text
     new_img_width = new_width + 2 * border_sides
     new_img_height = base_height + border_sides + border_bottom
     polaroid_img = Image.new('RGB', (new_img_width, new_img_height), color='white')
     
-    # Paste the rounded image onto the Polaroid canvas
-    polaroid_img.paste(rounded_img.convert('RGB'), (border_sides, border_sides))
+    # Paste the rounded image, ensuring transparency is preserved
+    temp_rgb = Image.new('RGB', (new_width, base_height), color='white')  # White background for composite
+    rounded_rgb = Image.composite(rounded_img, temp_rgb, rounded_img.split()[3])  # Use alpha channel
+    polaroid_img.paste(rounded_rgb, (border_sides, border_sides))
     
     # Prepare teams
     match_type = row['match_type']
@@ -2285,7 +2288,6 @@ def generate_match_card(row, image_url):
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
 
