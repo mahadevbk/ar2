@@ -2143,7 +2143,7 @@ def generate_match_card(row, image_url):
     border_bottom = 150  # Space for text
     new_img_width = new_width + 2 * border_sides
     new_img_height = base_height + border_sides + border_bottom
-    polaroid_img = Image.new('RGB', (new_img_width, new_img_height), color='white')
+    polaroid_img = Image.new('RGBA', (new_img_width, new_img_height), (255, 255, 255, 255))  # White, opaque
     
     # Create shadow for the image
     shadow_offset = 5  # Shadow offset in pixels
@@ -2154,10 +2154,8 @@ def generate_match_card(row, image_url):
     shadow = shadow.filter(ImageFilter.GaussianBlur(5))  # Soft blur
     polaroid_img.paste(shadow, (border_sides + shadow_offset, border_sides + shadow_offset), shadow)
     
-    # Paste the rounded image, ensuring transparency is preserved
-    temp_rgb = Image.new('RGB', (new_width, base_height), color='white')  # White background for composite
-    rounded_rgb = Image.composite(rounded_img, temp_rgb, rounded_img.split()[3])  # Use alpha channel
-    polaroid_img.paste(rounded_rgb, (border_sides, border_sides))
+    # Paste the rounded image with transparency preserved
+    polaroid_img.paste(rounded_img, (border_sides, border_sides), rounded_img.split()[3])  # Use alpha channel
     
     # Prepare teams
     match_type = row['match_type']
@@ -2287,7 +2285,7 @@ def generate_match_card(row, image_url):
     y_positions = [text_area_top + 30, text_area_top + 80, text_area_top + 130]  # Adjusted for 150px space
     
     # Draw text with shadow
-    black_fill = (0, 0, 0)  # Black color for text
+    black_fill = (0, 0, 0, 255)  # Black color for text (opaque for RGBA canvas)
     shadow_fill = (0, 0, 0, 128)  # Semi-transparent black for shadow
     shadow_offset = 2  # Shadow offset in pixels
     for text, y in zip([players_text, set_text, gda_text], y_positions):
@@ -2296,12 +2294,14 @@ def generate_match_card(row, image_url):
         # Draw main text
         draw.text((x_center, y), text, font=font, fill=black_fill, anchor="mm")
     
+    # Convert Polaroid canvas to RGB for JPEG output
+    polaroid_img = polaroid_img.convert('RGB')
+    
     # Save to bytes
     buf = io.BytesIO()
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
 
