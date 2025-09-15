@@ -2145,6 +2145,15 @@ def generate_match_card(row, image_url):
     new_img_height = base_height + border_sides + border_bottom
     polaroid_img = Image.new('RGB', (new_img_width, new_img_height), color='white')
     
+    # Create shadow for the image
+    shadow_offset = 5  # Shadow offset in pixels
+    shadow_size = (new_width + 10, base_height + 10)  # Slightly larger for blur
+    shadow = Image.new('RGBA', shadow_size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow)
+    shadow_draw.rounded_rectangle((0, 0, new_width, base_height), radius=radius, fill=(0, 0, 0, 128))  # 50% opacity
+    shadow = shadow.filter(ImageFilter.GaussianBlur(5))  # Soft blur
+    polaroid_img.paste(shadow, (border_sides + shadow_offset, border_sides + shadow_offset), shadow)
+    
     # Paste the rounded image, ensuring transparency is preserved
     temp_rgb = Image.new('RGB', (new_width, base_height), color='white')  # White background for composite
     rounded_rgb = Image.composite(rounded_img, temp_rgb, rounded_img.split()[3])  # Use alpha channel
@@ -2277,18 +2286,21 @@ def generate_match_card(row, image_url):
     x_center = new_img_width / 2
     y_positions = [text_area_top + 30, text_area_top + 80, text_area_top + 130]  # Adjusted for 150px space
     
-    # Draw text in black without outline
+    # Draw text with shadow
     black_fill = (0, 0, 0)  # Black color for text
-    draw.text((x_center, y_positions[0]), players_text, font=font, fill=black_fill, anchor="mm")
-    draw.text((x_center, y_positions[1]), set_text, font=font, fill=black_fill, anchor="mm")
-    draw.text((x_center, y_positions[2]), gda_text, font=font, fill=black_fill, anchor="mm")
+    shadow_fill = (0, 0, 0, 128)  # Semi-transparent black for shadow
+    shadow_offset = 2  # Shadow offset in pixels
+    for text, y in zip([players_text, set_text, gda_text], y_positions):
+        # Draw shadow
+        draw.text((x_center + shadow_offset, y + shadow_offset), text, font=font, fill=shadow_fill, anchor="mm")
+        # Draw main text
+        draw.text((x_center, y), text, font=font, fill=black_fill, anchor="mm")
     
     # Save to bytes
     buf = io.BytesIO()
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
-
 
 
 
