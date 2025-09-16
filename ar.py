@@ -2113,6 +2113,9 @@ END:VCALENDAR"""
 
 
 
+
+
+
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2246,7 +2249,7 @@ def generate_match_card(row, image_url):
         players_text = players_text[:47] + "..."
     
     # GDA text with signed GDA and formatted date
-    date_str = pd.to_datetime(row['date']).strftime('%a, %b %d')
+    date_str = pd.to_datetime(row['date']).strftime('%d %b %y')
     gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
     
     # Draw text onto the bottom white space
