@@ -2875,7 +2875,7 @@ with tabs[0]:
 
 
 
-```python
+
 with tabs[1]:
     st.header("Matches")
     # Check for duplicate match IDs
@@ -3434,7 +3434,7 @@ with tabs[1]:
                             st.error(f"Failed to delete match: {str(e)}")
                             st.session_state.edit_match_key += 1
                             st.rerun()
-```
+
 
 
 
