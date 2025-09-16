@@ -2880,6 +2880,7 @@ with tabs[0]:
 
 
 
+
 with tabs[1]:
     st.header("Matches")
     # Check for duplicate match IDs
@@ -3168,6 +3169,28 @@ with tabs[1]:
             
         return f"<div style='font-family: monospace; white-space: pre;'>{score_html}  |  {gda_html}<br>{date_str}</div>"
 
+    # Function to display match card in a modal
+    def show_match_card_modal(match_id, card_bytes):
+        with st.container(border=True):
+            st.markdown(f"**Match Card (Match ID: {match_id})**")
+            card_base64 = base64.b64encode(card_bytes).decode('utf-8')
+            st.markdown(
+                f"""
+                <img src="data:image/jpeg;base64,{card_base64}" style="width:600px; border-radius:8px; border:2px solid #fff500;">
+                """,
+                unsafe_allow_html=True
+            )
+            st.download_button(
+                label="Download Match Card",
+                data=card_bytes,
+                file_name=f"match_card_{match_id}.jpg",
+                mime="image/jpeg",
+                key=f"modal_download_{match_id}"
+            )
+            if st.button("Close", key=f"close_modal_{match_id}"):
+                st.session_state[f"show_modal_{match_id}"] = False
+                st.rerun()
+
     # Updated match history loop
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
@@ -3183,14 +3206,19 @@ with tabs[1]:
                         # Generate match card
                         card_bytes = generate_match_card(pd.Series(row.to_dict()), match_image_url)
                         card_base64 = base64.b64encode(card_bytes).decode('utf-8')
+                        # Display thumbnail
                         st.markdown(
                             f"""
-                            <a href="data:image/jpeg;base64,{card_base64}" target="_blank">
-                                <img src="data:image/jpeg;base64,{card_base64}" style="width:150px; border-radius:8px; border:2px solid #fff500; cursor:pointer;" title="Click to view full match card">
-                            </a>
+                            <img src="data:image/jpeg;base64,{card_base64}" style="width:150px; border-radius:8px; border:2px solid #fff500; cursor:pointer;" title="Click to view full match card">
                             """,
                             unsafe_allow_html=True
                         )
+                        # Button to open modal
+                        if st.button("View Match Card", key=f"view_card_{row['match_id']}_{idx}"):
+                            st.session_state[f"show_modal_{row['match_id']}"] = True
+                        # Show modal if triggered
+                        if st.session_state.get(f"show_modal_{row['match_id']}", False):
+                            show_match_card_modal(row['match_id'], card_bytes)
                         # Add download button for match card
                         card_key = f"download_match_card_{row['match_id']}_{idx}"
                         st.download_button(
