@@ -2111,6 +2111,8 @@ END:VCALENDAR"""
 # ----------------------GENERATE MATCH CARD ---------------------------------------
 
 
+
+
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2143,7 +2145,12 @@ def generate_match_card(row, image_url):
     border_bottom = 150  # Space for text
     new_img_width = new_width + 2 * border_sides
     new_img_height = base_height + border_sides + border_bottom
-    polaroid_img = Image.new('RGBA', (new_img_width, new_img_height), (255, 255, 255, 255))  # White, opaque
+    polaroid_img = Image.new('RGBA', (new_img_width, new_img_height), (0, 0, 0, 0))  # Transparent background
+    polaroid_mask = Image.new('L', (new_img_width, new_img_height), 0)
+    polaroid_draw = ImageDraw.Draw(polaroid_mask)
+    polaroid_draw.rounded_rectangle((0, 0, new_img_width, new_img_height), radius=radius, fill=255)
+    white_background = Image.new('RGBA', (new_img_width, new_img_height), (255, 255, 255, 255))  # White, opaque
+    polaroid_img.paste(white_background, (0, 0), polaroid_mask)
     
     # Create shadow for the image
     shadow_offset = 5  # Shadow offset in pixels
@@ -2238,8 +2245,8 @@ def generate_match_card(row, image_url):
     if len(players_text) > 50:
         players_text = players_text[:47] + "..."
     
-    # GDA text with signed GDA
-    date_str = pd.to_datetime(row['date']).strftime('%Y-%m-%d')
+    # GDA text with signed GDA and formatted date
+    date_str = pd.to_datetime(row['date']).strftime('%a, %b %d')
     gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
     
     # Draw text onto the bottom white space
@@ -2302,6 +2309,7 @@ def generate_match_card(row, image_url):
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
 
 
 
