@@ -2875,6 +2875,7 @@ with tabs[0]:
 
 
 
+```python
 with tabs[1]:
     st.header("Matches")
     # Check for duplicate match IDs
@@ -2882,8 +2883,6 @@ with tabs[1]:
         st.warning("Duplicate match IDs detected in the database. Please remove duplicates in Supabase to enable editing.")
         duplicate_ids = st.session_state.matches_df[st.session_state.matches_df['match_id'].duplicated(keep=False)]['match_id'].tolist()
         st.write(f"Duplicate match IDs: {duplicate_ids}")
-    
-    
     
     with st.expander("➕ Post New Match Result", expanded=False, icon="➡️"):
         # Define available_players
@@ -3061,7 +3060,6 @@ with tabs[1]:
                                 st.rerun()
         
         st.markdown("*Required fields", unsafe_allow_html=True)
-        
 
     st.markdown("---")
     st.subheader("Match History")
@@ -3071,6 +3069,7 @@ with tabs[1]:
     with col1_filter:
         match_filter = st.radio("Filter by Type", ["All", "Singles", "Doubles"], horizontal=True, key="match_history_filter")
     with col2_filter:
+        players = sorted([p for p in st.session_state.players_df["name"].tolist() if p != "Visitor"] + ["Visitor"])
         player_search = st.selectbox("Filter by Player", ["All Players"] + players, key="player_search_filter")
 
     # Start with a clean copy of the matches
@@ -3165,9 +3164,7 @@ with tabs[1]:
             
         return f"<div style='font-family: monospace; white-space: pre;'>{score_html}  |  {gda_html}<br>{date_str}</div>"
 
-    
-    # Updated match history loop (replace the loop in the Match History section)
-    
+    # Updated match history loop
     if display_matches.empty:
         st.info("No matches found for the selected filters.")
     else:
@@ -3177,12 +3174,21 @@ with tabs[1]:
                 st.markdown(f"<span style='font-weight:bold; color:#fff500;'>{row['serial_number']}</span>", unsafe_allow_html=True)
             with cols[1]:
                 match_image_url = row.get("match_image_url")
-                if match_image_url:
+                if match_image_url and isinstance(match_image_url, str) and match_image_url.strip():
                     try:
-                        st.image(match_image_url, width=50, caption="")
-                        # Add the match card download button without caching
-                        card_key = f"download_match_card_{row['match_id']}_{idx}"
+                        # Generate match card instead of displaying original image
                         card_bytes = generate_match_card(pd.Series(row.to_dict()), match_image_url)
+                        card_base64 = base64.b64encode(card_bytes).decode('utf-8')
+                        st.markdown(
+                            f"""
+                            <a href="{match_image_url}" target="_blank">
+                                <img src="data:image/jpeg;base64,{card_base64}" style="width:150px; border-radius:8px; border:2px solid #fff500; cursor:pointer;" title="Click to view original image">
+                            </a>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        # Add download button for match card
+                        card_key = f"download_match_card_{row['match_id']}_{idx}"
                         st.download_button(
                             label="📇",
                             data=card_bytes,
@@ -3191,22 +3197,23 @@ with tabs[1]:
                             key=card_key
                         )
                     except Exception as e:
-                        st.error(f"Error displaying match image or generating card: {str(e)}")
+                        st.error(f"Error generating match card: {str(e)}")
+                        # Fallback to original image
+                        st.image(match_image_url, width=50, caption="")
+                else:
+                    st.markdown("<div style='color:#fff500;'>No image</div>", unsafe_allow_html=True)
             with cols[2]:
                 st.markdown(f"{format_match_players(row)}", unsafe_allow_html=True)
                 st.markdown(format_match_scores_and_date(row), unsafe_allow_html=True)
             with cols[3]:
                 share_link = generate_whatsapp_link(row)
-                st.markdown(f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<a href="{share_link}" target="_blank" style="text-decoration:none; color:#ffffff;"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Share" style="width:30px;height:30px;"/></a>',
+                    unsafe_allow_html=True
+                )
             st.markdown("<hr style='border-top: 1px solid #333333; margin: 10px 0;'>", unsafe_allow_html=True)
 
-
-
-
-    
-    #------Updated Manage existing match to address error wile deletion
-
-    #st.markdown("---")
+    st.markdown("---")
     st.subheader("✏️ Manage Existing Matches")
     if 'edit_match_key' not in st.session_state:
         st.session_state.edit_match_key = 0
@@ -3427,6 +3434,10 @@ with tabs[1]:
                             st.error(f"Failed to delete match: {str(e)}")
                             st.session_state.edit_match_key += 1
                             st.rerun()
+```
+
+
+
 
 
 
