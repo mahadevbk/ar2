@@ -2876,6 +2876,10 @@ with tabs[0]:
 
 
 
+
+
+
+
 with tabs[1]:
     st.header("Matches")
     # Check for duplicate match IDs
@@ -3176,13 +3180,13 @@ with tabs[1]:
                 match_image_url = row.get("match_image_url")
                 if match_image_url and isinstance(match_image_url, str) and match_image_url.strip():
                     try:
-                        # Generate match card instead of displaying original image
+                        # Generate match card
                         card_bytes = generate_match_card(pd.Series(row.to_dict()), match_image_url)
                         card_base64 = base64.b64encode(card_bytes).decode('utf-8')
                         st.markdown(
                             f"""
-                            <a href="{match_image_url}" target="_blank">
-                                <img src="data:image/jpeg;base64,{card_base64}" style="width:150px; border-radius:8px; border:2px solid #fff500; cursor:pointer;" title="Click to view original image">
+                            <a href="data:image/jpeg;base64,{card_base64}" target="_blank">
+                                <img src="data:image/jpeg;base64,{card_base64}" style="width:150px; border-radius:8px; border:2px solid #fff500; cursor:pointer;" title="Click to view full match card">
                             </a>
                             """,
                             unsafe_allow_html=True
@@ -3434,6 +3438,8 @@ with tabs[1]:
                             st.error(f"Failed to delete match: {str(e)}")
                             st.session_state.edit_match_key += 1
                             st.rerun()
+
+
 
 
 
