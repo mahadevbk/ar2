@@ -2139,7 +2139,7 @@ def generate_match_card(row, image_url):
     rounded_img.paste(img_rgba, (0, 0), mask)
     
     # Create Polaroid canvas with white borders (10px sides and top, 150px bottom)
-    border_sides = 10
+    border_sides = 30
     border_bottom = 150  # Space for text
     new_img_width = new_width + 2 * border_sides
     new_img_height = base_height + border_sides + border_bottom
