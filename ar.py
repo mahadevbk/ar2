@@ -1015,6 +1015,7 @@ def create_trend_chart(trend):
 
 
 
+
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -1170,7 +1171,6 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 best_partner_str = f"{best_partner_name} ({best_win_percent:.1f}% Win Rate)"
 
         # --- Badges HTML with Hover Tooltips ---
-        
         badge_explanations = {
             "🎯 Tie-break Monster": "Dominates tie-breaks with the most wins (clutch factor >70% in 3+ clutch matches)",
             "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
@@ -1249,7 +1249,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                 <span class="cumulative-game-diff-col" style="display: block;">Cumulative Game Diff: {int(player_data['Cumulative Game Diff'])}</span>
                 <span class="performance-score-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
-                    <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f}, Singles: {singles_perf_score:.1f}</span>
+                    <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f} ({int(player_data["Doubles Matches"])}), Singles: {singles_perf_score:.1f} ({int(player_data["Singles Matches"])})</span>
                 </span>
                 <span class="clutch-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Clutch Factor: </span>
@@ -1268,6 +1268,13 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
+
+
+
+
+
+
+
 
 
 
