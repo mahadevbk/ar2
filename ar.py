@@ -1246,7 +1246,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             st.markdown(f"""
             <div style="line-height: 2;">
-                <span class="games-won-col" style="display: block;">Games Won: {int(player_data['Games Won'])}</span>
+                <span class="games-won-col" style="display: block;">{int(player_data['Games Won'])}</span>
                 <span class="game-diff-avg-col" style="display: block;">Game Diff Avg: {player_data['Game Diff Avg']:.2f}</span>
                 <span class="cumulative-game-diff-col" style="display: block;">Cumulative Game Diff: {int(player_data['Cumulative Game Diff'])}</span>
                 <span class="performance-score-col" style="display: block;">
