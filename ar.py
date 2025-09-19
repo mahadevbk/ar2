@@ -46,6 +46,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
 
 
+
 # Set the page title
 st.set_page_config(page_title="AR Tennis")
 
@@ -2393,12 +2394,15 @@ tabs = st.tabs(tab_names)
 
 
 
+
+
+
+
 with tabs[0]:
     st.header(f"Rankings as of {datetime.now().strftime('%d %b')}")
     ranking_type = st.radio("Select Ranking View", ["Combined", "Doubles", "Singles", "Nerd Stuff", "Table View"], horizontal=True, key="ranking_type_selector")
 
     # --- PRE-CALCULATE ALL RANKING DATAFRAMES FOR PERFORMANCE SCORES ---
-    # This ensures doubles_rank_df and singles_rank_df are available in all views
     doubles_matches_df = matches[matches['match_type'] == 'Doubles'].copy()
     singles_matches_df = matches[matches['match_type'] == 'Singles'].copy()
     rank_df_doubles, _ = calculate_rankings(doubles_matches_df)
@@ -2432,7 +2436,7 @@ with tabs[0]:
                 bday_obj = datetime.strptime(raw_birthday, "%d-%m")
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
-                birthday_str = ""  # Keep it empty if parsing fails
+                birthday_str = ""
 
         # --- Partner Calculation Logic ---
         partners_list_str = "No doubles matches played."
@@ -2498,10 +2502,9 @@ with tabs[0]:
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
             m_col3.metric("Matches", f"{int(player_data['Matches'])}")
 
-            # --- Updated Stats Display: Removed Games Won and Cumulative Game Diff ---
+            # --- Updated Stats Display: Only Performance Score and Best Partner ---
             st.markdown(f"""
             <div style="line-height: 2;">
-                <span class="game-diff-avg-col" style="display: block;">Game Diff Avg: {player_data['Game Diff Avg']:.2f}</span>
                 <span class="performance-score-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
                     <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f} ({int(player_data["Doubles Matches"])}), Singles: {singles_perf_score:.1f} ({int(player_data["Singles Matches"])})</span>
@@ -2516,6 +2519,104 @@ with tabs[0]:
             if ranking_type != "Singles":
                 with st.expander("View Full Partner Stats", expanded=False, icon="➡️"):
                     st.markdown(partners_list_str, unsafe_allow_html=True)
+
+    # Helper function for Table View
+    def display_rankings_table(rank_df, title):
+        if rank_df.empty:
+            st.info(f"No ranking data available for {title} view.")
+            return
+
+        # Prepare display DataFrame
+        display_data = []
+        for _, row in rank_df.iterrows():
+            player = row['Player']
+            doubles_perf_score = row.get('Performance Score Doubles', 0.0)
+            singles_perf_score = row.get('Performance Score Singles', 0.0)
+            doubles_matches = int(row.get('Doubles Matches', 0))
+            singles_matches = int(row.get('Singles Matches', 0))
+            perf_score_display = f"Doubles: {doubles_perf_score:.1f} ({doubles_matches}), Singles: {singles_perf_score:.1f} ({singles_matches})"
+            
+            profile_image = ""
+            if player in players_df['name'].values:
+                player_info = players_df[players_df['name'] == player].iloc[0]
+                profile_image = player_info.get('profile_image_url', '')
+            
+            rank_display = re.sub(r'[^0-9]', '', str(row['Rank']))
+            
+            display_data.append({
+                'Rank': f"#{rank_display}",
+                'Profile': profile_image,
+                'Player': player,
+                'Points': f"{row['Points']:.1f}",
+                'Win %': f"{row['Win %']:.1f}%",
+                'Matches': int(row['Matches']),
+                'Games Won': int(row['Games Won']),
+                'Game Diff Avg': f"{row['Game Diff Avg']:.2f}",
+                'Cumulative Game Diff': int(row['Cumulative Game Diff']),
+                'Performance Score': perf_score_display,
+                'Clutch Factor': f"{row['Clutch Factor']:.1f}%",
+                'Consistency Index': f"{row['Consistency Index']:.2f}",
+                'Badges': ' '.join(row['Badges']) if row['Badges'] else ''
+            })
+        
+        display_df = pd.DataFrame(display_data)
+        
+        # Custom CSS for table
+        st.markdown("""
+        <style>
+        .rankings-table-container {
+            overflow-x: auto;
+        }
+        .ranking-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #444;
+        }
+        .rank-col, .player-col, .points-col, .win-rate-col, .matches-col, .games-won-col,
+        .game-diff-avg-col, .cumulative-game-diff-col, .performance-score-col,
+        .clutch-col, .consistency-col, .badges-col {
+            padding: 0 10px;
+            white-space: nowrap;
+        }
+        .profile-col img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .rank-profile-player-group {
+            display: flex;
+            align-items: center;
+            min-width: 200px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"### {title} Rankings")
+        st.markdown('<div class="rankings-table-container">', unsafe_allow_html=True)
+        for _, row in display_df.iterrows():
+            profile_html = f'<a href="{row["Profile"]}" target="_blank"><img src="{row["Profile"]}" class="profile-image" alt="Profile"></a>' if row["Profile"] else ''
+            st.markdown(f"""
+            <div class="ranking-row">
+                <div class="rank-profile-player-group">
+                    <div class="rank-col">{row['Rank']}</div>
+                    <div class="profile-col">{profile_html}</div>
+                    <div class="player-col"><span style='font-weight:bold; color:#fff500;'>{row['Player']}</span></div>
+                </div>
+                <div class="points-col">{row['Points']}</div>
+                <div class="win-rate-col">{row['Win %']}</div>
+                <div class="matches-col">{row['Matches']}</div>
+                <div class="games-won-col">{row['Games Won']}</div>
+                <div class="game-diff-avg-col">{row['Game Diff Avg']}</div>
+                <div class="cumulative-game-diff-col">{row['Cumulative Game Diff']}</div>
+                <div class="performance-score-col">{row['Performance Score']}</div>
+                <div class="clutch-col">{row['Clutch Factor']}</div>
+                <div class="consistency-col">{row['Consistency Index']}</div>
+                <div class="badges-col">{row['Badges']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if ranking_type == "Doubles":
         rank_df, partner_stats = calculate_rankings(doubles_matches_df)
@@ -2621,11 +2722,9 @@ with tabs[0]:
                 max_partners = max(partners_list) if partners_list else 1
 
                 for player, stats in player_stats.items():
-                    # Normalize scores and create a composite score
                     normalized_wins = stats['wins'] / max_wins
                     normalized_gd = stats['gd_sum'] / max_gd
                     normalized_partners = len(stats['partners']) / max_partners
-
                     composite_score = normalized_wins + normalized_gd + normalized_partners
 
                     if composite_score > max_score:
@@ -2706,7 +2805,6 @@ with tabs[0]:
 
             st.markdown("---")
             st.markdown(f"### 🗓️ Community Activity : Last 7 Days ")
-
             if 'matches_df' in st.session_state and not st.session_state.matches_df.empty:
                 display_community_stats(st.session_state.matches_df)
 
@@ -2720,7 +2818,6 @@ with tabs[0]:
 
             st.markdown("---")
             st.markdown("### 🤝 Partnership Performance Analyzer")
-
             doubles_players = []
             if partner_stats:
                 doubles_players = sorted([p for p in partner_stats.keys() if p != "Visitor"])
@@ -2732,7 +2829,6 @@ with tabs[0]:
                     "Select a player to see their partnership stats:",
                     doubles_players
                 )
-
                 if selected_player_for_partners:
                     partnership_chart = create_partnership_chart(selected_player_for_partners, partner_stats, players_df)
                     if partnership_chart:
@@ -2750,7 +2846,6 @@ with tabs[0]:
                 - **Games Won**: Total games won across all sets.
                 - **Ranking Criteria**: Players are ranked by Points (highest first), then by Win Percentage, Game Difference Average, Games Won, and finally alphabetically by name.
                 - **Matches Included**: All matches, including those with a 'Visitor', contribute to AR players' stats, but 'Visitor' is excluded from rankings and insights.
-
                 Detailed Ranking Logic at https://github.com/mahadevbk/ar2/blob/main/ar_ranking_logic.pdf
                 """)
 
@@ -2784,6 +2879,7 @@ with tabs[0]:
                 )
             except Exception as e:
                 st.error(f"Error generating PDF: {str(e)}")
+
     else:  # Combined view
         filtered_matches = matches.copy()
         rank_df, partner_stats = calculate_rankings(filtered_matches)
@@ -2868,10 +2964,6 @@ with tabs[0]:
         else:
             for index, row in rank_df.iterrows():
                 display_ranking_card(row, players_df, filtered_matches, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"combined_{index}")
-
-
-
-
 
 
 
