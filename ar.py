@@ -2392,6 +2392,7 @@ tabs = st.tabs(tab_names)
 
 
 
+
 with tabs[0]:
     st.header(f"Rankings as of {datetime.now().strftime('%d %b')}")
     ranking_type = st.radio("Select Ranking View", ["Combined", "Doubles", "Singles", "Nerd Stuff", "Table View"], horizontal=True, key="ranking_type_selector")
@@ -2420,10 +2421,9 @@ with tabs[0]:
         rank_value = player_data['Rank']
         rank_display = re.sub(r'[^0-9]', '', str(rank_value))
 
-        # --- NEW: Performance Score Calculation ---
+        # --- Performance Score Calculation ---
         doubles_perf_score = _calculate_performance_score(rank_df_doubles[rank_df_doubles['Player'] == player_name].iloc[0], rank_df_doubles) if player_name in rank_df_doubles['Player'].values else 0.0
         singles_perf_score = _calculate_performance_score(rank_df_singles[rank_df_singles['Player'] == player_name].iloc[0], rank_df_singles) if player_name in rank_df_singles['Player'].values else 0.0
-        # --- END NEW ---
 
         birthday_str = ""
         raw_birthday = player_info.get("birthday")
@@ -2432,7 +2432,7 @@ with tabs[0]:
                 bday_obj = datetime.strptime(raw_birthday, "%d-%m")
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
-                birthday_str = "" # Keep it empty if parsing fails
+                birthday_str = ""  # Keep it empty if parsing fails
 
         # --- Partner Calculation Logic ---
         partners_list_str = "No doubles matches played."
@@ -2478,7 +2478,6 @@ with tabs[0]:
         with col1:  # Left column for visuals
             if profile_image:
                 st.image(profile_image, width=150)
-                #st.markdown(f'<img src="{profile_image}" class="profile-image" style="width: 100px; height: 100px;">', unsafe_allow_html=True)
 
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
@@ -2499,12 +2498,10 @@ with tabs[0]:
             m_col2.metric("Win Rate", f"{player_data['Win %']:.1f}%")
             m_col3.metric("Matches", f"{int(player_data['Matches'])}")
 
-            # --- UPDATED: Detailed Stats Display with Match Counts ---
+            # --- Updated Stats Display: Removed Games Won and Cumulative Game Diff ---
             st.markdown(f"""
             <div style="line-height: 2;">
-                <span class="games-won-col" style="display: block;">Games Won: {int(player_data['Games Won'])}</span>
                 <span class="game-diff-avg-col" style="display: block;">Game Diff Avg: {player_data['Game Diff Avg']:.2f}</span>
-                <span class="cumulative-game-diff-col" style="display: block;">Cumulative Game Diff: {int(player_data['Cumulative Game Diff'])}</span>
                 <span class="performance-score-col" style="display: block;">
                     <span style='font-weight:bold; color:#bbbbbb;'>Performance Score: </span>
                     <span style='font-weight:bold; color:#fff500;'>Doubles: {doubles_perf_score:.1f} ({int(player_data["Doubles Matches"])}), Singles: {singles_perf_score:.1f} ({int(player_data["Singles Matches"])})</span>
@@ -2536,7 +2533,6 @@ with tabs[0]:
             for index, row in rank_df.iterrows():
                 display_ranking_card(row, players_df, singles_matches_df, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"singles_{index}")
 
-    #-----OLED NERD STUFF RESTORED -------------------------
     elif ranking_type == "Nerd Stuff":
         if matches.empty or players_df.empty:
             st.info("No match data available to generate interesting stats.")
@@ -2547,9 +2543,8 @@ with tabs[0]:
             # Combined Table view in nerd view
             rank_df_combined, _ = calculate_rankings(matches)
             display_rankings_table(rank_df_combined, "Combined")
-            #st.markdown("---")
-            # Most Effective Partnership
             st.markdown("---")
+            # Most Effective Partnership
             st.markdown("### 🤝 Most Effective Partnership")
             best_partner = None
             max_value = -1
@@ -2744,10 +2739,9 @@ with tabs[0]:
                         st.plotly_chart(partnership_chart, width='stretch')
                     else:
                         st.info(f"{selected_player_for_partners} has no partnership data to display.")
-    
 
             st.markdown("---")
-            with st.expander("Process being used for Rankings" , expanded=False, icon="➡️"):
+            with st.expander("Process being used for Rankings", expanded=False, icon="➡️"):
                 st.markdown("""
                 ### Ranking System Overview
                 - **Points**: Players earn 3 points for a win, 1 point for a loss, and 1.5 points for a tie.
@@ -2758,8 +2752,8 @@ with tabs[0]:
                 - **Matches Included**: All matches, including those with a 'Visitor', contribute to AR players' stats, but 'Visitor' is excluded from rankings and insights.
 
                 Detailed Ranking Logic at https://github.com/mahadevbk/ar2/blob/main/ar_ranking_logic.pdf
-
                 """)
+
     elif ranking_type == "Table View":
         # Calculate combined rankings
         rank_df_combined, _ = calculate_rankings(matches)
