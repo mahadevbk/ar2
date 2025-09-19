@@ -1016,6 +1016,7 @@ def create_trend_chart(trend):
 
 
 
+```python
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -1268,7 +1269,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
 
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
-
+```
 
 
 
