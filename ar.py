@@ -351,6 +351,9 @@ div.st-emotion-cache-1jm692n h3 {
 [data-testid="stExpander"] span.icon {
     font-family: 'Material Icons' !important;
 }
+[data-testid="stExpander"] *:not(p, h1, h2, h3, h4, h5, h6) {
+    font-family: 'Material Icons' !important;
+}
 </style>
 
 
