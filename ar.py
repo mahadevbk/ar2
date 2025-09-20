@@ -2343,7 +2343,7 @@ def generate_match_card(row, image_url):
 def display_hall_of_fame():
     """
     Fetches and displays detailed Hall of Fame data from Supabase.
-    This version safely converts text-based numbers from Supabase to their correct types.
+    This version uses min-height to allow cards to dynamically resize.
     """
     st.header("🏆 Hall of Fame")
 
@@ -2355,7 +2355,8 @@ def display_hall_of_fame():
             st.info("The Hall of Fame is still empty. Add some top players from past seasons!")
             return
 
-        seasons = pd.DataFrame(hof_data)['Season'].unique()
+        # Using a set for faster unique lookups
+        seasons = sorted(list(set(p['Season'] for p in hof_data)), reverse=True)
 
         for season in seasons:
             st.subheader(f"🏅 Season: {season}")
@@ -2368,8 +2369,6 @@ def display_hall_of_fame():
             for player in season_players:
                 with cols[col_index]:
                     # --- Robust Data Conversion & Handling ---
-                    
-                    # Safely convert Rank to integer
                     try:
                         rank = int(player.get('Rank', 0))
                         rank_emoji = '🥇' if rank == 1 else '🥈' if rank == 2 else '🥉'
@@ -2377,19 +2376,16 @@ def display_hall_of_fame():
                         rank = player.get('Rank', 'N/A')
                         rank_emoji = '🏆'
 
-                    # Safely convert GDA to float for formatting
                     try:
                         gda_display = f"{float(player.get('GDA', 0)):.2f}"
                     except (ValueError, TypeError):
-                        gda_display = player.get('GDA', 'N/A') # Fallback to original text
+                        gda_display = player.get('GDA', 'N/A')
 
-                    # Safely convert WinRate to float for display
                     try:
                         win_rate_display = f"{float(player.get('WinRate', 0)):.1f}%"
                     except (ValueError, TypeError):
                         win_rate_display = f"{player.get('WinRate', 'N/A')}%"
 
-                    # Get other values as is (since they are text)
                     matches_played = player.get('Matches', 'N/A')
                     performance_score = player.get('Performance_score', 'N/A')
                     profile_image = player.get('profile_image', '')
@@ -2398,7 +2394,7 @@ def display_hall_of_fame():
                     # --- Display Card ---
                     st.markdown(
                         f"""
-                        <div class="court-card" style="text-align: center; padding: 15px; height: 390px; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="court-card" style="text-align: center; padding: 15px; min-height: 390px; display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
                                 <img src="{profile_image}" class="profile-image" style="width:120px; height:120px; border-radius: 50%; border: 3px solid #fff500;">
                                 <h3 style="color: #fff500; margin-top: 10px;">{player_name}</h3>
