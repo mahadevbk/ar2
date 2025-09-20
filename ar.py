@@ -2376,6 +2376,10 @@ def display_hall_of_fame():
                         rank_emoji = '🏆'
 
                     try:
+                        points_display = f"{float(player.get('Points', 0)):.2f}"
+                    except (ValueError, TypeError):
+                        points_display = player.get('Points', 'N/A')
+                    try:
                         gda_display = f"{float(player.get('GDA', 0)):.2f}"
                     except (ValueError, TypeError):
                         gda_display = player.get('GDA', 'N/A')
@@ -2402,6 +2406,7 @@ def display_hall_of_fame():
                                 </p>
                             </div>
                             <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
+                                <p><strong>Poinst:</strong> {points_display}</p>
                                 <p><strong>Win Rate:</strong> {win_rate_display}</p>
                                 <p><strong>Matches Played:</strong> {matches_played}</p>
                                 <p><strong>Game Differential Avg:</strong> {gda_display}</p>
