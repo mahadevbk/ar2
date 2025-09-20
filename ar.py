@@ -2336,6 +2336,67 @@ def generate_match_card(row, image_url):
 
 
 
+#----------------------HALL OF FAME FUNCTION ---------------------------------------------
+
+
+
+
+def display_hall_of_fame():
+    """
+    Fetches and displays detailed Hall of Fame data from Supabase.
+    """
+    st.header("🏆 Hall of Fame")
+
+    try:
+        # Fetch all columns from the table, ordered by season and then rank
+        response = supabase.table(hall_of_fame_table_name).select("*").order("Season", desc=True).order("Rank", desc=False).execute()
+        hof_data = response.data
+
+        if not hof_data:
+            st.info("The Hall of Fame is still empty. Add some top players from past seasons!")
+            return
+
+        # Get unique seasons from the data
+        seasons = pd.DataFrame(hof_data)['Season'].unique()
+
+        for season in seasons:
+            st.subheader(f"🏅 Season: {season}")
+            
+            # Filter players for the current season
+            season_players = [p for p in hof_data if p['Season'] == season]
+
+            cols = st.columns(3)
+            for i, player in enumerate(season_players):
+                with cols[i % 3]:
+                    # Use a more detailed card layout
+                    st.markdown(
+                        f"""
+                        <div class="court-card" style="text-align: center; padding: 15px;">
+                            <img src="{player.get('profile_image', '')}" class="profile-image" style="width:120px; height:120px; border-radius: 50%; border: 3px solid #fff500;">
+                            <h3 style="color: #fff500; margin-top: 10px;">{player.get('Player', 'N/A')}</h3>
+                            <p style="font-size: 1.5em; margin-top: -10px; font-weight: bold;">
+                                {'🥇' if player.get('Rank') == 1 else '🥈' if player.get('Rank') == 2 else '🥉'}
+                                Rank {player.get('Rank', 'N/A')}
+                            </p>
+                            <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
+                                <p><strong>Win Rate:</strong> {player.get('WinRate', 0)}%</p>
+                                <p><strong>Matches Played:</strong> {player.get('Matches', 0)}</p>
+                                <p><strong>Game Differential Avg:</strong> {player.get('GDA', 0):.2f}</p>
+                                <p><strong>Performance Score:</strong> {player.get('Performance_score', 'N/A')}</p>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+            st.markdown("<hr>", unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"Error loading Hall of Fame data: {str(e)}")
+        st.error("Please ensure your 'hall_of_fame' table in Supabase has the correct columns: Season, Player, Rank, profile_image, WinRate, Matches, GDA, Performance_score.")
+
+
+
+
 
 
     
