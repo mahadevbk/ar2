@@ -368,6 +368,7 @@ supabase: Client = create_client(supabase_url, supabase_key)
 players_table_name = "players"
 matches_table_name = "matches"
 bookings_table_name = "bookings"
+hall_of_fame_table_name="hall_of_fame"
 
 # --- Session state initialization ---
 if 'players_df' not in st.session_state:
