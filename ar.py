@@ -2423,7 +2423,6 @@ def display_hall_of_fame():
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
         st.error("Please double-check your Supabase table name and column names for any typos.")
-
     
 
 
