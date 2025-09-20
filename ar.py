@@ -2343,7 +2343,7 @@ def generate_match_card(row, image_url):
 def display_hall_of_fame():
     """
     Fetches and displays detailed Hall of Fame data from Supabase.
-    This version fixes the card layout to ensure all content fits within the box.
+    This version safely converts text-based numbers from Supabase to their correct types.
     """
     st.header("🏆 Hall of Fame")
 
@@ -2361,13 +2361,15 @@ def display_hall_of_fame():
             st.subheader(f"🏅 Season: {season}")
             
             season_players = [p for p in hof_data if p['Season'] == season]
-            
-            # Use up to 3 columns
-            cols = st.columns(min(len(season_players), 3))
 
-            for i, player in enumerate(season_players):
-                with cols[i % 3]:
+            cols = st.columns(len(season_players) if len(season_players) <= 3 else 3)
+            col_index = 0
+
+            for player in season_players:
+                with cols[col_index]:
                     # --- Robust Data Conversion & Handling ---
+                    
+                    # Safely convert Rank to integer
                     try:
                         rank = int(player.get('Rank', 0))
                         rank_emoji = '🥇' if rank == 1 else '🥈' if rank == 2 else '🥉'
@@ -2375,16 +2377,19 @@ def display_hall_of_fame():
                         rank = player.get('Rank', 'N/A')
                         rank_emoji = '🏆'
 
+                    # Safely convert GDA to float for formatting
                     try:
                         gda_display = f"{float(player.get('GDA', 0)):.2f}"
                     except (ValueError, TypeError):
-                        gda_display = player.get('GDA', 'N/A')
+                        gda_display = player.get('GDA', 'N/A') # Fallback to original text
 
+                    # Safely convert WinRate to float for display
                     try:
                         win_rate_display = f"{float(player.get('WinRate', 0)):.1f}%"
                     except (ValueError, TypeError):
                         win_rate_display = f"{player.get('WinRate', 'N/A')}%"
 
+                    # Get other values as is (since they are text)
                     matches_played = player.get('Matches', 'N/A')
                     performance_score = player.get('Performance_score', 'N/A')
                     profile_image = player.get('profile_image', '')
@@ -2393,33 +2398,31 @@ def display_hall_of_fame():
                     # --- Display Card ---
                     st.markdown(
                         f"""
-                        <div class="court-card" style="text-align: center; padding: 20px; border-radius: 10px; min-height: 420px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-                            
-                            <div> <img src="{profile_image}" class="profile-image" style="width:120px; height:120px; border-radius: 50%; border: 3px solid #fff500; object-fit: cover;">
-                                <h3 style="color: #fff500; margin-top: 10px; margin-bottom: 0;">{player_name}</h3>
-                                <p style="font-size: 1.5em; margin-top: 0px; font-weight: bold;">
+                        <div class="court-card" style="text-align: center; padding: 15px; height: 390px; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <img src="{profile_image}" class="profile-image" style="width:120px; height:120px; border-radius: 50%; border: 3px solid #fff500;">
+                                <h3 style="color: #fff500; margin-top: 10px;">{player_name}</h3>
+                                <p style="font-size: 1.5em; margin-top: -10px; font-weight: bold;">
                                     {rank_emoji} Rank {rank}
                                 </p>
                             </div>
-                            
-                            <div style="text-align: left; font-size: 0.95em; padding: 0 10px;"> <p style="margin-bottom: 5px;"><strong>Win Rate:</strong> {win_rate_display}</p>
-                                <p style="margin-bottom: 5px;"><strong>Matches Played:</strong> {matches_played}</p>
-                                <p style="margin-bottom: 5px;"><strong>Game Differential Avg:</strong> {gda_display}</p>
-                                <p style="margin-bottom: 5px;"><strong>Performance Score:</strong> {performance_score}</p>
+                            <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
+                                <p><strong>Win Rate:</strong> {win_rate_display}</p>
+                                <p><strong>Matches Played:</strong> {matches_played}</p>
+                                <p><strong>Game Differential Avg:</strong> {gda_display}</p>
+                                <p><strong>Performance Score:</strong> {performance_score}</p>
                             </div>
-
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
+                col_index = (col_index + 1) % 3
+
             st.markdown("<hr>", unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
         st.error("Please double-check your Supabase table name and column names for any typos.")
-
-
-
 
     
 
