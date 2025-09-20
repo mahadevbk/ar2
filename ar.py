@@ -4385,6 +4385,7 @@ with tabs[4]:
 # ...START OF TAB 5 HALL OF FAME -------------------------------------------------------------------------
 with tabs[5]:
     st.header("Hall of Fame")
+    display_hall_of_fame()
 
 st.markdown("""
 <div style='background-color: #0d5384; padding: 1rem; border-left: 5px solid #fff500; border-radius: 0.5rem; color: white;'>
