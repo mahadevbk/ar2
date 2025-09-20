@@ -2339,15 +2339,15 @@ def generate_match_card(row, image_url):
 #----------------------HALL OF FAME FUNCTION ---------------------------------------------
 
 
-
 def display_hall_of_fame():
     """
     Fetches and displays detailed Hall of Fame data from Supabase.
-    This version uses min-height to allow cards to dynamically resize.
+    This version includes points and has enhanced styling for player names.
     """
     st.header("🏆 Hall of Fame")
 
     try:
+        # Assumes your table has a 'Points' column. The select query will fetch it.
         response = supabase.table(hall_of_fame_table_name).select("*").order("Season", desc=True).order("Rank", desc=False).execute()
         hof_data = response.data
 
@@ -2355,7 +2355,6 @@ def display_hall_of_fame():
             st.info("The Hall of Fame is still empty. Add some top players from past seasons!")
             return
 
-        # Using a set for faster unique lookups
         seasons = sorted(list(set(p['Season'] for p in hof_data)), reverse=True)
 
         for season in seasons:
@@ -2386,6 +2385,9 @@ def display_hall_of_fame():
                     except (ValueError, TypeError):
                         win_rate_display = f"{player.get('WinRate', 'N/A')}%"
 
+                    # --- NEW: Get Points data ---
+                    points = player.get('Points', 'N/A') 
+                    
                     matches_played = player.get('Matches', 'N/A')
                     performance_score = player.get('Performance_score', 'N/A')
                     profile_image = player.get('profile_image', '')
@@ -2397,10 +2399,14 @@ def display_hall_of_fame():
                         <div class="court-card" style="text-align: center; padding: 15px; min-height: 390px; display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
                                 <img src="{profile_image}" class="profile-image" style="width:120px; height:120px; border-radius: 50%; border: 3px solid #fff500;">
-                                <h3 style="color: #fff500; margin-top: 10px;">{player_name}</h3>
+                                
+                                <h3 style="color: #fff500; margin-top: 10px; font-weight: bold; font-size: 1.7em;">{player_name}</h3>
+                                
                                 <p style="font-size: 1.5em; margin-top: -10px; font-weight: bold;">
                                     {rank_emoji} Rank {rank}
                                 </p>
+                                
+                                <p style="margin-top: -5px; font-size: 1.1em;"><strong>Points:</strong> {points}</p>
                             </div>
                             <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
                                 <p><strong>Win Rate:</strong> {win_rate_display}</p>
@@ -2418,7 +2424,13 @@ def display_hall_of_fame():
 
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
-        st.error("Please double-check your Supabase table name and column names for any typos.")
+        st.error("Please double-check your Supabase table name and column names for any typos (especially for the new 'Points' column).")
+
+
+
+
+
+
     
 
 
