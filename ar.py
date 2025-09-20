@@ -2406,7 +2406,7 @@ def display_hall_of_fame():
                                 </p>
                             </div>
                             <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
-                                <p><strong>Poinst:</strong> {points_display}</p>
+                                <p><strong>Points won in the Season :</strong> {points_display}</p>
                                 <p><strong>Win Rate:</strong> {win_rate_display}</p>
                                 <p><strong>Matches Played:</strong> {matches_played}</p>
                                 <p><strong>Game Differential Avg:</strong> {gda_display}</p>
