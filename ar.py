@@ -2387,7 +2387,7 @@ if not matches.empty and ("match_id" not in matches.columns or matches["match_id
 
 st.image("https://raw.githubusercontent.com/mahadevbk/ar2/main/dubai.png", width='stretch')
 
-tab_names = ["Rankings", "Matches", "Player Profile", "Maps", "Bookings","Mini Tourney"]
+tab_names = ["Rankings", "Matches", "Player Profile", "Maps", "Bookings","Hall of Fame","Mini Tourney"]
 
 tabs = st.tabs(tab_names)
 
@@ -4321,12 +4321,20 @@ with tabs[4]:
 
 
 
-# ... End of Tab[4]-------------------------------------------------------------------------
+# ...START OF TAB 5 HALL OF FAME -------------------------------------------------------------------------
+with tabs[5]:
+    st.header("Hall of Fame")
 
+st.markdown("""
+<div style='background-color: #0d5384; padding: 1rem; border-left: 5px solid #fff500; border-radius: 0.5rem; color: white;'>
+Built with ❤️ using <a href='https://streamlit.io/' style='color: #ccff00;'>Streamlit</a> — free and open source.
+<a href='https://devs-scripts.streamlit.app/' style='color: #ccff00;'>Other Scripts by dev</a> on Streamlit.
+</div>
+""", unsafe_allow_html=True)
 
 
 #--MINI TOURNEY -----------------------
-with tabs[5]:
+with tabs[6]:
     st.header("Mini Tournaments Organiser")
     st.markdown("<small><i>Assignments of teams and courts are done randomly.</i></small>", unsafe_allow_html=True)
 
