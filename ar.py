@@ -346,6 +346,11 @@ div.st-emotion-cache-1jm692n h3 {
 .calendar-share:hover {
     opacity: 0.9;
 }
+
+[data-testid="stExpander"] i,
+[data-testid="stExpander"] span.icon {
+    font-family: 'Material Icons' !important;
+}
 </style>
 
 
