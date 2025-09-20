@@ -2379,7 +2379,10 @@ def display_hall_of_fame():
                         points_display = f"{float(player.get('Points', 0)):.2f}"
                     except (ValueError, TypeError):
                         points_display = player.get('Points', 'N/A')
-
+                   try:
+                        Games_won_display = f"{float(player.get('Games_won', 0)):.2f}"
+                    except (ValueError, TypeError):
+                        Games_won_display = player.get('Games_won', 'N/A')
                     try:
                         cumulative_GD_display = f"{float(player.get('cumulative_GD', 0)):.2f}"
                     except (ValueError, TypeError):
@@ -2413,7 +2416,8 @@ def display_hall_of_fame():
                                 </p>
                             </div>
                             <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
-                                <p><strong>Points won in the Season :</strong> {points_display}</p>
+                                <p><strong>Points won in the Season:</strong> {points_display}</p>
+                                <p><strong>Games Won:</strong> {Games_won_display}</p>
                                 <p><strong>Win Rate:</strong> {win_rate_display}</p>
                                 <p><strong>Matches Played:</strong> {matches_played}</p>
                                 <p><strong>Game Differential Avg:</strong> {gda_display}</p>
