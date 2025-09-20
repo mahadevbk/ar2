@@ -2379,7 +2379,7 @@ def display_hall_of_fame():
                         points_display = f"{float(player.get('Points', 0)):.2f}"
                     except (ValueError, TypeError):
                         points_display = player.get('Points', 'N/A')
-                   try:
+                    try:
                         Games_won_display = f"{float(player.get('Games_won', 0)):.2f}"
                     except (ValueError, TypeError):
                         Games_won_display = player.get('Games_won', 'N/A')
