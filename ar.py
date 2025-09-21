@@ -2339,6 +2339,8 @@ def generate_match_card(row, image_url):
 #----------------------HALL OF FAME FUNCTION ---------------------------------------------
 
 
+
+
 def display_hall_of_fame():
     """
     Fetches and displays detailed Hall of Fame data from Supabase.
@@ -2416,13 +2418,13 @@ def display_hall_of_fame():
                                 </p>
                             </div>
                             <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
-                                <p><strong>Points won in the Season:</strong> {points_display}</p>
-                                <p><strong>Games Won:</strong> {Games_won_display}</p>
-                                <p><strong>Win Rate:</strong> {win_rate_display}</p>
-                                <p><strong>Matches Played:</strong> {matches_played}</p>
-                                <p><strong>Game Differential Avg:</strong> {gda_display}</p>
-                                <p><strong>Cumulative Game Differential:</strong> {cumulative_GD_display}</p>
-                                <p><strong>Performance Score:</strong> {performance_score}</p>
+                                <p><strong>Points won in the Season:</strong> <span style="font-weight: bold; color: #FFFF00;">{points_display}</span></p>
+                                <p><strong>Games Won:</strong> <span style="font-weight: bold; color: #FFFF00;">{Games_won_display}</span></p>
+                                <p><strong>Win Rate:</strong> <span style="font-weight: bold; color: #FFFF00;">{win_rate_display}</span></p>
+                                <p><strong>Matches Played:</strong> <span style="font-weight: bold; color: #FFFF00;">{matches_played}</span></p>
+                                <p><strong>Game Differential Avg:</strong> <span style="font-weight: bold; color: #FFFF00;">{gda_display}</span></p>
+                                <p><strong>Cumulative Game Differential:</strong> <span style="font-weight: bold; color: #FFFF00;">{cumulative_GD_display}</span></p>
+                                <p><strong>Performance Score:</strong> <span style="font-weight: bold; color: #FFFF00;">{performance_score}</span></p>
                             </div>
                         </div>
                         """,
