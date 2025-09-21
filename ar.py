@@ -2412,7 +2412,7 @@ def display_hall_of_fame():
                         <div class="court-card" style="text-align: center; padding: 15px; min-height: 390px; display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
                                 <img src="{profile_image}" class="profile-image" style="width:120px; height:120px; border-radius: 10%; border: 3px solid #fff500;">
-                                <h2 style="color: #fff500; margin-top: 10px;">{player_name}</h2>
+                                <p style="font-size: 1.5em; font-weight: bold; color: #fff500; margin-top: 10px;">{player_name}</p>
                                 <p style="font-size: 1.5em; margin-top: -10px; font-weight: bold;">
                                     {rank_emoji} Rank <span style="font-weight: bold; color: #FFFF00;">{rank}</span>
                                 </p>
@@ -2436,7 +2436,8 @@ def display_hall_of_fame():
 
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
-        st.error("Please double-check your Supabase table name and column names for any typos.")    
+        st.error("Please double-check your Supabase table name and column names for any typos.")
+
 
 
 
