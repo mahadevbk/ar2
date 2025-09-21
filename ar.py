@@ -2418,7 +2418,8 @@ def display_hall_of_fame():
                                 </p>
                             </div>
                             <div style="text-align: left; font-size: 0.95em; padding: 0 10px;">
-                                <p><strong>Points won in the Season:</strong> <span style="font-weight: bold; color: #FFFF00;">{points_display}</span></p>
+                                <p><strong>Data for the Season:</strong></p>
+                                <p><strong>Points won:</strong> <span style="font-weight: bold; color: #FFFF00;">{points_display}</span></p>
                                 <p><strong>Games Won:</strong> <span style="font-weight: bold; color: #FFFF00;">{Games_won_display}</span></p>
                                 <p><strong>Win Rate:</strong> <span style="font-weight: bold; color: #FFFF00;">{win_rate_display}</span></p>
                                 <p><strong>Matches Played:</strong> <span style="font-weight: bold; color: #FFFF00;">{matches_played}</span></p>
