@@ -2272,7 +2272,7 @@ def generate_match_card(row, image_url):
     # Draw text onto the bottom white space
     draw = ImageDraw.Draw(polaroid_img)
     try:
-        font = ImageFont.truetype("PermanentMarker-Regular.ttf", 50)
+        font = ImageFont.truetype("CoveredByYourGrace-Regular.ttf", 50)
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 50)
