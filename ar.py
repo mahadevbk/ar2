@@ -1910,29 +1910,20 @@ def generate_whatsapp_link(row):
 
 
 def check_birthdays(players_df):
-    """Checks for players whose birthday is today in various formats like dd-mm, d-m, dd MMM, dd MMM yyyy, etc."""
-    today = datetime.now()
-    birthday_players = []
-
-    if 'birthday' in players_df.columns and not players_df.empty:
-        valid_birthdays_df = players_df.dropna(subset=['birthday']).copy()
-
-        for _, row in valid_birthdays_df.iterrows():
-            raw_bday = str(row['birthday']).strip()
-            if not raw_bday:
-                continue
-
+    today = datetime.now().date()
+    todays_birthdays = []
+    for index, row in players_df.iterrows():
+        raw_birthday = row.get("birthday")
+        if raw_birthday:
             try:
-                # Parse with dateutil to support both numeric and text month formats
-                bday_parsed = parser.parse(raw_bday, dayfirst=True)
-                if bday_parsed.day == today.day and bday_parsed.month == today.month:
-                    birthday_str = bday_parsed.strftime("%d %b")
-                    birthday_players.append((row['name'], birthday_str))
-            except (ValueError, TypeError):
-                continue
-
-    return birthday_players
-
+                # FIX: Add a placeholder leap year to handle "29-02" correctly.
+                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
+                if bday_obj.day == today.day and bday_obj.month == today.month:
+                    todays_birthdays.append(row["name"])
+            except ValueError:
+                # Handle cases where birthday is not in the expected format
+                pass
+    return todays_birthdays
 
 
 def display_birthday_message(birthday_players):
