@@ -383,6 +383,9 @@ if 'bookings_df' not in st.session_state:
 
 if 'last_match_submit_time' not in st.session_state:
     st.session_state.last_match_submit_time = 0
+  
+if 'image_urls' not in st.session_state:
+    st.session_state.image_urls = {}  
 
 # --- Functions ---
 def load_players():
