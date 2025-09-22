@@ -2306,8 +2306,8 @@ def generate_match_card(row, image_url):
     
     # --- MODIFICATION: Set text and shadow colors ---
     white_fill = (255, 255, 255, 255)
-    shadow_fill = (204, 255, 0, 200) # Semi-transparent optic yellow
-    shadow_offset = 3
+    shadow_fill = (204, 255, 0, 100) # Semi-transparent optic yellow
+    shadow_offset = 2
     
     for text, y in zip([players_text, set_text, gda_text], y_positions):
         # Draw shadow
