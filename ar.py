@@ -2142,8 +2142,6 @@ END:VCALENDAR"""
 
 
 
-
-
 def generate_match_card(row, image_url):
     # Download the image
     response = requests.get(image_url)
@@ -2193,15 +2191,15 @@ def generate_match_card(row, image_url):
     polaroid_img = gradient_background
 
     # --- MODIFICATION: Create optic yellow shadow for the image ---
-    shadow_offset = 5
+    shadow_offset_img = 5
     shadow_size = (new_width + 10, base_height + 10)
     shadow = Image.new('RGBA', shadow_size, (0, 0, 0, 0))
     shadow_draw = ImageDraw.Draw(shadow)
     # Use optic yellow for the fill color
-    optic_yellow = (204, 255, 0, 128)
-    shadow_draw.rounded_rectangle((0, 0, new_width, base_height), radius=radius, fill=optic_yellow)
+    optic_yellow_color = (204, 255, 0, 128)
+    shadow_draw.rounded_rectangle((0, 0, new_width, base_height), radius=radius, fill=optic_yellow_color)
     shadow = shadow.filter(ImageFilter.GaussianBlur(8)) # Increased blur for better effect
-    polaroid_img.paste(shadow, (border_sides + shadow_offset, border_sides + shadow_offset), shadow)
+    polaroid_img.paste(shadow, (border_sides + shadow_offset_img, border_sides + shadow_offset_img), shadow)
     
     # Paste the rounded image
     polaroid_img.paste(rounded_img, (border_sides, border_sides), rounded_img)
@@ -2271,6 +2269,7 @@ def generate_match_card(row, image_url):
         elif abs_gda > 1.0: verb = random.choice(close_verbs)
         else: verb = random.choice(tight_verbs)
         
+    # This string is now only used for length calculation, not for drawing
     if winner == 'Tie': players_text = f"{team1} {verb} {team2}"
     elif winner == 'Team 1': players_text = f"{team1} {verb} {team2}"
     else: players_text = f"{team2} {verb} {team1}"
@@ -2279,9 +2278,11 @@ def generate_match_card(row, image_url):
         players_text = players_text[:47] + "..."
     
     date_str = pd.to_datetime(row['date']).strftime('%d %b %y')
-    gda_text = f"GDA: {gda:.2f} | Date: {date_str}"
     
-    # Draw text
+    # =========================================================================
+    # --- START: MODIFIED TEXT DRAWING SECTION ---
+    # =========================================================================
+    
     draw = ImageDraw.Draw(polaroid_img)
     try:
         font = ImageFont.truetype("CoveredByYourGrace-Regular.ttf", 50)
@@ -2304,16 +2305,70 @@ def generate_match_card(row, image_url):
     x_center = new_img_width / 2
     y_positions = [text_area_top + 30, text_area_top + 80, text_area_top + 130]
     
-    # --- MODIFICATION: Set text and shadow colors ---
-    white_fill = (255, 255, 255, 255)
-    shadow_fill = (53, 66, 0, 255) # Semi-transparent optic yellow
+    # --- Define text and shadow colors ---
+    optic_yellow = (204, 255, 0, 255)
+    medium_grey = (128, 128, 128, 255)
+    shadow_fill = (53, 66, 0, 255)
     shadow_offset = 2
     
-    for text, y in zip([players_text, set_text, gda_text], y_positions):
+    # Helper function for drawing text with shadow
+    def draw_text_with_shadow(draw_surface, pos, text, font, fill_color, anchor="lm"):
+        x, y = pos
         # Draw shadow
-        draw.text((x_center + shadow_offset, y + shadow_offset), text, font=font, fill=shadow_fill, anchor="mm")
+        draw_surface.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=shadow_fill, anchor=anchor)
         # Draw main text
-        draw.text((x_center, y), text, font=font, fill=white_fill, anchor="mm")
+        draw_surface.text((x, y), text, font=font, fill=fill_color, anchor=anchor)
+
+    # --- Draw Line 1: Player Names (Yellow) and Verb (Grey) ---
+    y1 = y_positions[0]
+    if winner == 'Tie':
+        part1, part2, part3 = team1, f' {verb} ', team2
+    elif winner == 'Team 1':
+        part1, part2, part3 = team1, f' {verb} ', team2
+    else: # Team 2 won
+        part1, part2, part3 = team2, f' {verb} ', team1
+
+    width1 = draw.textlength(part1, font=font)
+    width2 = draw.textlength(part2, font=font)
+    total_width = width1 + width2 + draw.textlength(part3, font=font)
+    
+    current_x = x_center - (total_width / 2)
+
+    draw_text_with_shadow(draw, (current_x, y1), part1, font, optic_yellow, anchor="lm")
+    current_x += width1
+    draw_text_with_shadow(draw, (current_x, y1), part2, font, medium_grey, anchor="lm")
+    current_x += width2
+    draw_text_with_shadow(draw, (current_x, y1), part3, font, optic_yellow, anchor="lm")
+
+    # --- Draw Line 2: Set Scores (Yellow) ---
+    y2 = y_positions[1]
+    # For single-color lines, we can still center it directly
+    draw.text((x_center + shadow_offset, y2 + shadow_offset), set_text, font=font, fill=shadow_fill, anchor="mm")
+    draw.text((x_center, y2), set_text, font=font, fill=optic_yellow, anchor="mm")
+
+    # --- Draw Line 3: GDA & Date (Labels Grey, Values Yellow) ---
+    y3 = y_positions[2]
+    gda_label, gda_value = "GDA: ", f"{gda:.2f}"
+    date_label, date_value = " | Date: ", date_str
+    
+    gda_label_w = draw.textlength(gda_label, font=font)
+    gda_value_w = draw.textlength(gda_value, font=font)
+    date_label_w = draw.textlength(date_label, font=font)
+    total_width_line3 = gda_label_w + gda_value_w + date_label_w + draw.textlength(date_value, font=font)
+
+    current_x = x_center - (total_width_line3 / 2)
+
+    draw_text_with_shadow(draw, (current_x, y3), gda_label, font, medium_grey, anchor="lm")
+    current_x += gda_label_w
+    draw_text_with_shadow(draw, (current_x, y3), gda_value, font, optic_yellow, anchor="lm")
+    current_x += gda_value_w
+    draw_text_with_shadow(draw, (current_x, y3), date_label, font, medium_grey, anchor="lm")
+    current_x += date_label_w
+    draw_text_with_shadow(draw, (current_x, y3), date_value, font, optic_yellow, anchor="lm")
+    
+    # =========================================================================
+    # --- END: MODIFIED TEXT DRAWING SECTION ---
+    # =========================================================================
     
     polaroid_img = polaroid_img.convert('RGB')
     
@@ -2321,6 +2376,7 @@ def generate_match_card(row, image_url):
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
 
 
 
