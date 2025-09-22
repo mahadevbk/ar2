@@ -2287,14 +2287,14 @@ def generate_match_card(row, image_url):
     except IOError:
         try:
             font = ImageFont.truetype("arial.ttf", 50)
-            st.warning("PermanentMarker-Regular.ttf not found. Using arial.ttf.")
+            st.warning("CoveredByYourGrace-Regular.ttf not found. Using arial.ttf.")
         except IOError:
             try:
                 font = ImageFont.truetype("DejaVuSans.ttf", 50)
-                st.warning("PermanentMarker-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
+                st.warning("CoveredByYourGrace-Regular.ttf and arial.ttf not found. Using DejaVuSans.ttf.")
             except IOError:
                 font = ImageFont.load_default()
-                st.warning("PermanentMarker-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
+                st.warning("CoveredByYourGrace-Regular.ttf, arial.ttf, and DejaVuSans.ttf not found. Using default font.")
     
     # Calculate text sizes for centering
     players_bbox = draw.textbbox((0, 0), players_text, font=font)
@@ -2307,7 +2307,7 @@ def generate_match_card(row, image_url):
         scale_factor = max_text_width / max_text_width_pixels
         font_size = int(50 * scale_factor)
         try:
-            font = ImageFont.truetype("PermanentMarker-Regular.ttf", font_size)
+            font = ImageFont.truetype("CoveredByYourGrace-Regular.ttf", font_size)
         except IOError:
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
@@ -2340,6 +2340,12 @@ def generate_match_card(row, image_url):
     polaroid_img.save(buf, format='JPEG')
     buf.seek(0)
     return buf.getvalue()
+
+
+
+
+
+
 
 
 
