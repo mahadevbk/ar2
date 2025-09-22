@@ -3650,7 +3650,7 @@ with tabs[1]:
 
 #----------------END OF TAB[1]-----------------------------------------------------------
 
-# Player Profile tab
+
 
 
 with tabs[2]:
@@ -3796,43 +3796,21 @@ with tabs[2]:
     st.markdown(badges_css, unsafe_allow_html=True)
 
     # --- Badge Explanations ---
-    
+   
     badge_explanations = {
-            "🎯 Tie-break Monster": "Dominates tie-breaks with the most wins (clutch factor >70% in 3+ clutch matches)",
-            "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
-            "📈 Consistent Performer": "Reliable performance with low variation in game differences (consistency index <2 over 5+ matches)",
-            "💪 Ironman": "Played the most matches without missing a session",
-            "🔄 Comeback Kid": "Won 3 or more matches after losing the first set",
-            "🚀 Most Improved": "Recent win rate (last 10 matches) is 20%+ higher than overall career win rate",
-            "🥇 Game Hog": "Won the highest total number of games across all matches"
-        }
+                "🎯 Tie-break Monster": "Dominates tie-breaks with the most wins (clutch factor >70% in 3+ clutch matches)",
+                "🔥 Hot Streak": "Achieved a winning streak of 5 or more matches",
+                "📈 Consistent Performer": "Reliable performance with low variation in game differences (consistency index <2 over 5+ matches)",
+                "💪 Ironman": "Played the most matches without missing a session",
+                "🔄 Comeback Kid": "Won 3 or more matches after losing the first set",
+                "🚀 Most Improved": "Recent win rate (last 10 matches) is 20%+ higher than overall career win rate",
+                "🥇 Game Hog": "Won the highest total number of games across all matches"
+            }
 
     # --- Player Insights ---
     rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
     if players:
-        # ADDED: Radio button for sorting player cards
-        sort_option = st.radio(
-            "Sort players by:",
-            ("Alphabetically", "Ranking"),
-            key="player_sort_option",
-            horizontal=True
-        )
-
-        # ADDED: Sorting logic based on the selected radio button
-        if sort_option == "Ranking":
-            # Get the list of players sorted by their rank from the ranking dataframe
-            ranked_players = rank_df_combined.index.tolist()
-            # Create the final sorted list, ensuring players from the main 'players' list are included and in ranking order
-            sorted_players_list = [p for p in ranked_players if p in players]
-            # Add any players who are not in the ranking (e.g., new players with no matches) to the end of the list
-            unranked_players = sorted([p for p in players if p not in sorted_players_list])
-            final_sorted_players = sorted_players_list + unranked_players
-        else: # Default to Alphabetically
-            # The 'players' list is already sorted alphabetically by default
-            final_sorted_players = players
-            
-        # MODIFIED: Pass the newly sorted player list to the display function
-        display_player_insights(final_sorted_players, st.session_state.players_df, st.session_state.matches_df, rank_df_combined, partner_stats_combined, key_prefix="profile_")
+        display_player_insights(players, st.session_state.players_df, st.session_state.matches_df, rank_df_combined, partner_stats_combined, key_prefix="profile_")
     else:
         st.info("No players available for insights. Please add players above.")
 
@@ -3857,6 +3835,13 @@ with tabs[2]:
     st.markdown("---")
     st.header("Detailed explanation of Player insights")
     st.markdown("https://github.com/mahadevbk/ar2/blob/main/Player%20insights.pdf")
+
+
+
+
+
+
+
 
 
 
