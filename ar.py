@@ -1909,20 +1909,37 @@ def generate_whatsapp_link(row):
 # Birthday Functions added
 
 
+from datetime import datetime
+
 def check_birthdays(players_df):
+    """
+    Identifies players who have a birthday today.
+
+    Args:
+        players_df (pd.DataFrame): A DataFrame with player information, 
+                                  including a 'birthday' column in "dd-mm" format.
+
+    Returns:
+        list: A list of names of players whose birthday is today.
+    """
     today = datetime.now().date()
     todays_birthdays = []
+    
     for index, row in players_df.iterrows():
         raw_birthday = row.get("birthday")
-        if raw_birthday:
+        if raw_birthday and isinstance(raw_birthday, str):
             try:
-                # FIX: Add a placeholder leap year to handle "29-02" correctly.
-                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
-                if bday_obj.day == today.day and bday_obj.month == today.month:
+                # FIX: Append a placeholder leap year to the date string
+                # and update the format to include the year.
+                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y").date()
+                
+                # Check if the birthday month and day match today's month and day
+                if bday_obj.month == today.month and bday_obj.day == today.day:
                     todays_birthdays.append(row["name"])
             except ValueError:
-                # Handle cases where birthday is not in the expected format
+                # This will safely ignore any birthdays that are not in the "dd-mm" format.
                 pass
+                
     return todays_birthdays
 
 
@@ -2533,7 +2550,8 @@ with tabs[0]:
         raw_birthday = player_info.get("birthday")
         if raw_birthday and isinstance(raw_birthday, str) and re.match(r'^\d{2}-\d{2}$', raw_birthday):
             try:
-                bday_obj = datetime.strptime(raw_birthday, "%d-%m")
+                #bday_obj = datetime.strptime(raw_birthday, "%d-%m")
+                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y")
                 birthday_str = bday_obj.strftime("%d %b")
             except ValueError:
                 birthday_str = "" # Keep it empty if parsing fails
