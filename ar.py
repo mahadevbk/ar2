@@ -2326,7 +2326,7 @@ def generate_match_card(row, image_url):
     black_fill = (0, 0, 0, 255)  # Black color for text (opaque for RGBA canvas)
     #shadow_fill = (0, 0, 0, 128)  # Semi-transparent black for shadow
     shadow_fill = (150, 150, 150, 128)
-    shadow_offset = 3  # Shadow offset in pixels
+    shadow_offset = 2  # Shadow offset in pixels
     for text, y in zip([players_text, set_text, gda_text], y_positions):
         # Draw shadow
         draw.text((x_center + shadow_offset, y + shadow_offset), text, font=font, fill=shadow_fill, anchor="mm")
