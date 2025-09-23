@@ -1912,56 +1912,42 @@ def generate_whatsapp_link(row):
 # Birthday Functions added
 
 
-from datetime import datetime
 
 def check_birthdays(players_df):
-    """
-    Identifies players who have a birthday today.
-
-    Args:
-        players_df (pd.DataFrame): A DataFrame with player information, 
-                                  including a 'birthday' column in "dd-mm" format.
-
-    Returns:
-        list: A list of names of players whose birthday is today.
-    """
-    today = datetime.now().date()
     todays_birthdays = []
-    
-    for index, row in players_df.iterrows():
-        raw_birthday = row.get("birthday")
-        if raw_birthday and isinstance(raw_birthday, str):
+    today = datetime.now().date()
+    for _, row in players_df.iterrows():
+        birthday = row.get("birthday")
+        if birthday and re.match(r'^\d{2}-\d{2}$', birthday):
             try:
-                # FIX: Append a placeholder leap year to the date string
-                # and update the format to include the year.
-                bday_obj = datetime.strptime(f"{raw_birthday}-2000", "%d-%m-%Y").date()
-                
-                # Check if the birthday month and day match today's month and day
-                if bday_obj.month == today.month and bday_obj.day == today.day:
-                    todays_birthdays.append(row["name"])
+                day, month = map(int, birthday.split("-"))
+                birthday_date = datetime(today.year, month, day).date()
+                if birthday_date == today:
+                    todays_birthdays.append(row["name"])  # Append only name (string)
             except ValueError:
-                # This will safely ignore any birthdays that are not in the "dd-mm" format.
-                pass
-                
+                continue  # Skip invalid dates
     return todays_birthdays
 
 
 def display_birthday_message(birthday_players):
-    """Displays a prominent birthday banner for each player in the list."""
-    for player_name, birthday_str in birthday_players:
+    """Displays a prominent birthday banner for each player in the list with a WhatsApp share button."""
+    for player_name in birthday_players:  # Changed to single variable
         message = f"Happy Birthday {player_name}! "
         whatsapp_message = f"*{message}* 🎂🎈"
         encoded_message = urllib.parse.quote(whatsapp_message)
-        whatsapp_link = f"https://wa.me/?text={encoded_message}"
-
-        st.markdown(f"""
-        <div class="birthday-banner">
-            <span>🎂🎈 {message} 🎈🎂</span>
-            <a href="{whatsapp_link}" target="_blank" class="whatsapp-share">
-                <img src="https://img.icons8.com/color/48/000000/whatsapp.png" alt="WhatsApp Icon">
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+        whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_message}&type=custom_url&app_absent=0"
+        st.markdown(
+            f"""
+            <div class="birthday-banner">
+                {message} Have a smashing year on the court! 🎾
+                <a href="{whatsapp_link}" target="_blank" class="whatsapp-share">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="Share on WhatsApp">
+                    Share
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 
