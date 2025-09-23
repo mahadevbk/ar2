@@ -1932,7 +1932,7 @@ def check_birthdays(players_df):
 def display_birthday_message(birthday_players):
     """Displays a prominent birthday banner for each player in the list with a WhatsApp share button."""
     for player_name in birthday_players:  # Changed to single variable
-        message = f"Happy Birthday {player_name}! "
+        message = f"Happy Birthday {player_name}!"
         whatsapp_message = f"*{message}* 🎂🎈"
         encoded_message = urllib.parse.quote(whatsapp_message)
         whatsapp_link = f"https://api.whatsapp.com/send/?text={encoded_message}&type=custom_url&app_absent=0"
