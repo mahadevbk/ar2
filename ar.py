@@ -1235,7 +1235,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{unique_id}_win_loss")
+                #st.plotly_chart(win_loss_chart, use_container_width=True, key=f"{unique_id}_win_loss")
+                st.plotly_chart(win_loss_chart, config={"responsive": True}, key=f"{unique_id}_win_loss")
 
             st.markdown("##### Recent Trend")
             trend_chart = create_trend_chart(trend)
