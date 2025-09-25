@@ -2874,7 +2874,8 @@ with tabs[0]:
             st.markdown("### 📊 Player Performance Overview")
             nerd_chart = create_nerd_stats_chart(rank_df)
             if nerd_chart:
-                st.plotly_chart(nerd_chart, width='stretch')
+                #st.plotly_chart(nerd_chart, width='stretch')
+                st.plotly_chart(nerd_chart, config={"responsive": True})
             else:
                 st.info("Not enough data to generate the performance chart.")
 
@@ -2896,7 +2897,8 @@ with tabs[0]:
                 if selected_player_for_partners:
                     partnership_chart = create_partnership_chart(selected_player_for_partners, partner_stats, players_df)
                     if partnership_chart:
-                        st.plotly_chart(partnership_chart, width='stretch')
+                        #st.plotly_chart(partnership_chart, width='stretch')
+                        st.plotly_chart(partnership_chart, config={"responsive": True})
                     else:
                         st.info(f"{selected_player_for_partners} has no partnership data to display.")
     
