@@ -2638,12 +2638,14 @@ with tabs[0]:
             st.markdown("##### Win/Loss")
             win_loss_chart = create_win_loss_donut(wins, losses)
             if win_loss_chart:
-                st.plotly_chart(win_loss_chart, width='stretch', key=f"{key_prefix}_win_loss_{player_name}")
+                #st.plotly_chart(win_loss_chart, width='stretch', key=f"{key_prefix}_win_loss_{player_name}")
+                st.plotly_chart(win_loss_chart, config={"responsive": True}, key=f"{key_prefix}_win_loss_{player_name}")
 
             st.markdown("##### Trend")
             trend_chart = create_trend_sparkline(trend)
             if trend_chart:
-                st.plotly_chart(trend_chart, width='stretch', key=f"{key_prefix}_trend_{player_name}")
+                #st.plotly_chart(trend_chart, width='stretch', key=f"{key_prefix}_trend_{player_name}")
+                st.plotly_chart(trend_chart, config={"responsive": True}, key=f"{key_prefix}_trend_{player_name}")
                 st.markdown(f"<div class='trend-col' style='text-align: center; margin-top: -15px;'>{trend}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div class='trend-col'>{trend}</div>", unsafe_allow_html=True)
