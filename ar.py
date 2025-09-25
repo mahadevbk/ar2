@@ -1241,7 +1241,8 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             st.markdown("##### Recent Trend")
             trend_chart = create_trend_chart(trend)
             if trend_chart:
-                st.plotly_chart(trend_chart, use_container_width=True, key=f"{unique_id}_trend")
+                #st.plotly_chart(trend_chart, use_container_width=True, key=f"{unique_id}_trend")
+                st.plotly_chart(trend_chart, config={"responsive": True}, key=f"{unique_id}_trend")
             else:
                 st.markdown("No recent matches")
 
