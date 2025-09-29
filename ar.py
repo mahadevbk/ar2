@@ -3382,7 +3382,7 @@ with tabs[1]:
                         card_key = f"download_match_card_{row['match_id']}_{idx}"
                         card_bytes = generate_match_card(pd.Series(row.to_dict()), match_image_url)
                         st.download_button(
-                            label="📇",
+                            label="💌",
                             data=card_bytes,
                             file_name=f"match_card_{row['match_id']}.jpg",
                             mime="image/jpeg",
