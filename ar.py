@@ -725,6 +725,17 @@ def get_player_trend(player, matches, max_matches=5):
 
 
 def calculate_rankings(matches_to_rank):
+    """
+    Calculates player rankings based on match data.
+
+    Args:
+        matches_to_rank (pd.DataFrame): DataFrame containing match data.
+
+    Returns:
+        tuple: A tuple containing:
+            - pd.DataFrame: The ranked player data.
+            - dict: Statistics about player partnerships.
+    """
     scores = defaultdict(float)
     wins = defaultdict(int)
     losses = defaultdict(int)
@@ -746,7 +757,7 @@ def calculate_rankings(matches_to_rank):
         if match_type == 'Doubles':
             t1 = [p for p in [row['team1_player1'], row['team1_player2']] if p and p != "Visitor"]
             t2 = [p for p in [row['team2_player1'], row['team2_player2']] if p and p != "Visitor"]
-        else:
+        else: # Singles
             t1 = [p for p in [row['team1_player1']] if p and p != "Visitor"]
             t2 = [p for p in [row['team2_player1']] if p and p != "Visitor"]
 
@@ -787,6 +798,7 @@ def calculate_rankings(matches_to_rank):
                     game_diffs[p].append(team2_set_diff)
 
             except (ValueError, TypeError) as e:
+                # Using st.warning to show a message in the Streamlit app
                 st.warning(f"Skipping invalid set score {set_score} in match {row.get('match_id', 'unknown')}: {str(e)}")
                 continue
 
@@ -840,7 +852,7 @@ def calculate_rankings(matches_to_rank):
                     singles_matches[p] += 1
         elif row["winner"] == "Tie":
             for p in t1 + t2:
-                scores[p] += 1
+                scores[p] += 1.5  # --- UPDATED: All players in a tie get 1.5 points ---
                 matches_played[p] += 1
                 if is_clutch_match:
                     clutch_matches[p] += 1
@@ -866,7 +878,8 @@ def calculate_rankings(matches_to_rank):
                 for p2 in t2:
                     if p1 != p2:
                         partner_stats[p1][p2]['matches'] += 1
-                        partner_stats[p1][p2]['game_diff_sum'] += match_gd_sum if row["winner"] == "Team 2" else -match_gd_sum
+                        # For team 2, the game difference sum is inverted
+                        partner_stats[p1][p2]['game_diff_sum'] += -match_gd_sum
                         if row["winner"] == "Team 2":
                             partner_stats[p1][p2]['wins'] += 1
                         elif row["winner"] == "Team 1":
@@ -876,13 +889,21 @@ def calculate_rankings(matches_to_rank):
 
     # --- build rank dataframe ---
     rank_data = []
-    players_df = st.session_state.players_df
+    # This assumes players_df is available in the session state
+    players_df = st.session_state.get('players_df', pd.DataFrame(columns=["name", "profile_image_url"]))
+
     for player in scores:
         if player == "Visitor":
             continue
         win_percentage = (wins[player] / matches_played[player] * 100) if matches_played[player] > 0 else 0
         game_diff_avg = cumulative_game_diff[player] / matches_played[player] if matches_played[player] > 0 else 0
-        profile_image = players_df.loc[players_df["name"] == player, "profile_image_url"].iloc[0] if player in players_df["name"].values else ""
+
+        profile_image = ""
+        if player in players_df["name"].values:
+             profile_image_series = players_df.loc[players_df["name"] == player, "profile_image_url"]
+             if not profile_image_series.empty:
+                profile_image = profile_image_series.iloc[0]
+
         player_trend = get_player_trend(player, matches_to_rank)
 
         clutch_factor = (clutch_wins[player] / clutch_matches[player] * 100) if clutch_matches[player] > 0 else 0
@@ -892,14 +913,14 @@ def calculate_rankings(matches_to_rank):
         badges = []
         if clutch_factor > 70 and clutch_matches[player] >= 3:
             badges.append("🎯 Tie-break Monster")
-        if wins[player] >= 5 and player_trend.startswith("W W W W W"):
+        if wins[player] >= 5 and player_trend.endswith("W W W W W"):
             badges.append("🔥 Hot Streak")
-        if consistency_index < 2 and matches_played[player] >= 5:
+        if consistency_index > 0 and consistency_index < 2 and matches_played[player] >= 5:
             badges.append("📈 Consistent Performer")
-        if matches_played[player] == max(matches_played.values()):
+        if matches_played[player] > 0 and matches_played[player] == max(matches_played.values()):
             badges.append("💪 Ironman")
 
-        # NEW: Comeback Kid
+        # Comeback Kid
         player_matches = matches_to_rank[
             (matches_to_rank['team1_player1'] == player) |
             (matches_to_rank['team1_player2'] == player) |
@@ -909,32 +930,36 @@ def calculate_rankings(matches_to_rank):
         comeback_wins = 0
         for _, r in player_matches.iterrows():
             sets = [r['set1'], r['set2'], r['set3']]
-            valid_sets = [s for s in sets if s]
+            valid_sets = [s for s in sets if s and isinstance(s, str) and '-' in s]
             if len(valid_sets) >= 2:
                 try:
                     g1, g2 = map(int, valid_sets[0].split('-'))
-                except:
+                    first_set_winner = "Team 1" if g1 > g2 else "Team 2"
+                    is_player_team1 = player in [r['team1_player1'], r['team1_player2']]
+
+                    if (is_player_team1 and first_set_winner == "Team 2" and r['winner'] == "Team 1") or \
+                       (not is_player_team1 and first_set_winner == "Team 1" and r['winner'] == "Team 2"):
+                        comeback_wins += 1
+                except (ValueError, TypeError):
                     continue
-                first_set_winner = "Team 1" if g1 > g2 else "Team 2"
-                if (player in [r['team1_player1'], r['team1_player2']] and first_set_winner == "Team 2" and r['winner'] == "Team 1") or \
-                   (player in [r['team2_player1'], r['team2_player2']] and first_set_winner == "Team 1" and r['winner'] == "Team 2"):
-                    comeback_wins += 1
         if comeback_wins >= 3:
             badges.append("🔄 Comeback Kid")
 
-        # NEW: Most Improved (last 10 vs career)
-        recent_matches = player_matches.sort_values(by="date", ascending=False).head(10)
-        recent_wins = 0
-        for _, r in recent_matches.iterrows():
-            if (player in [r['team1_player1'], r['team1_player2']] and r['winner'] == "Team 1") or \
-               (player in [r['team2_player1'], r['team2_player2']] and r['winner'] == "Team 2"):
-                recent_wins += 1
-        recent_win_rate = recent_wins / len(recent_matches) * 100 if not recent_matches.empty else 0
-        if recent_win_rate - win_percentage >= 20:
-            badges.append("🚀 Most Improved")
+        # Most Improved (last 10 vs career)
+        if len(player_matches) > 10:
+            recent_matches = player_matches.sort_values(by="date", ascending=False).head(10)
+            recent_wins = 0
+            for _, r in recent_matches.iterrows():
+                is_player_team1 = player in [r['team1_player1'], r['team1_player2']]
+                if (is_player_team1 and r['winner'] == "Team 1") or \
+                   (not is_player_team1 and r['winner'] == "Team 2"):
+                    recent_wins += 1
+            recent_win_rate = recent_wins / len(recent_matches) * 100 if not recent_matches.empty else 0
+            if recent_win_rate - win_percentage >= 20:
+                badges.append("🚀 Most Improved")
 
-        # NEW: Game Hog
-        if games_won[player] == max(games_won.values()):
+        # Game Hog
+        if games_won[player] > 0 and games_won[player] == max(games_won.values()):
             badges.append("🥇 Game Hog")
 
         rank_data.append({
@@ -946,7 +971,7 @@ def calculate_rankings(matches_to_rank):
             "Recent Trend": player_trend,
             "Clutch Factor": round(clutch_factor, 1),
             "Consistency Index": round(consistency_index, 2),
-            "Badges": badges
+            "Badges": ", ".join(badges) # Join badges for better display
         })
 
     rank_df = pd.DataFrame(rank_data)
@@ -955,7 +980,12 @@ def calculate_rankings(matches_to_rank):
             by=["Points", "Win %", "Game Diff Avg", "Games Won", "Player"],
             ascending=[False, False, False, False, True]
         ).reset_index(drop=True)
-        rank_df["Rank"] = [f"🏆 {i}" for i in range(1, len(rank_df) + 1)]
+        # Assign ranks, handling ties by giving them the same rank number
+        rank_df["Rank"] = rank_df["Points"].rank(method='min', ascending=False).astype(int)
+        # Special icon for the first place
+        if len(rank_df) > 0:
+            rank_df.loc[0, 'Rank'] = f"🏆 {rank_df.loc[0, 'Rank']}"
+
 
     return rank_df, partner_stats
 
