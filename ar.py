@@ -694,30 +694,36 @@ def generate_match_id(matches_df, match_datetime):
         new_id = f"AR{quarter}{year}-{serial_number:02d}"
     return new_id
 
-def get_player_trend(player, matches, max_matches=5):
-    player_matches = matches[
-        (matches['team1_player1'] == player) |
-        (matches['team1_player2'] == player) |
-        (matches['team2_player1'] == player) |
-        (matches['team2_player2'] == player)
-    ].copy()
-    player_matches['date'] = pd.to_datetime(player_matches['date'], errors='coerce')
-    player_matches = player_matches.sort_values(by='date', ascending=False)
+
+
+
+
+def get_player_trend(player, matches_df, n=5):
+    """
+    Get the win/loss trend for a player from their last n matches.
+    """
+    player_matches = matches_df[
+        (matches_df['team1_player1'] == player) |
+        (matches_df['team1_player2'] == player) |
+        (matches_df['team2_player1'] == player) |
+        (matches_df['team2_player2'] == player)
+    ].sort_values(by="date", ascending=False).head(n)
+
     trend = []
-    for _, row in player_matches.head(max_matches).iterrows():
-        if row['match_type'] == 'Doubles':
-            team1 = [row['team1_player1'], row['team1_player2']]
-            team2 = [row['team2_player1'], row['team2_player2']]
+    for _, row in player_matches.iterrows():
+        is_team1 = player in [row['team1_player1'], row['team1_player2']]
+        if (is_team1 and row['winner'] == 'Team 1') or (not is_team1 and row['winner'] == 'Team 2'):
+            trend.append('W')
+        elif row['winner'] == 'Tie':
+            trend.append('T')
         else:
-            team1 = [row['team1_player1']]
-            team2 = [row['team2_player1']]
-        if player in team1 and row['winner'] == 'Team 1':
-            trend.append('W')
-        elif player in team2 and row['winner'] == 'Team 2':
-            trend.append('W')
-        elif row['winner'] != 'Tie':
             trend.append('L')
-    return ' '.join(trend) if trend else 'No recent matches'
+    return " ".join(reversed(trend))
+
+
+
+
+
 
 #------------------- Update the display_player_insights  and calculate rankings function --------------------------------
 
