@@ -56,7 +56,7 @@ st.set_page_config(page_title="AR Tennis")
 st.markdown("""
 <style>
 .stApp {
-  background: linear-gradient(to bottom,#041c2e, #011524);
+  background: linear-gradient(to bottom,#0b014a, #001626);
   background-attachment: scroll;
 }
 
@@ -70,7 +70,7 @@ st.markdown("""
   
   /* Ensure the body takes up the full page */
   body {
-    background: linear-gradient(to bottom, #041c2e, #011524) !important;
+    background: linear-gradient(to bottom, #0b014a, #001626) !important;
     height: 100vh;
     margin: 0;
     padding: 0;
@@ -83,7 +83,7 @@ st.markdown("""
 }
 
 [data-testid="stHeader"] {
-  background: linear-gradient(to top, #041c2e, #011524) !important;
+  background: linear-gradient(to top, #0b014a, #001626) !important;
 }
 
 .profile-image {
