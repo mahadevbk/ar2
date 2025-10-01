@@ -724,6 +724,7 @@ def get_player_trend(player, matches, max_matches=5):
 
 
 
+
 def calculate_rankings(matches_to_rank):
     scores = defaultdict(float)
     wins = defaultdict(int)
@@ -754,37 +755,45 @@ def calculate_rankings(matches_to_rank):
         is_clutch_match = False
 
         for set_score in [row['set1'], row['set2'], row['set3']]:
-            if not set_score or ('-' not in str(set_score) and 'Tie Break' not in str(set_score)):
+            if not set_score or pd.isna(set_score):
                 continue
 
-            try:
-                team1_games, team2_games = 0, 0
-                is_tie_break = "Tie Break" in str(set_score)
+            set_score_str = str(set_score).strip()
+            is_tie_break = "Tie Break" in set_score_str
 
-                if is_tie_break:
+            if is_tie_break:
+                try:
                     is_clutch_match = True
-                    tie_break_scores = [int(s) for s in re.findall(r'\d+', str(set_score))]
+                    tie_break_scores = [int(s) for s in re.findall(r'\d+', set_score_str)]
                     if len(tie_break_scores) != 2:
-                        continue
+                        continue  # Skip invalid tie-break scores
                     team1_score, team2_score = tie_break_scores
                     # Normalize tie-break scores to 7-6 or 6-7
                     team1_games = 7 if team1_score > team2_score else 6
                     team2_games = 6 if team1_score > team2_score else 7
-                else:
-                    team1_games, team2_games = map(int, str(set_score).split('-'))
+                except (ValueError, TypeError):
+                    continue  # Skip invalid tie-break scores
+            else:
+                try:
+                    # Validate non-tie-break score format (must be X-Y)
+                    score_parts = set_score_str.split('-')
+                    if len(score_parts) != 2:
+                        continue  # Skip invalid score formats
+                    team1_games, team2_games = map(int, score_parts)
+                    # Additional validation: ensure scores are reasonable (e.g., 0-7)
+                    if not (0 <= team1_games <= 7 and 0 <= team2_games <= 7):
+                        continue
+                except (ValueError, TypeError):
+                    continue  # Skip invalid non-tie-break scores
 
-                team1_set_diff = team1_games - team2_games
-                team2_set_diff = team2_games - team1_games
-                match_gd_sum += team1_set_diff
+            team1_set_diff = team1_games - team2_games
+            match_gd_sum += team1_set_diff
 
-                # Add to games_won
-                for p in t1:
-                    games_won[p] += team1_games
-                for p in t2:
-                    games_won[p] += team2_games
-
-            except ValueError:
-                continue  # Skip invalid scores
+            # Add to games_won
+            for p in t1:
+                games_won[p] += team1_games
+            for p in t2:
+                games_won[p] += team2_games
 
         # Update cumulative game diff
         for p in t1:
@@ -823,7 +832,7 @@ def calculate_rankings(matches_to_rank):
                     partner_stats[p1][p2]['wins'] += 1
                     partner_stats[p1][p2]['matches'] += 1
                     partner_stats[p1][p2]['game_diff_sum'] += match_gd_sum
-                    partner_stats[p2][p1] = partner_stats[p1][p2]  # Symmetric
+                    partner_stats[p2][p1] = partner_stats[p1][p2]
                 for p1, p2 in combinations(t2, 2):
                     partner_stats[p1][p2]['losses'] += 1
                     partner_stats[p1][p2]['matches'] += 1
@@ -868,7 +877,7 @@ def calculate_rankings(matches_to_rank):
 
         elif winner == 'Tie':
             for p in t1 + t2:
-                scores[p] += 1.5  # Award 1.5 points for ties
+                scores[p] += 1.5
                 matches_played[p] += 1
                 if match_type == 'Singles':
                     singles_matches[p] += 1
@@ -953,6 +962,9 @@ def calculate_rankings(matches_to_rank):
         rank_df['Rank'] = []
 
     return rank_df
+
+
+
 
 
 
