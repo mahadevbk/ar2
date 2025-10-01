@@ -725,6 +725,8 @@ def get_player_trend(player, matches, max_matches=5):
 
 
 
+
+
 def calculate_rankings(matches_to_rank):
     scores = defaultdict(float)
     wins = defaultdict(int)
@@ -735,8 +737,6 @@ def calculate_rankings(matches_to_rank):
     games_won = defaultdict(int)
     cumulative_game_diff = defaultdict(int)
     partner_stats = defaultdict(lambda: defaultdict(lambda: {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'game_diff_sum': 0}))
-
-    # --- NEW: clutch + consistency tracking ---
     clutch_wins = defaultdict(int)
     clutch_matches = defaultdict(int)
     game_diffs = defaultdict(list)
@@ -766,42 +766,36 @@ def calculate_rankings(matches_to_rank):
                     is_clutch_match = True
                     tie_break_scores = [int(s) for s in re.findall(r'\d+', set_score_str)]
                     if len(tie_break_scores) != 2:
-                        continue  # Skip invalid tie-break scores
+                        continue
                     team1_score, team2_score = tie_break_scores
-                    # Normalize tie-break scores to 7-6 or 6-7
                     team1_games = 7 if team1_score > team2_score else 6
                     team2_games = 6 if team1_score > team2_score else 7
                 except (ValueError, TypeError):
-                    continue  # Skip invalid tie-break scores
+                    continue
             else:
                 try:
-                    # Validate non-tie-break score format (must be X-Y)
                     score_parts = set_score_str.split('-')
                     if len(score_parts) != 2:
-                        continue  # Skip invalid score formats
+                        continue
                     team1_games, team2_games = map(int, score_parts)
-                    # Additional validation: ensure scores are reasonable (e.g., 0-7)
                     if not (0 <= team1_games <= 7 and 0 <= team2_games <= 7):
                         continue
                 except (ValueError, TypeError):
-                    continue  # Skip invalid non-tie-break scores
+                    continue
 
             team1_set_diff = team1_games - team2_games
             match_gd_sum += team1_set_diff
 
-            # Add to games_won
             for p in t1:
                 games_won[p] += team1_games
             for p in t2:
                 games_won[p] += team2_games
 
-        # Update cumulative game diff
         for p in t1:
             cumulative_game_diff[p] += match_gd_sum
         for p in t2:
             cumulative_game_diff[p] -= match_gd_sum
 
-        # Determine winner and update points
         winner = row['winner']
         if winner == 'Team 1':
             for p in t1:
@@ -826,7 +820,6 @@ def calculate_rankings(matches_to_rank):
                 clutch_matches[p] += 1 if is_clutch_match else 0
                 game_diffs[p].append(-match_gd_sum)
 
-            # Partner stats for doubles
             if match_type == 'Doubles':
                 for p1, p2 in combinations(t1, 2):
                     partner_stats[p1][p2]['wins'] += 1
@@ -862,7 +855,6 @@ def calculate_rankings(matches_to_rank):
                 clutch_matches[p] += 1 if is_clutch_match else 0
                 game_diffs[p].append(match_gd_sum)
 
-            # Partner stats for doubles
             if match_type == 'Doubles':
                 for p1, p2 in combinations(t2, 2):
                     partner_stats[p1][p2]['wins'] += 1
@@ -889,7 +881,6 @@ def calculate_rankings(matches_to_rank):
             for p in t2:
                 game_diffs[p].append(-match_gd_sum)
 
-            # Partner stats for ties in doubles
             if match_type == 'Doubles':
                 for team in [t1, t2]:
                     for p1, p2 in combinations(team, 2):
@@ -899,7 +890,6 @@ def calculate_rankings(matches_to_rank):
                         partner_stats[p1][p2]['game_diff_sum'] += gd
                         partner_stats[p2][p1] = partner_stats[p1][p2]
 
-    # Create DataFrame
     players = set(scores.keys())
     data = {
         'Player': [],
@@ -924,7 +914,6 @@ def calculate_rankings(matches_to_rank):
         clutch_win_percent = (clutch_wins[player] / clutch_matches[player] * 100) if clutch_matches[player] > 0 else 0
         game_diff_avg = np.mean(game_diffs[player]) if game_diffs[player] else 0
 
-        # Partner stats
         partners = partner_stats[player]
         partner_list = []
         best_partner = None
