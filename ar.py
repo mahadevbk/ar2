@@ -988,13 +988,16 @@ def calculate_rankings(matches_to_rank):
         ).reset_index(drop=True)
         # Assign ranks, handling ties by giving them the same rank number
         rank_df["Rank"] = rank_df["Points"].rank(method='min', ascending=False).astype(int)
+        
+        # Convert Rank to string to avoid attribute error later when adding emoji
+        rank_df['Rank'] = rank_df['Rank'].astype(str)
+        
         # Special icon for the first place
         if len(rank_df) > 0:
             rank_df.loc[0, 'Rank'] = f"🏆 {rank_df.loc[0, 'Rank']}"
 
 
     return rank_df, partner_stats
-
 
 
 
