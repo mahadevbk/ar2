@@ -1068,6 +1068,12 @@ def create_trend_chart(trend):
 
 
 
+
+
+
+
+
+
 def display_player_insights(selected_players, players_df, matches_df, rank_df, partner_stats, key_prefix=""):
     if isinstance(selected_players, str):
         selected_players = [selected_players] if selected_players else []
@@ -1232,9 +1238,10 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             "🚀 Most Improved": "Recent win rate (last 10 matches) is 20%+ higher than overall career win rate",
             "🥇 Game Hog": "Won the highest total number of games across all matches"
         }
-        badges = player_data["Badges"]
+        badges_str = player_data["Badges"]
+        badges_list = [b.strip() for b in badges_str.split(",") if b.strip()] if badges_str else []
         badges_html = ""
-        if badges:
+        if badges_list:
             badges_html = (
                 "<span class='badges-col' style='display: block; margin-top: 6px;'>"
                 "<span style='font-weight:bold; color:#bbbbbb;'>Badges: </span><br>"
@@ -1243,7 +1250,7 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
                     f"<span style='background:#fff500; color:#031827; padding:2px 6px; border-radius:6px;'>{b}</span>"
                     f"<span class='badge-tooltip'>{badge_explanations.get(b, 'No description available')}</span>"
                     f"</span>"
-                    for b in badges
+                    for b in badges_list
                 ])
                 + "</span>"
             )
@@ -1323,6 +1330,22 @@ def display_player_insights(selected_players, players_df, matches_df, rank_df, p
             with st.expander("View Partner Stats", expanded=False, icon="➡️"):
                 st.markdown(partners_list_str, unsafe_allow_html=True)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#------------------- END OF display_player_insights  and calculate rankings function --------------------------------
 
 
 
