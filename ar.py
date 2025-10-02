@@ -2670,6 +2670,10 @@ tabs = st.tabs(tab_names)
 
 
 with tabs[0]:
+    load_players()
+    load_matches()
+    available_players = sorted([name for name in st.session_state.players_df["name"].values if name]) if not st.session_state.players_df.empty else []
+    
     st.header(f"Rankings as of {datetime.now().strftime('%d %b')}")
     ranking_type = st.radio("Select Ranking View", ["Combined", "Doubles", "Singles", "Nerd Stuff", "Table View"], horizontal=True, key="ranking_type_selector")
 
@@ -3031,6 +3035,7 @@ with tabs[0]:
 
 
             # --- Head-to-Head Stats ---
+           
             st.markdown("---")
             st.subheader("Head-to-Head Stats")
             col_ht1, col_ht2 = st.columns(2)
@@ -3038,7 +3043,7 @@ with tabs[0]:
                 player_a = st.selectbox("Select Player A", [""] + available_players, key="ht_player_a")
             with col_ht2:
                 player_b = st.selectbox("Select Player B", [""] + available_players, key="ht_player_b")
-            
+        
             if player_a and player_b and player_a != player_b:
                 h2h_stats = calculate_head_to_head(player_a, player_b, st.session_state.matches_df)
                 
@@ -3065,6 +3070,12 @@ with tabs[0]:
                     st.metric("Overall Record", f"{overall_wins_a}-{overall_wins_b}-{overall_ties}")
             else:
                 st.info("Select two different players to view head-to-head stats.")
+
+
+
+
+            
+           #-------------------------------
     
 
             st.markdown("---")
