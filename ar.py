@@ -4528,6 +4528,280 @@ with tabs[4]:
     st.markdown("---")
     
     
+        
+    
+    #------------new Calendar feature -------------------------------
+
+
+
+
+    
+
+    
+    # Insert this new section right after the "Upcoming Bookings" subheader and before the existing bookings_df processing
+
+
+    
+    
+    st.markdown("---")
+    st.subheader("👥 Player Availability")
+    st.markdown("""
+    *Players can indicate their availability for the next 10 days. This helps in scheduling matches more efficiently.*
+    """)
+    
+    # Define next 10 days
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    next_10_days = [today + timedelta(days=i) for i in range(1, 11)]
+    day_options = [d.strftime("%A, %d %b") for d in next_10_days]
+    date_options = [d.isoformat() for d in next_10_days]
+    
+    # Load availability from Supabase
+    availability_table_name = "availability"
+    expected_columns = ["id", "player_name", "date", "comment"]
+    
+    if 'availability_df' not in st.session_state:
+        try:
+            response = supabase.table(availability_table_name).select("*").execute()
+            df = pd.DataFrame(response.data)
+            for col in expected_columns:
+                if col not in df.columns:
+                    df[col] = ""
+            # Ensure id is int if present
+            if 'id' in df.columns:
+                df['id'] = pd.to_numeric(df['id'], errors='coerce').fillna(0).astype(int)
+            # Drop any old columns like 'time_slot' if present
+            if 'time_slot' in df.columns:
+                df = df.drop(columns=['time_slot'])
+            st.session_state.availability_df = df
+        except Exception as e:
+            st.error(f"Error loading availability: {str(e)}")
+            st.session_state.availability_df = pd.DataFrame(columns=expected_columns)
+    
+    def save_availability(availability_df):
+        try:
+            if len(availability_df) == 0:
+                return  # Skip upsert if no data
+            # Select only expected columns
+            availability_df_to_save = availability_df[expected_columns].copy()
+            # Replace NaN with None for JSON compliance
+            availability_df_to_save = availability_df_to_save.where(pd.notna(availability_df_to_save), None)
+            # Ensure id is int
+            if 'id' in availability_df_to_save.columns:
+                availability_df_to_save['id'] = pd.to_numeric(availability_df_to_save['id'], errors='coerce').fillna(0).astype(int)
+            supabase.table(availability_table_name).upsert(availability_df_to_save.to_dict("records")).execute()
+            st.success("Availability updated successfully!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error saving availability: {str(e)}")
+    
+    def delete_availability(player_name, date_str):
+        try:
+            # Delete all entries for player and date
+            supabase.table(availability_table_name).delete().eq("player_name", player_name).eq("date", date_str).execute()
+            st.session_state.availability_df = st.session_state.availability_df[
+                ~((st.session_state.availability_df["player_name"] == player_name) & 
+                  (st.session_state.availability_df["date"] == date_str))
+            ].reset_index(drop=True)
+            save_availability(st.session_state.availability_df)
+        except Exception as e:
+            st.error(f"Error deleting availability: {str(e)}")
+    
+    # Add/Update Availability Form (simplified: one day at a time)
+    with st.expander("Add/Update Your Availability", expanded=False, icon="📅"):
+        selected_player = st.selectbox("Select Player", [""] + available_players, key="avail_player")
+        selected_day_label = st.selectbox("Select Day", [""] + day_options, key="avail_day")
+        if selected_player and selected_day_label:
+            day_date = next_10_days[day_options.index(selected_day_label)]
+            comment_key = f"comment_{selected_day_label.replace(', ', '_')}"
+            comment = st.text_area(
+                f"Comment for {selected_day_label} (e.g., 'free from 7pm onwards')",
+                key=comment_key,
+                help="Describe your availability for this day"
+            )
+            # Show current availability for this day
+            current_row = st.session_state.availability_df[
+                (st.session_state.availability_df["player_name"] == selected_player) &
+                (st.session_state.availability_df["date"] == day_date.isoformat())
+            ]
+            if not current_row.empty:
+                current_comment = current_row.iloc[0].get("comment", "")
+                if current_comment:
+                    st.info(f"Current comment for {selected_day_label}: {current_comment}")
+            
+            col_update, col_clear = st.columns(2)
+            with col_update:
+                if st.button(f"Update Availability for {selected_day_label}", key=f"update_{selected_day_label.replace(', ', '_')}"):
+                    if not comment.strip():
+                        st.warning("Please add a comment to update availability.")
+                    else:
+                        # Remove old entries for this player/day
+                        st.session_state.availability_df = st.session_state.availability_df[
+                            ~((st.session_state.availability_df["player_name"] == selected_player) &
+                              (st.session_state.availability_df["date"] == day_date.isoformat()))
+                        ].reset_index(drop=True)
+                        
+                        # Get next id
+                        next_id = st.session_state.availability_df['id'].max() + 1 if not st.session_state.availability_df.empty else 1
+                        
+                        # Add new entry
+                        new_entry = {
+                            "id": next_id,
+                            "player_name": selected_player,
+                            "date": day_date.isoformat(),
+                            "comment": comment.strip()
+                        }
+                        st.session_state.availability_df = pd.concat([
+                            st.session_state.availability_df,
+                            pd.DataFrame([new_entry])
+                        ], ignore_index=True)
+                        
+                        save_availability(st.session_state.availability_df)
+            
+            with col_clear:
+                if st.button(f"Clear Availability for {selected_day_label}", key=f"clear_{selected_day_label.replace(', ', '_')}"):
+                    delete_availability(selected_player, day_date.isoformat())
+    
+    # Display Availability Overview (Enhanced)
+    st.markdown("---")
+    st.subheader("Upcoming Availability Overview")
+    
+    if st.session_state.availability_df.empty:
+        st.info("No availability entries yet. Add some using the form above!")
+    else:
+        # Filter to next 10 days
+        recent_avail = st.session_state.availability_df[st.session_state.availability_df['date'].isin(date_options)]
+        day_grouped = recent_avail.groupby("date")
+        
+        # Custom CSS for day cards (add to your existing <style> block)
+        st.markdown("""
+        <style>
+        .availability-day-card {
+            background: linear-gradient(to bottom, #031827, #07314f);
+            border: 1px solid #fff500;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 245, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: left;
+        }
+        .availability-day-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 12px rgba(255, 245, 0, 0.4);
+        }
+        .day-header {
+            color: #fff500;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .player-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px;
+            background: rgba(255, 245, 0, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid #fff500;
+        }
+        .player-name {
+            font-weight: bold;
+            color: #fff500;
+            margin-right: 8px;
+            min-width: 80px;
+        }
+        .player-comment {
+            color: #ffffff;
+            font-size: 0.9em;
+            flex-grow: 1;
+            white-space: pre-line;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Grid: 3 columns for desktop, stack on mobile
+        for i in range(0, len(date_options), 3):
+            cols = st.columns(3)
+            for j, date_str in enumerate(date_options[i:i+3]):
+                with cols[j]:
+                    day_data = day_grouped.get_group(date_str) if date_str in day_grouped.groups else pd.DataFrame()
+                    if day_data.empty:
+                        continue
+                    
+                    day_label = next_10_days[date_options.index(date_str)].strftime("%A, %d %b")
+                    player_comments = {}
+                    for _, row in day_data.iterrows():
+                        player = row['player_name']
+                        if player not in player_comments:
+                            player_comments[player] = row.get('comment', '')
+                    
+                    if player_comments:
+                        # Build HTML card content
+                        players_html = ""
+                        for player, comment in sorted(player_comments.items()):
+                            # For title, replace newlines with ' | ' for better tooltip display
+                            title_attr = comment.replace('\n', ' | ')
+                            players_html += f"""
+                            <div class="player-item">
+                                <span class="player-name">👤 {player}:</span>
+                                <span class="player-comment" title="{title_attr}">{comment}</span>
+                            </div>
+                            """
+                        
+                        card_html = f"""
+                        <div class="availability-day-card">
+                            <div class="day-header">📅 {day_label}</div>
+                            {players_html}
+                        </div>
+                        """
+                        st.html(card_html)
+    
+    # Manage Existing Availability (optional)
+    with st.expander("Manage All Availability", expanded=False, icon="⚙️"):
+        if not st.session_state.availability_df.empty:
+            st.dataframe(st.session_state.availability_df, width="stretch")
+            
+            selected_to_delete = st.multiselect("Select entries to delete (by ID)", 
+                                              st.session_state.availability_df["id"].tolist(),
+                                              key="delete_avail")
+            if st.button("Delete Selected"):
+                for entry_id in selected_to_delete:
+                    # Delete single entry by id
+                    try:
+                        supabase.table(availability_table_name).delete().eq("id", entry_id).execute()
+                        st.session_state.availability_df = st.session_state.availability_df[
+                            st.session_state.availability_df["id"] != entry_id
+                        ].reset_index(drop=True)
+                    except Exception as e:
+                        st.error(f"Error deleting {entry_id}: {str(e)}")
+                save_availability(st.session_state.availability_df)
+        else:
+            st.info("No availability to manage.")
+    
+    st.markdown("---")
+    # Continue with the existing bookings_df processing below this point...
+
+
+
+    
+
+
+
+    
+
+        
+
+    
+
+
+
+
+
+
+    #----------end of new calendar
     
     st.subheader("✏️ Manage Existing Booking")
     if 'edit_booking_key' not in st.session_state:
