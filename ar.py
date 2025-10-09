@@ -3480,21 +3480,21 @@ with tabs[1]:
 
     st.markdown("---")
     st.subheader("Match History")
-
+    
     # Create columns for the filters
     col1_filter, col2_filter = st.columns(2)
     with col1_filter:
         match_filter = st.radio("Filter by Type", ["All", "Singles", "Doubles"], horizontal=True, key="match_history_filter")
     with col2_filter:
         player_search = st.selectbox("Filter by Player", ["All Players"] + players, key="player_search_filter")
-
+    
     # Start with a clean copy of the matches
     filtered_matches = st.session_state.matches_df.copy()
-
+    
     # Apply type filter first
     if match_filter != "All":
         filtered_matches = filtered_matches[filtered_matches["match_type"] == match_filter]
-
+    
     # Apply player search filter on the result
     if player_search != "All Players":
         filtered_matches = filtered_matches[
@@ -3503,12 +3503,12 @@ with tabs[1]:
             (filtered_matches['team2_player1'] == player_search) |
             (filtered_matches['team2_player2'] == player_search)
         ]
-
+    
     # Robust Date Handling and Sorting
     if not filtered_matches.empty:
         # Convert date column, turning errors into NaT (Not a Time)
         filtered_matches['date'] = pd.to_datetime(filtered_matches['date'], errors='coerce')
-
+    
         # Keep only the rows with valid dates
         valid_matches = filtered_matches.dropna(subset=['date']).copy()
         
@@ -3527,7 +3527,7 @@ with tabs[1]:
             display_matches = pd.DataFrame()  # Ensure an empty dataframe if no valid dates
     else:
         display_matches = pd.DataFrame()
-
+    
     def format_match_players(row):
         verb, _ = get_match_verb_and_gda(row)
         if row["match_type"] == "Singles":
@@ -3550,20 +3550,51 @@ with tabs[1]:
                 return f"{p1_styled} & {p2_styled} {verb} {p3_styled} & {p4_styled}"
             else:  # Team 2
                 return f"{p3_styled} & {p4_styled} {verb} {p1_styled} & {p2_styled}"
-
+    
     def format_match_scores_and_date(row):
         score_parts_plain = []
+        winner = row['winner']
+        
         for s in [row['set1'], row['set2'], row['set3']]:
-            if s:
-                if "Tie Break" in s:
-                    tie_break_scores = s.replace("Tie Break", "").strip().split('-')
-                    if int(tie_break_scores[0]) > int(tie_break_scores[1]):
-                        score_parts_plain.append(f"7-6({s})")
+            if not s:
+                continue
+            s_str = str(s).strip()
+            
+            # Swap if Team 2 won (align scores with winner's perspective)
+            if winner == "Team 2" and s_str:
+                if '-' in s_str and 'Tie Break' not in s_str:
+                    try:
+                        a, b = map(int, s_str.split('-'))
+                        s_display = f"{b}-{a}"
+                    except ValueError:
+                        s_display = s_str
+                elif 'Tie Break' in s_str:
+                    nums = re.findall(r'\d+', s_str)
+                    if len(nums) == 2:
+                        a, b = int(nums[0]), int(nums[1])
+                        s_display = f"Tie Break {b}-{a}"
                     else:
-                        score_parts_plain.append(f"6-7({s})")
+                        s_display = s_str
                 else:
-                    score_parts_plain.append(s)
-
+                    s_display = s_str
+            else:
+                s_display = s_str
+            
+            # Now format s_display for display
+            if "Tie Break" in s_display:
+                tie_break_scores = s_display.replace("Tie Break", "").strip().split('-')
+                if len(tie_break_scores) == 2:
+                    try:
+                        tb1, tb2 = map(int, tie_break_scores)
+                        if tb1 > tb2:
+                            score_parts_plain.append(f"7-6({s_display})")
+                        else:
+                            score_parts_plain.append(f"6-7({s_display})")
+                    except ValueError:
+                        score_parts_plain.append(s_display)
+            else:
+                score_parts_plain.append(s_display)
+    
         score_text = ", ".join(score_parts_plain)
         _, gda = get_match_verb_and_gda(row)
         gda_text = f"GDA: {gda:.2f}"
@@ -3579,7 +3610,6 @@ with tabs[1]:
             date_str = "Invalid Date"
             
         return f"<div style='font-family: monospace; white-space: pre;'>{score_html}  |  {gda_html}<br>{date_str}</div>"
-
     
     # Updated match history loop (replace the loop in the Match History section)
     
