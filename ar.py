@@ -3775,7 +3775,8 @@ with tabs[2]:
             }
 
     # --- Player Insights ---
-    rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
+    #rank_df_combined, partner_stats_combined = calculate_rankings(st.session_state.matches_df)
+    rank_df_combined, partner_stats_combined, global_partnership_stats = calculate_rankings(st.session_state.matches_df)
     if players:
         display_player_insights(players, st.session_state.players_df, st.session_state.matches_df, rank_df_combined, partner_stats_combined, key_prefix="profile_")
     else:
