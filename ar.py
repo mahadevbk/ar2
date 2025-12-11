@@ -2788,12 +2788,11 @@ tabs = st.tabs(tab_names)
 
 
 
-
 with tabs[0]:
     load_players()
     load_matches()
-    available_players = sorted([name for name in st.session_state.players_df["name"].values if name]) if not st.session_state.players_df.empty else []
     matches = st.session_state.matches_df
+    available_players = sorted([name for name in st.session_state.players_df["name"].values if name]) if not st.session_state.players_df.empty else []
 
     st.header(f"Rankings as of {datetime.now().strftime('%d %b')}")
 
@@ -2804,7 +2803,7 @@ with tabs[0]:
         key="ranking_type_selector"
     )
 
-    # Pre-calculate all rankings once for performance
+    # Pre-calculate everything once — safe unpacking of 3 return values
     doubles_matches_df = matches[matches['match_type'] == 'Doubles'].copy()
     singles_matches_df = matches[matches['match_type'] == 'Singles'].copy()
 
@@ -2812,23 +2811,23 @@ with tabs[0]:
     rank_df_doubles, _, _ = calculate_rankings(doubles_matches_df)
     rank_df_singles, _, _ = calculate_rankings(singles_matches_df)
 
-    # Helper function remains unchanged (your original)
-    def display_ranking_card(player_data, players_df, matches_df, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=""):
-        # ... your existing display_ranking_card function (keep it exactly as is) ...
-        # (I'm not repeating it here to save space — keep your current one)
-        pass  # ← Keep your full function here
+    # ——— YOUR ORIGINAL display_ranking_card FUNCTION GOES HERE (unchanged) ———
+    # Keep your full existing function exactly as it is — do NOT delete it!
+    # It is used in Combined / Doubles / Singles views
 
-    # NEW: Dedicated Most Effective Partnerships Table
-    def display_most_effective_partnerships(global_partnership_stats):
+    # ——— NEW: Most Effective Partnerships Leaderboard (CORRECT!) ———
+    def display_most_effective_partnerships(partnership_data):
         st.markdown("### Most Effective Partnerships (Min 2 Matches)")
-        if not global_partnership_stats:
-            st.info("No doubles partnerships found.")
+
+        if not partnership_data:
+            st.info("No doubles partnerships recorded yet.")
             return
 
         rows = []
-        for (p1, p2), stats in global_partnership_stats.items():
+        for (p1, p2), stats in partnership_data.items():
             if stats['matches'] < 2:
                 continue
+
             win_rate = stats['wins'] / stats['matches']
             avg_gda = stats['total_gd'] / stats['matches']
 
@@ -2836,7 +2835,7 @@ with tabs[0]:
                 "Partnership": f"{p1} & {p2}",
                 "Matches": stats['matches'],
                 "W–L": f"{stats['wins']}–{stats['losses']}",
-                "Win %": f"{win_rate*100:.1f}%",
+                "Win %": f"{win_rate * 100:.1f}%",
                 "Total GD": f"{stats['total_gd']:+d}",
                 "Avg GDA": f"{avg_gda:+.2f}",
                 "Games": f"{stats['games_won']}–{stats['games_lost']}",
@@ -2844,7 +2843,7 @@ with tabs[0]:
             })
 
         if not rows:
-            st.info("No partnerships with 2+ matches yet.")
+            st.info("No partnership has played 2+ matches yet.")
             return
 
         df = pd.DataFrame(rows)
@@ -2864,44 +2863,52 @@ with tabs[0]:
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # === MAIN VIEWS ===
+    # ——— VIEW LOGIC ———
     if ranking_type == "Doubles":
         rank_df, partner_stats, _ = calculate_rankings(doubles_matches_df)
         if rank_df.empty:
             st.info("No doubles matches played yet.")
         else:
-            for index, row in rank_df.iterrows():
-                display_ranking_card(row, st.session_state.players_df, doubles_matches_df, {}, rank_df_doubles, rank_df_singles, key_prefix=f"doubles_{index}")
+            for idx, row in rank_df.iterrows():
+                display_ranking_card(row, st.session_state.players_df, doubles_matches_df, {}, rank_df_doubles, rank_df_singles, key_prefix=f"doubles_{idx}")
 
     elif ranking_type == "Singles":
         rank_df, partner_stats, _ = calculate_rankings(singles_matches_df)
         if rank_df.empty:
             st.info("No singles matches played yet.")
         else:
-            for index, row in rank_df.iterrows():
-                display_ranking_card(row, st.session_state.players_df, singles_matches_df, {}, rank_df_doubles, rank_df_singles, key_prefix=f"singles_{index}")
+            for idx, row in rank_df.iterrows():
+                display_ranking_card(row, st.session_state.players_df, singles_matches_df, {}, rank_df_doubles, rank_df_singles, key_prefix=f"singles_{idx}")
 
     elif ranking_type == "Nerd Stuff":
-        st.header("Stats for Season Q4 2025 (Oct - Dec)")
+        st.header("Stats for Season Q4 2025 (Oct – Dec)")
 
         # Combined table
         display_rankings_table(rank_df_combined, "Combined")
 
-        # NEW: Correct Most Effective Partnership (replaces old buggy version)
+        # CORRECT "Most Effective Partnership" — replaces your old buggy version
         st.markdown("---")
         display_most_effective_partnerships(global_partnership_stats)
 
-        # Keep all your other nerd stats (Most Frequent, Highest GD, etc.)
-        # ... your existing nerd stats code (Most Frequent Player, Highest GD, etc.) ...
-        # (You can keep everything from "Most Frequent Player" onward — it's fine)
+        # Your other nerd stats (keep everything you already have)
+        st.markdown("---")
+        st.markdown("### Most Frequent Player")
+        if not rank_df_combined.empty:
+            top = rank_df_combined.sort_values("Matches", ascending=False).iloc[0]
+            st.markdown(f"**{top['Player']}** has played the most matches: **{int(top['Matches'])}**")
 
         st.markdown("---")
-        st.markdown("### Community Activity : Last 7 Days ")
-        if 'matches_df' in st.session_state and not st.session_state.matches_df.empty:
+        st.markdown("### Highest Cumulative Game Difference")
+        if not rank_df_combined.empty:
+            top_gd = rank_df_combined.sort_values("Cumulative Game Diff", ascending=False).iloc[0]
+            st.markdown(f"**{top_gd['Player']}** leads with **+{int(top_gd['Cumulative Game Diff'])}**")
+
+        st.markdown("---")
+        st.markdown("### Community Activity: Last 7 Days")
+        if not st.session_state.matches_df.empty:
             display_community_stats(st.session_state.matches_df)
 
-        # Keep the rest: charts, head-to-head, player activity, etc.
-        # ... rest of your nerd stuff ...
+        # Head-to-Head, Player Activity, Charts, etc. — keep all your existing code below this line
 
     elif ranking_type == "Table View":
         display_rankings_table(rank_df_combined, "Combined")
@@ -2910,41 +2917,51 @@ with tabs[0]:
 
         st.markdown("---")
         st.subheader("Download Rankings as PDF")
-        if st.button("Download All Rankings", key="download_rankings_pdf"):
+        if st.button("Generate PDF Report", key="gen_pdf"):
             try:
-                pdf_data = generate_pdf_reportlab(rank_df_combined, rank_df_doubles, rank_df_singles)
+                pdf = generate_pdf_reportlab(rank_df_combined, rank_df_doubles, rank_df_singles)
                 st.download_button(
-                    label="Download PDF",
-                    data=pdf_data,
-                    file_name="AR_Tennis_League_Rankings.pdf",
-                    mime="application/pdf",
-                    key="download_pdf_button"
+                    "Download PDF",
+                    data=pdf,
+                    file_name=f"AR_Tennis_Rankings_{datetime.now().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf"
                 )
             except Exception as e:
-                st.error(f"Error generating PDF: {str(e)}")
+                st.error(f"PDF generation failed: {e}")
 
-    else:  # Combined view (default)
+    else:  # Default = Combined view
+        # Podium
         if not rank_df_combined.empty and len(rank_df_combined) >= 3:
-            top_3_players = rank_df_combined.head(3)
-            # ... your beautiful podium code (keep exactly as is) ...
-            # (I'm not repeating the long podium HTML — keep yours)
+            top3 = rank_df_combined.head(3)
+            st.markdown("""
+            <style>
+            .podium { display: flex; justify-content: center; align-items: flex-end; gap: 20px; margin: 40px 0; height: 220px; }
+            .pod { text-align: center; color: white; }
+            .pod img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #fff500; box-shadow: 0 0 20px rgba(255,245,0,0.6); object-fit: cover; }
+            .gold { font-size: 3.5em; } .silver { font-size: 2.8em; } .bronze { font-size: 2.2em; }
+            </style>
+            """, unsafe_allow_html=True)
+            p1, p2, p3 = top3.iloc[0], top3.iloc[1], top3.iloc[2]
+            podium = f"""
+            <div class="podium">
+                <div class="pod"><div class="silver">2nd</div><img src="{p2['Profile']}"><br><b>{p2['Player']}</b></div>
+                <div class="pod"><div class="gold">1st</div><img src="{p1['Profile']}"><br><b style="color:#fff500">{p1['Player']}</b></div>
+                <div class="pod"><div class="bronze">3rd</div><img src="{p3['Profile']}"><br><b>{p3['Player']}</b></div>
+            </div>
+            """
+            st.markdown(podium, unsafe_allow_html=True)
 
         if rank_df_combined.empty:
-            st.info("No matches have been recorded yet.")
+            st.info("No matches recorded yet. Add some matches to see rankings!")
         else:
-            _, partner_stats, _ = calculate_rankings(matches)  # for partner stats in cards
-            for index, row in rank_df_combined.iterrows():
-                display_ranking_card(row, st.session_state.players_df, matches, partner_stats, rank_df_doubles, rank_df_singles, key_prefix=f"combined_{index}")
-
-
-
-
-
-
-
-
-
-
+            # Partner stats for the player cards
+            _, partner_stats, _ = calculate_rankings(matches)
+            for idx, row in rank_df_combined.iterrows():
+                display_ranking_card(
+                    row, st.session_state.players_df, matches,
+                    partner_stats, rank_df_doubles, rank_df_singles,
+                    key_prefix=f"combined_{idx}"
+                )
 
 
 
