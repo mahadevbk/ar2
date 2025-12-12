@@ -32,7 +32,6 @@ import plotly.express as px # added for animated chart
 import random
 from fpdf import FPDF
 import zipfile
-import io
 from datetime import datetime
 import urllib.parse
 import requests
@@ -563,10 +562,11 @@ def delete_match_from_db(match_id):
 
 
 
-# NEW FUNCTION: Replacing old upload_image_to_supabase function with this one.
 def upload_image_to_github(file, file_name, image_type="match"):
     """
     Uploads a file to a specified folder in a GitHub repository and returns its public URL.
+    Handles both new uploads and updates by fetching sha if the file exists.
+    Resizes match images proportionally to a maximum dimension of 1200 pixels before uploading.
     """
     if not file:
         return ""
@@ -582,18 +582,43 @@ def upload_image_to_github(file, file_name, image_type="match"):
 
     # --- Determine the path in the repository ---
     if image_type == "profile":
-        # For profiles, the file_name already contains the unique part
-        path_in_repo = f"assets/players/{file_name}.jpg"
+        path_in_repo = f"assets/profile_images/{file_name}.jpg"
     elif image_type == "match":
-        # For matches, file_name is the match_id
-        path_in_repo = f"assets/matches/{file_name}.jpg"
+        path_in_repo = f"assets/match_images/{file_name}.jpg"
     elif image_type == "booking":
-        # For bookings, file_name is the booking_id
-        path_in_repo = f"assets/bookings/{file_name}.jpg"
+        path_in_repo = f"assets/bookings_images/{file_name}.jpg"
     else:
         path_in_repo = f"assets/others/{file_name}.jpg"
 
-    # --- Prepare the file and API request ---
+    # --- Prepare the file content ---
+    content_bytes = file.getvalue()
+
+    # Resize if it's a match image and exceeds 1200px on the longer side
+    if image_type == "match":
+        try:
+            img = Image.open(io.BytesIO(content_bytes))
+            if img.width > 1200 or img.height > 1200:
+                if img.width > img.height:
+                    new_width = 1200
+                    new_height = int((1200 / img.width) * img.height)
+                else:
+                    new_height = 1200
+                    new_width = int((1200 / img.height) * img.width)
+                img = img.resize((new_width, new_height), Image.LANCZOS)
+                
+                buffer = io.BytesIO()
+                # Preserve original format if possible, default to JPEG
+                format = img.format or "JPEG"
+                save_kwargs = {"quality": 85} if format.upper() in ["JPEG", "JPG"] else {}
+                img.save(buffer, format=format, **save_kwargs)
+                content_bytes = buffer.getvalue()
+        except Exception as e:
+            st.warning(f"Failed to resize match image '{file_name}': {str(e)}. Uploading original.")
+
+    # --- Base64 encode the (possibly resized) content ---
+    content_base64 = base64.b64encode(content_bytes).decode("utf-8")
+
+    # --- Prepare the API URL and headers ---
     api_url = f"https://api.github.com/repos/{repo_full_name}/contents/{path_in_repo}"
 
     headers = {
@@ -601,29 +626,36 @@ def upload_image_to_github(file, file_name, image_type="match"):
         "Accept": "application/vnd.github.v3+json",
     }
 
-    # Read file content and encode it in base64
-    content_bytes = file.getvalue()
-    content_base64 = base64.b64encode(content_bytes).decode("utf-8")
+    # --- Check if the file exists and get sha (for updates) ---
+    sha = None
+    get_response = requests.get(api_url, headers=headers)
+    if get_response.status_code == 200:
+        sha = get_response.json().get('sha')
+        st.info(f"File {path_in_repo} already exists. Updating with sha: {sha}")
+    elif get_response.status_code == 404:
+        st.info(f"File {path_in_repo} does not exist. Creating new file.")
+    else:
+        st.error(f"GitHub GET Error: Status {get_response.status_code}. Response: {get_response.text}")
+        return ""
 
     payload = {
         "message": f"feat: Upload {image_type} image {file_name}",
         "branch": branch,
         "content": content_base64,
     }
+    if sha:
+        payload["sha"] = sha  # Include sha only for updates
 
-    # --- Make the API call to upload the file ---
+    # --- Make the API call to upload/update the file ---
     try:
         response = requests.put(api_url, headers=headers, json=payload)
-        response.raise_for_status() # Raises an exception for bad status codes (4xx or 5xx)
-
-        # If successful, construct the public raw URL
-        st.success(f"Image '{file_name}.jpg' uploaded to GitHub successfully!")
+        response.raise_for_status()  # Raises exception for bad status codes
+        st.success(f"Image '{file_name}.jpg' uploaded/updated to GitHub successfully!")
         return f"https://raw.githubusercontent.com/{repo_full_name}/{branch}/{path_in_repo}"
-
     except requests.exceptions.HTTPError as e:
-        st.error(f"GitHub API Error: Failed to upload image. Status Code: {e.response.status_code}")
+        st.error(f"GitHub API Error: Failed to upload/update image. Status Code: {e.response.status_code}")
         st.error(f"Response: {e.response.text}")
-        return "" # Return empty string on failure
+        return ""
     except Exception as e:
         st.error(f"An unexpected error occurred during image upload: {str(e)}")
         return ""
